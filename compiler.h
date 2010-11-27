@@ -46,7 +46,6 @@
 /** Flag an argument as unused */
 #define UNUSED(x) __attribute__((unused)) x
 
-
 /** Compute the number of entries in a static array */
 #define COUNT(x)	(sizeof(x)/sizeof((x)[0]))
 

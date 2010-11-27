@@ -676,5 +676,4 @@ free_dma_memory(
 	const void *		len
 );
 
-
 #endif
