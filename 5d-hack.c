@@ -88,7 +88,7 @@ copy_and_restart( int offset )
 	 * return to our code before calling cstart().
 	 * This should be a "BL cstart" instruction.
 	 */
-	INSTR( 0xFF01019C ) = RET_INSTR;
+	INSTR( 0xFF012AE8 ) = RET_INSTR;
 
 
 	/*
@@ -97,14 +97,14 @@ copy_and_restart( int offset )
 	 * create_init_task
 	 */
 	// Reserve memory after the BSS for our application
-	INSTR( 0xFF01109C ) = (uintptr_t) _bss_end;
+	INSTR( 0xFF01093C ) = (uintptr_t) _bss_end;
 
 	// Fix the calls to bzero32() and create_init_task()
-	FIXUP_BRANCH( 0xFF011004, bzero32 );
-	FIXUP_BRANCH( 0xFF01108C, create_init_task );
+	FIXUP_BRANCH( 0xFF0108A4, bzero32 );
+	FIXUP_BRANCH( 0xFF01092C, create_init_task );
 
 	// Set our init task to run instead of the firmware one
-	INSTR( 0xFF0110A8 ) = (uint32_t) my_init_task;
+	INSTR( 0xFF010948 ) = (uint32_t) my_init_task;
 
 	// Make sure that our self-modifying code clears the cache
 	clean_d_cache();
@@ -172,12 +172,13 @@ my_task_dispatch_hook(
 	if( !context )
 		return;
 
-	// Do nothing unless a new task is starting via the trampoile
-	if( (*context)->pc != (uint32_t) task_trampoline )
-		return;
-
 	// Determine the task address
-	struct task * const task = *(struct task**) 0x1a20;
+	struct task * task = (struct task*)
+		( ((uint32_t)context) - offsetof(struct task, context) );
+
+	// Do nothing unless a new task is starting via the trampoile
+	if( task->context->pc != (uint32_t) task_trampoline )
+		return;
 
 	thunk entry = (thunk) task->entry;
 
@@ -305,24 +306,44 @@ my_init_task(void)
 
 #ifndef CONFIG_EARLY_PORT
 
-	msleep( 1500 );
+	msleep( 750 );
 
 	menu_init();
 	debug_init();
 
-	msleep( 1000 );
+	msleep( 500 );
 
+	// Parse our config file
+	const char * config_filename = "B:/magiclantern.cfg";
+	global_config = config_parse_file( config_filename );
 	bmp_printf( FONT_MED, 0, 40,
-		"Magic Lantern v.%s (%s)\n"
+		"Magic Lantern version %s (%s)\n"
 		"Built on %s by %s\n",
 		build_version,
 		build_id,
 		build_date,
 		build_user
 	);
+	bmp_printf( FONT_MED, 0, 70,
+		"Config file %s: %s",
+		config_filename,
+		global_config ? "YES" : "NO"
+	);
+/*
+	msleep( 500 );
+	bmp_printf( FONT(FONT_HUGE,COLOR_YELLOW,COLOR_BLUE),
+		80, 80,
+		" Magic \nLantern\n %s ",
+		build_version
+	);
+	msleep( 2000 );
+	bmp_fill(0, 80, 80, 7*60, 3 *70);
+*/
 
-	//~ return;
 	init_funcs_done = 0;
+	//task_create( "init_func", 0x1f, 0x1000, call_init_funcs, 0 );
+	//while( !init_funcs_done )
+		//msleep(10);
 	call_init_funcs( 0 );
 
 	msleep( 1000 );
@@ -332,16 +353,15 @@ my_init_task(void)
 	extern struct task_create _tasks_end[];
 	struct task_create * task = _tasks_start;
 
-	int ml_tasks = 0;
 	for( ; task < _tasks_end ; task++ )
 	{
-		//~ DebugMsg( DM_MAGIC, 3,
-			//~ "Creating task %s(%d) pri=%02x flags=%08x",
-			//~ task->name,
-			//~ task->arg,
-			//~ task->priority,
-			//~ task->flags
-		//~ );
+		DebugMsg( DM_MAGIC, 3,
+			"Creating task %s(%d) pri=%02x flags=%08x",
+			task->name,
+			task->arg,
+			task->priority,
+			task->flags
+		);
 
 		task_create(
 			task->name,
@@ -350,13 +370,8 @@ my_init_task(void)
 			task->entry,
 			task->arg
 		);
-		ml_tasks++;
 	}
-	bmp_printf( FONT_MED, 0, 85,
-		"Magic Lantern is up and running... %d tasks started.",
-		ml_tasks
-	);
 
-	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
 }

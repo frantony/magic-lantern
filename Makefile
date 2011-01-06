@@ -8,34 +8,7 @@ RANLIB=$(ARM_BINPATH)/arm-elf-ranlib
 LD=$(CC)
 HOST_CC=gcc
 HOST_CFLAGS=-g -O3 -W -Wall
-
-# Naming convention for Magic Lantern builds:
-# General rules:
-# - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
-# - For non-release builds, specify the build date and author's (nick)name.
-# - For experimental builds, add a short keyword indicating the particular feature tested.
-
-# Examples for experimental builds:
-# magiclantern-2010dec07.550d.fw108.cropmarks.a1ex.zip 
-# magiclantern-2010nov23.550d.fw108.selectable-audio.piers.zip 
-
-# Example for pre-release builds:
-# magiclantern-2010dec17.550d.fw109.PRERELEASE.alex.zip
-
-# Release builds:
-# magiclantern-0.2.0.rc1.550d.fw109.zip
-#~ VERSION=0.2.0.rc1.550d.fw109
-
-BUILDVER=hdrfix+movielog.$(shell whoami)
-VERSION:=$(shell date +'%Y%b%d').550d.fw109.$(BUILDVER)
-
-#MacOS
-#UMOUNT=hdiutil unmount
-#CF_CARD="/Volumes/EOS_DIGITAL"
-
-#Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DIGITAL/
-UMOUNT=umount
+VERSION=0.1.9
 
 all: magiclantern.fir
 
@@ -54,8 +27,7 @@ RESTARTSTART		= 0x0008B000
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
 FIRMWARE_ID_7D		= 0x80000250
-FIRMWARE_ID_550D	= 0x80000270
-FIRMWARE_ID		= $(FIRMWARE_ID_550D)
+FIRMWARE_ID		= $(FIRMWARE_ID_5D)
 
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
@@ -73,37 +45,28 @@ ifeq ($(CONFIG_LUA),y)
 include $(LUA_PATH)/Makefile
 endif
 
+CF_CARD="/Volumes/EOS_DIGITAL"
 
 #
 # Install a normal firmware file to the CF card.
 #
-install: autoexec.bin magic.cfg
+install: magiclantern.fir magiclantern.cfg cropmarks.bmp autoexec.bin
 	cp $^ $(CF_CARD)
-	$(UMOUNT) $(CF_CARD)
+	hdiutil unmount $(CF_CARD)
 
 zip: magiclantern-$(VERSION).zip
-
-%.pdf: 
-	cp doc/*.pdf .
-%.bmp: 
-	cp vram/*.bmp .
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
 	zip.txt \
 	magiclantern.fir \
+	magiclantern.cfg \
+	cropmarks.bmp \
 	autoexec.bin \
 	README \
-	INSTALL.pdf \
-	UserGuide.pdf \
-	hd_ta.bmp\
-	CineScop.bmp\
-	fish8r.bmp\
-	magic.cfg\
-	make_bootable.sh
+	COPYING \
 
 	-rm $@
-	chmod -x autoexec.bin
 	zip -z $@ < $^
 
 
@@ -196,9 +159,10 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	5d-hack.o \
-	stubs-550d.109.o \
+	stubs-500d.110.o \
 	version.o \
 	bmp.o \
+	font-huge.o \
 	font-large.o \
 	font-med.o \
 	font-small.o \
@@ -211,16 +175,14 @@ ML_OBJS-y = \
 	property.o \
 	gui.o \
 	bootflags.o \
-	zebra.o \
-	shoot.o \
-	focus.o \
+	hotplug.o \
 
 NO=\
-	font-huge.o \
-	hotplug.o \
-	bracket.o \
-	ptp.o \
+	zebra.o \
+	focus.o \
 	spotmeter.o \
+	ptp.o \
+	bracket.o \
 
 ML_OBJS-$(CONFIG_PYMITE) += \
 	script.o \
@@ -278,6 +240,28 @@ magiclantern: $(ML_OBJS-y) libstdio.a
 		-lgcc \
 	)
 
+# These do not need to be run.  Since bigtext is not
+# a standard program, the output files are checked in.
+font-huge.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'-*-helvetica-*-r-*-*-72-*-100-100-*-*-iso8859-*' \
+		40 66 \
+	)
+font-large.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*' \
+		19 25 \
+	)
+font-med.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'-*-helvetica-*-r-*-*-17-*-100-100-*-*-iso8859-*' \
+		10 16 \
+	)
+font-small.in: generate-font
+	$(call build,'GENFONT',./$< > $@ \
+		'-*-helvetica-*-r-*-*-10-*-100-100-*-*-iso8859-*' \
+		6 8 \
+	)
 
 font-huge.c: font-huge.in mkfont
 	$(call build,MKFONT,./mkfont \
@@ -336,14 +320,15 @@ autoexec: reboot.o
 
 %-stubs.S: %.map
 	perl -ne > $@ < $< '\
-		BEGIN { print "#define SYM(a,n) n=a; .global n;\n" }\
+		BEGIN { print "#define SYM(a,n) n=a; .global n;\n" } \
 		s/[\r\n]//g; \
-		s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/\
-			and print;'
+		s/^\s*0001:([0-9A-Fa-f]+)\s+([^\s]+)$$/SYM(0x\1,\2)\n/ \
+			and print; \
+	'
 
 
 %.dis: %.bin
-	$(ARM_BINPATH)/arm-linux-objdump \
+	$(ARM_PATH)/arm-linux-objdump \
 		-b binary \
 		-m arm \
 		-D \
@@ -424,11 +409,11 @@ magiclantern-5d.fir: autoexec.bin
 	)
 
 #
-# Replace the start of the 550d firmware file with our own image
+# Replace the start of the 500d firmware file with our own image
 # We don't want to distribute any Canon code, so we replace the
 # unencrypted flasher file with a zero-padded version.
 #
-550d-flasher.bin: autoexec.bin
+500d-flasher.bin: autoexec.bin
 	#cp ../1.0.8/0270_108_updaters.bin $@
 	dd of=$@ if=/dev/zero bs=1829408 count=1
 	dd \
@@ -436,18 +421,15 @@ magiclantern-5d.fir: autoexec.bin
 		if=$< \
 		bs=1 \
 		conv=notrunc \
-		seek=0 \
+		oseek=0 \
 
-550d-empty.fir: 550d-empty.hdr
-	( cat $< ; \
-	dd if=/dev/zero bs=9538232 count=1 \
-	) > $@
-
-magiclantern.fir: autoexec.bin
-	@if [ -f ../dumper/build_fir.py ]; then \
-		python ../dumper/build_fir.py -r $^ $@ ; \
+magiclantern.fir: 500d-empty.fir 500d-flasher.bin 
+	@if [ -f ../dumper/enc_upd550.py ]; then \
+		../dumper/enc_upd550.py \
+			$^ \
+			$@ ; \
 	else \
-		echo "\nNotice: ../dumper/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
+		echo "\n../dumper/enc_upd550.py not found; will not build magiclantern.fir."; \
 		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
 		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir from http://magiclantern.wikia.com/wiki/550D";\
 		echo "";\
@@ -504,7 +486,7 @@ pymite-nat.c pymite-img.c: $(SCRIPTS)
 
 # Quiet the build process
 build = \
-	@if [ X"$V" = X"1" ]; then \
+	@if [ "$V" == 1 ]; then \
 		echo '$2'; \
 	else \
 		printf "[ %-8s ]   %s\n"  $1 $@; \
@@ -521,7 +503,5 @@ clean:
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
-		*.pdf \
-		*.bmp \
 
 -include .*.d
