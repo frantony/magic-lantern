@@ -240,28 +240,28 @@ void* get_fastrefresh_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
-		case 0x40d07800:
-			return 0x4c233800;
-		case 0x4c233800:
-			return 0x4f11d800;
-		case 0x4f11d800:
-			return 0x40d07800;
+		case YUV422_LV_BUFFER:
+			return YUV422_LV_BUFFER_2;
+		case YUV422_LV_BUFFER_2:
+			return YUV422_LV_BUFFER_3;
+		case YUV422_LV_BUFFER_3:
+			return YUV422_LV_BUFFER;
 	}
-	return 0;
+	return YUV422_LV_BUFFER; // fall back to default
 }
 
 void* get_write_422_buf()
 {
 	switch (YUV422_LV_BUFFER_DMA_ADDR)
 	{
-		case 0x40d07800:
-			return 0x40d07800;
-		case 0x4c233800:
-			return 0x4c233800;
-		case 0x4f11d800:
-			return 0x4f11d800;
+		case YUV422_LV_BUFFER:
+			return YUV422_LV_BUFFER;
+		case YUV422_LV_BUFFER_2:
+			return YUV422_LV_BUFFER_2;
+		case YUV422_LV_BUFFER_3:
+			return YUV422_LV_BUFFER_3;
 	}
-	return 0;
+	return YUV422_LV_BUFFER; // fall back to default
 }
 
 struct vram_info * get_yuv422_vram()
@@ -815,7 +815,39 @@ static void dump_vram()
 {
 	//dump_big_seg(1, "B:/1.bin");
 	//dump_big_seg(4, "B:/4.bin");
-	//~ dump_seg(0x44000080, 1920*1080*2, "B:/hd.bin");
+	dump_seg(0x1000, 0x100000, "B:/ram.bin");
+/*	dump_seg(0x40000000, 0x1000000, "B:/0.bin");
+	dump_seg(0x41000000, 0x1000000, "B:/1.bin");
+	dump_seg(0x42000000, 0x1000000, "B:/2.bin");
+	dump_seg(0x43000000, 0x1000000, "B:/3.bin");
+	dump_seg(0x44000000, 0x1000000, "B:/4.bin");
+	dump_seg(0x45000000, 0x1000000, "B:/5.bin");
+	dump_seg(0x46000000, 0x1000000, "B:/6.bin");
+	dump_seg(0x47000000, 0x1000000, "B:/7.bin");
+	dump_seg(0x48000000, 0x1000000, "B:/8.bin");
+	dump_seg(0x49000000, 0x1000000, "B:/9.bin");
+	dump_seg(0x4A000000, 0x1000000, "B:/A.bin");
+	dump_seg(0x4B000000, 0x1000000, "B:/B.bin");
+	dump_seg(0x4C000000, 0x1000000, "B:/C.bin");
+	dump_seg(0x4D000000, 0x1000000, "B:/D.bin");
+	dump_seg(0x4E000000, 0x1000000, "B:/E.bin");
+	dump_seg(0x4F000000, 0x1000000, "B:/F.bin");
+	dump_seg(0x50000000, 0x1000000, "B:/10.bin");
+	dump_seg(0x51000000, 0x1000000, "B:/11.bin");
+	dump_seg(0x52000000, 0x1000000, "B:/12.bin");
+	dump_seg(0x53000000, 0x1000000, "B:/13.bin");
+	dump_seg(0x54000000, 0x1000000, "B:/14.bin");
+	dump_seg(0x55000000, 0x1000000, "B:/15.bin");
+	dump_seg(0x56000000, 0x1000000, "B:/16.bin");
+	dump_seg(0x57000000, 0x1000000, "B:/17.bin");
+	dump_seg(0x58000000, 0x1000000, "B:/18.bin");
+	dump_seg(0x59000000, 0x1000000, "B:/19.bin");
+	dump_seg(0x5A000000, 0x1000000, "B:/1A.bin");
+	dump_seg(0x5B000000, 0x1000000, "B:/1B.bin");
+	dump_seg(0x5C000000, 0x1000000, "B:/1C.bin");
+	dump_seg(0x5D000000, 0x1000000, "B:/1D.bin");
+	dump_seg(0x5E000000, 0x1000000, "B:/1E.bin");
+	dump_seg(0x5F000000, 0x1000000, "B:/1F.bin");*/
 	//~ dump_seg(YUV422_IMAGE_BUFFER, 1920*1080*2, "B:/VRAM.BIN");
 }
 
@@ -2288,11 +2320,11 @@ struct menu_entry zebra_menus[] = {
 		//~ .display = menu_print, 
 		//~ .select = hdmi_test_toggle,
 	//~ }
-		//~ {
-		//~ .priv = "[debug] dump vram", 
-		//~ .display = menu_print, 
-		//~ .select = dump_vram,
-	//~ }
+	/*	{
+		 .priv = "[debug] dump vram", 
+		 .display = menu_print, 
+		 .select = dump_vram,
+	 }*/
 	//~ {
 		//~ .priv		= &edge_draw,
 		//~ .select		= menu_binary_toggle,
