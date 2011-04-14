@@ -1179,6 +1179,7 @@ static void max_auto_iso_toggle(void* priv)
 
 static uint32_t* dbg_memmirror = 0;
 static uint32_t* dbg_memchanges = 0;
+static int dbg_memspy_hasinit = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
@@ -1200,6 +1201,7 @@ static void dbg_memspy_init() // initial state of the analyzed memory
 		crc += dbg_memmirror[i];
 		//~ bmp_printf(FONT_MED, 10,10, "memspy: %8x => %8x ", addr, dbg_memmirror[i]);
 	}
+	dbg_memspy_hasinit = 1;
 	//~ bmp_printf(FONT_MED, 10,10, "memspy OK: %x", crc);
 }
 static void dbg_memspy_update()
@@ -1309,7 +1311,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		}
 	}
 	
-	dbg_memspy_init();
+	//dbg_memspy_init();
 	int k;
 	for (k = 0; ; k++)
 	{
@@ -1461,6 +1463,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		}
 		else if (mem_spy)
 		{
+			if (!dbg_memspy_hasinit) dbg_memspy_init();
 			dbg_memspy_update();
 		}
 		

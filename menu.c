@@ -529,7 +529,6 @@ menu_handler(
 	for( ; menu ; menu = menu->next )
 		if( menu->selected )
 			break;
-
 	switch( event )
 	{
 	case INITIALIZE_CONTROLLER:

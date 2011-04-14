@@ -40,7 +40,7 @@ config_parse_line(
 {
 	int name_len = 0;
 	int value_len = 0;
-	struct config *		cfg = AllocateMemory( sizeof(struct config) + 32 );
+	struct config *		cfg = AllocateMemory( sizeof(struct config)  );
 	if( !cfg )
 		goto malloc_error;
 

@@ -146,7 +146,7 @@ static int handle_buttons(struct event * event)
 		if (event->type == 0)
 		{
 			kev++;
-			bmp_printf(FONT_SMALL, 0, 460, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
+			bmp_printf(FONT_SMALL, 0, 400, "Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x", 
 				kev,
 				event->type, 
 				event->param, 
