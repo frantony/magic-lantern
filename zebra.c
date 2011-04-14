@@ -52,16 +52,16 @@ CONFIG_INT("disp.mode.xxx", disp_mode_x,   0x5c50);
 int disp_mode_change_request = 0;
 void schedule_disp_mode_change() { disp_mode_change_request = 1; }
 
-CONFIG_INT( "global.draw", global_draw, 1 );
-CONFIG_INT( "zebra.draw",	zebra_draw,	2 );
+CONFIG_INT( "global.draw", 	global_draw, 0 );
+CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
 CONFIG_INT( "zebra.level-hi",	zebra_level_hi,	245 );
 CONFIG_INT( "zebra.level-lo",	zebra_level_lo,	10 );
 CONFIG_INT( "zebra.delay",	zebra_delay,	1000 );
-CONFIG_INT( "crop.draw",	crop_draw,	1 ); // index of crop file
+CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
-CONFIG_INT( "falsecolor.draw", falsecolor_draw, 2);
-CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 2);
+CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
+CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
 CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
 int get_zoom_overlay_mode() { return zoom_overlay_mode; }
@@ -79,7 +79,7 @@ CONFIG_INT( "focus.peaking.color", focus_peaking_color, 7); // R,G,B,C,M,Y,cc1,c
 //~ int get_crop_black_border() { return crop_black_border; }
 
 //~ CONFIG_INT( "edge.draw",	edge_draw,	0 );
-CONFIG_INT( "hist.draw",	hist_draw,	1 );
+CONFIG_INT( "hist.draw",	hist_draw,	0 );
 CONFIG_INT( "hist.x",		hist_x,		720 - hist_width - 4 );
 CONFIG_INT( "hist.y",		hist_y,		100 );
 CONFIG_INT( "waveform.draw",	waveform_draw,	0 );
