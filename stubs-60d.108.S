@@ -46,10 +46,10 @@ NSTUB( 0xff0193ac, init_task ) // passed as arg to create_init_task, look for dm
 NSTUB( 0xff017b54, create_init_task ) 
 
 
-// Fake from 550d
-NILSTUB( 0xFF1CB510, FIO_FindFirstEx )
-NILSTUB( 0xFF1CB604, FIO_FindNextEx )
+NSTUB( 0xFF1CB510, FIO_FindFirstEx )
+NSTUB( 0xFF1CB604, FIO_FindNextEx )
 
+// Fake from 550d
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
 
