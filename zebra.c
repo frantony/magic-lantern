@@ -926,6 +926,11 @@ static int zebra_color_word_row(int c, int y)
 	return cw;
 }
 
+
+static int* dirty_pixels = 0;
+static int dirty_pixels_num = 0;
+static int very_dirty = 0;
+
 // thresholded edge detection
 static void draw_zebra_and_focus_unified( void )
 {
@@ -951,11 +956,8 @@ static void draw_zebra_and_focus_unified( void )
 	if (focus_peaking || zd) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
-  		static int* dirty_pixels = 0;
-  		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
+		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
   		if (!dirty_pixels) return;
-  		static int dirty_pixels_num = 0;
-  		static int very_dirty = 0;
   		bmp_ov_loc_size_t os;
   		calc_ov_loc_size(&os);
   		struct vram_info * _vram;
@@ -1203,11 +1205,8 @@ draw_zebra_and_focus( void )
 	{
 		// clear previously written pixels
 		#define MAX_DIRTY_PIXELS 5000
-  		static int* dirty_pixels = 0;
   		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
   		if (!dirty_pixels) return;
-		static int dirty_pixels_num = 0;
-		static int very_dirty = 0;
 		int i;
 		for (i = 0; i < dirty_pixels_num; i++)
 		{
