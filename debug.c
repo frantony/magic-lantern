@@ -1928,7 +1928,7 @@ end:
 }
 
 
-//TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
+TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
 //~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
 //~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );
