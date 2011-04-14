@@ -752,11 +752,11 @@ about_print_0(
 	if (!selected) return;
 	bmp_printf(FONT_LARGE,
 		x, y,
-		"Magic Lantern for 550D"
+		"Magic Lantern for 60D"
 	);
 	bmp_printf(FONT_MED,
 		x, y + font_large.height,
-"http://magiclantern.wikia.com/550D");
+"http://magiclantern.wikia.com/60D");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 1 + 5,
@@ -792,11 +792,11 @@ about_print(
 	if (!selected) return;
 	bmp_printf(FONT_LARGE,
 		x, y,
-		"Magic Lantern for 550D"
+		"Magic Lantern for 60D"
 	);
 	bmp_printf(FONT_MED,
 		x, y + font_large.height,
-"http://magiclantern.wikia.com/550D");
+"http://magiclantern.wikia.com/60D");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 1 + 5,
@@ -804,7 +804,7 @@ about_print(
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 2 + 10,
-"Crypto tools and 550D/1.0.9 port by Arm.Indy");
+"Crypto tools and 60D/1.0.8 port by Arm.Indy");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 3 + 15,
@@ -813,7 +813,7 @@ about_print(
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 4 + 20,
 "Patches by piersg, nandoide, stefano, trho,\n"
-"      deti, tapani, phil");
+"      deti, tapani, phil, xaos, sztupy");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 6 + 25,

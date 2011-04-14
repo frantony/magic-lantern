@@ -27,7 +27,7 @@
 #include "property.h"
 #include "bmp.h"
 #include "config.h"
-#include "consts-550d.109.h"
+#include "consts-60d.108.h"
 #include "lens.h"
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
@@ -55,11 +55,12 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 
 struct semaphore * gui_sem;
 
+
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
 	uint32_t		counter;	// off_0x04;
 	uint32_t		off_0x08;
-	uint32_t		off_0x0c;
+	uint32_t		counter_60d;    //off_0x0c;
 	uint32_t		off_0x10;
 	uint32_t		off_0x14;
 	uint32_t		off_0x18;
@@ -68,7 +69,7 @@ struct gui_main_struct {
 	uint32_t		off_0x24;
 	uint32_t		off_0x28;
 	uint32_t		off_0x2c;
-	uint32_t		off_0x30;
+	struct msg_queue *	msg_queue_60d;	// off_0x30;
 	struct msg_queue *	msg_queue;	// off_0x34;
 	struct msg_queue *	msg_queue_550d;	// off_0x38;
 	uint32_t		off_0x3c;
@@ -435,7 +436,7 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-static void gui_main_task_550d()
+static void gui_main_task_60d()
 {
 	struct event * event = NULL;
 	int index = 0;
@@ -444,8 +445,8 @@ static void gui_main_task_550d()
 	gui_init_end();
 	while(1)
 	{
-		msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
-		gui_main_struct.counter--;
+		msg_queue_receive(gui_main_struct.msg_queue_60d, &event, 0);
+		gui_main_struct.counter_60d--;
 		if (event == NULL) continue;
 		index = event->type;
 		if ((index >= GMT_NFUNCS) || (index < 0))
@@ -460,4 +461,4 @@ static void gui_main_task_550d()
 
 // 5D2 has a different version for gui_main_task
 
-TASK_OVERRIDE( gui_main_task, gui_main_task_550d );
+TASK_OVERRIDE( gui_main_task, gui_main_task_60d );

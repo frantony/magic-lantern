@@ -6,7 +6,7 @@
 #define HIJACK_TASK_ADDR 0x1a2c
 
 // 720x480, changes when external monitor is connected
-#define YUV422_LV_BUFFER 0x40D07800 
+#define YUV422_LV_BUFFER 0x41B07800
 #define YUV422_LV_PITCH 1440
 #define YUV422_LV_PITCH_RCA 1080
 #define YUV422_LV_PITCH_HDMI 3840
@@ -16,9 +16,8 @@
 
 #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x246c)
 
-
 // changes during record
-#define YUV422_HD_BUFFER 0x44000080
+#define YUV422_HD_BUFFER 0x46000080
 #define YUV422_HD_BUFFER_2 0x46000080
 
 #define YUV422_HD_PITCH_IDLE 2112
@@ -37,15 +36,15 @@
 #define YUV422_HD_PITCH_REC_480P 1280
 #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION (*(int*)0x41d0)
+#define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // only used to show trap focus status
-//~ #define DISPLAY_SENSOR (*(int*)0x2dec)
-//~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
+#define DISPLAY_SENSOR 0x2dec
+#define DISPLAY_SENSOR_MAYBE 0xC0220104
 #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
 
 // for gui_main_task
-#define GMT_NFUNCS 8
-#define GMT_FUNCTABLE 0xFF453E14
+#define GMT_NFUNCS 7
+#define GMT_FUNCTABLE 0xFF53DA40
 
 // button codes as received by gui_main_task
 #define BGMT_PRESS_LEFT 0x1c
@@ -60,20 +59,15 @@
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
 
-#define BGMT_TRASH 0xA
+#define BGMT_TRASH 0xC
 #define BGMT_MENU 6
 #define BGMT_DISP 7
 #define BGMT_Q 8
 #define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 9
 
-#define BGMT_PRESS_HALFSHUTTER 0x3F
-#define BGMT_UNPRESS_HALFSHUTTER 0x40
-#define BGMT_PRESS_FULLSHUTTER 0x41    // can't return 0 to block this...
-#define BGMT_UNPRESS_FULLSHUTTER 0x42
-
-#define BGMT_LV 0x18
-
+#define BGMT_PRESS_HALFSHUTTER 0x41
+#define BGMT_UNPRESS_HALFSHUTTER 0x42
 
 // these are not sent always
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
@@ -89,6 +83,7 @@
 #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
+// not yet tested
 #define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))

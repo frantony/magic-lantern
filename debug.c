@@ -179,11 +179,13 @@ af_frame_autohide_display(
 
 int afframe_countdown = 0;
 
+
 PROP_HANDLER(PROP_LV_AFFRAME)
 {
 	afframe_countdown = 50;
 	return prop_cleanup(token, property);
 }
+
 
 PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 
@@ -580,6 +582,7 @@ int get_lv_focus_confirmation()
 
 volatile int focus_done = 0;
 volatile uint32_t focus_done_raw = 0;
+
 PROP_HANDLER(PROP_LV_FOCUS_DONE)
 {
 	focus_done_raw = buf[0];
@@ -588,12 +591,14 @@ PROP_HANDLER(PROP_LV_FOCUS_DONE)
 }
 
 int mode_remap_done = 0;
+
 PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	shooting_mode = buf[0];
 	mode_remap_done = 0;
 	return prop_cleanup(token, property);
 }
+
 
 static int vmax(int* x, int n)
 {
@@ -617,6 +622,7 @@ int movie_af_active()
 
 static int hsp = 0;
 int movie_af_reverse_dir_request = 0;
+
 PROP_HANDLER(PROP_HALF_SHUTTER)
 {
 	if (buf[0] && !hsp) movie_af_reverse_dir_request = 1;
@@ -632,6 +638,7 @@ PROP_HANDLER(PROP_HALF_SHUTTER)
 	
 	return prop_cleanup(token, property);
 }
+
 
 static void movie_af_step(int mag)
 {
@@ -786,6 +793,7 @@ static void plot_focus_mag(int mag)
 int focus_mag_a = 0;
 int focus_mag_b = 0;
 int focus_mag_c = 0;
+
 PROP_HANDLER(PROP_LV_FOCUS_DATA)
 {
 	focus_mag_a = buf[2];
@@ -800,6 +808,7 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
 	}
 	return prop_cleanup(token, property);
 }
+
 
 static void
 movie_af_print(
@@ -1919,7 +1928,7 @@ end:
 }
 
 
-TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
+//TASK_CREATE( "dump_task", dump_task, 0, 0x1e, 0x1000 );
 //~ TASK_CREATE( "debug_loop_task", debug_loop_task, 0, 0x1f, 0x1000 );
 
 //~ CONFIG_INT( "debug.timed-start",	timed_start, 0 );

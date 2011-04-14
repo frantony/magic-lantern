@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=LCD-sensor-option.$(shell whoami)
+BUILDVER=merged.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -43,7 +43,7 @@ UMOUNT=umount
 
 all: magiclantern.fir
 
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').550d.fw109.$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').60d.fw108.$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -55,7 +55,8 @@ RESTARTSTART		= 0x0008B000
 FIRMWARE_ID_5D		= 0x80000218
 FIRMWARE_ID_7D		= 0x80000250
 FIRMWARE_ID_550D	= 0x80000270
-FIRMWARE_ID		= $(FIRMWARE_ID_550D)
+FIRMWARE_ID_60D 	= 0x80000270
+FIRMWARE_ID		= $(FIRMWARE_ID_60D)
 
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
@@ -201,8 +202,8 @@ magiclantern.lds: magiclantern.lds.S
 ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
-	5d-hack.o \
-	stubs-550d.109.o \
+	60d-hack.o \
+	stubs-60d.108.o \
 	version.o \
 	bmp.o \
 	font-large.o \
