@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=merged.$(shell whoami)
+BUILDVER=alpha.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -122,7 +122,7 @@ FLAGS=\
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_550D=1 \
+	-DCONFIG_60D=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \

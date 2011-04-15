@@ -16,7 +16,7 @@ c = open("CONFIG.txt").readlines()[2:];
 
 o = open("userguide.rst", "w")
 print >> o, """
-'''Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9'''
+'''Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8'''
 
 '''User's Guide'''
 """
@@ -30,7 +30,7 @@ os.system("pandoc -f rst -t mediawiki -o userguide.wiki userguide.rst")
 
 
 o = open("userguide.rst", "w")
-print >> o, """Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9 -- User's Guide
+print >> o, """Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8 -- User's Guide
 ===========================================================================
 
 """

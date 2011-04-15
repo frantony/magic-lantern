@@ -1,4 +1,4 @@
-Installing Magic Lantern 0.2 for Canon 550D, Firmware 1.0.9
+Installing Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8
 
 
 
@@ -48,7 +48,7 @@ Important notes
 Introduction
 ============
 
-There are 2 ways of running user code on the 550D/T2i/Kiss X4:
+There are 2 ways of running user code on the 60D:
 
 1. using the update process with a ``.fir`` file, which must be digitally signed.
 
@@ -56,31 +56,27 @@ There are 2 ways of running user code on the 550D/T2i/Kiss X4:
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
 To install Magic Lantern on your camera, you must download the right 
-magiclantern for your firmware: 1.0.8 or 1.0.9. The recommended way 
-is to upgrade your camera to 1.0.9 in order to get the latest features.
+magiclantern for your firmware: 1.0.8.
 
-No development will be done on 1.0.8 any more. 
+Magic Lantern on 60D with firmware 1.0.9 and 1.0.5 is not supported. 
 Magic Lantern does not work at all with earlier firmware versions.
 
-Installing Magic Lantern for 550D firmware 1.0.9 for the first time
+Installing Magic Lantern for 60D firmware 1.0.8 for the first time
 ===========================================================================
 
-**Make sure you have the Canon Firmware 1.0.9 first!**
+**Make sure you have the Canon Firmware 1.0.8 first!**
 **Running Magic Lantern on an incorrect firmware version may brick your camera!**
 
-If you already use a previous version of Magic Lantern for 550D firmware **1.0.9**, it's easy.
+If you already use a previous version of Magic Lantern for 60D firmware **1.0.8**, it's easy.
 Download the latest ML and unzip everything on your SD card. Done. Enjoy!
-
-If you already use Magic Lantern for 550D/1.0.8, format your card, 
-upgrade camera firmware to 1.0.9 and follow the ML install steps.
 
 {{clr}}
 
 Step 0. Downloading
 ~~~~~~~~~~~~~~~~~~~
 
-* Download this release: `magiclantern-0.2.0.rc1.550d.fw109.zip <https://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.2.0.rc1.550d.fw109.zip>`_.
-* Read `this discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/850ec268bc883ceb>`_ for more info.
+* Download the files here: `http://sztupy.hu/magiclantern <http://sztupy.hu/magiclantern>`_.
+* Read `this discussion thread <http://groups.google.com/group/ml-devel/browse_thread/thread/b46822bf5b90dffa>`_ for more info.
 
 Step 1. Enabling bootflag
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,7 +91,7 @@ Step 1. Enabling bootflag
 * Format the SD card from the camera (low level, from ``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
-  start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
+  start the camera and select ``Firmware ver 1.0.8`` from the ``Wrench 3`` menu 
   (must be in manual or P mode to select)
 * The installer (``magiclantern.fir``) will enable the bootdisk flag in NVRAM
   by calling the ``bootdisk_enable()`` function from Canon firmware.
@@ -188,7 +184,7 @@ Step 3. The last one :)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 * Delete ``magiclantern.fir``.
-* Copy ``autoexec.bin`` and ``cropmks`` on your SDCard. Older builds may require some BMP files and ``magic.cfg``. 
+* Copy ``autoexec.bin`` and ``cropmks_small`` (as cropmks) on your SDCard. Older builds may require some BMP files and ``magic.cfg``. 
 * Put the card in the camera.
 * Switch on your camera, and Magic Lantern (``autoexec.bin``) will boot.
 
@@ -251,39 +247,11 @@ If you know what you are doing, put this in ``magic.cfg`` to reset the ``DISKBOO
     magic.disable_bootdiskf = 1
 
 
-Older versions (archived)
-=========================
-
-550D/1.0.9
-~~~~~~~~~~
-
-* 3 Dec 2010: `magiclantern-0.1.9-rc0_550d_fw109.zip <http://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-0.1.9-rc0_550d_fw109.zip>`_
-
-550D/1.0.8
-~~~~~~~~~~
-
-No further development will be done on the 1.0.8 firmware.
-
-Official builds from Trammell Hudson
-````````````````````````````````````
-* `Announcing pre-alpha firmware <http://groups.google.com/group/ml-devel/msg/49631dc8fec89779>`_
-* RC1 release: `magiclantern-550d.rc1.zip <http://bitbucket.org/hudson/magic-lantern/downloads/magiclantern-550d.rc1.zip>`_
-* 8 Aug 2010: `Update 550D beta, now with gain control <http://groups.google.com/group/ml-devel/browse_thread/thread/1192bdeeb58e94d5>`_
-
-Unofficial (experimental) builds
-````````````````````````````````
-* 11 Nov 2010: `magiclantern for 550D, compiled with shorter config file <http://groups.google.com/group/ml-devel/msg/87b96d3cb43b4bec>`_
-* 23 Nov 2010: `Recording Internal and external audio simultaneously <http://groups.google.com/group/ml-devel/msg/1c690d8dee580ee3>`_
-* 07 Dec 2010: `fixed cropmarks <http://groups.google.com/group/ml-devel/msg/5abd238291b1d2b3>`_
-* 09 Dec 2010: `enabled zebras and histogram <http://groups.google.com/group/ml-devel/browse_thread/thread/e15fac669f293d2a>`_
-* 11 Dec 2010: `GUI menus & lots of extras <http://groups.google.com/group/ml-devel/browse_thread/thread/97488a67eff87b7e>`_
-* 12 Dec 2010: `enabled QScale and spotmeter <http://groups.google.com/group/ml-devel/msg/0dbfe7d9ee043525>`_
-
 Risks
 =====
 
 * This firmware does a (very small) (semi-)permanent change to your camera: it changes the ``DISKBOOT`` flag, which is stored in NVRAM. This change can be reverted (see the mailing list and bootflags.c).
-* There are no confirmed reports of Magic Lantern doing permanent damage on the 550D.
+* There are no confirmed reports of Magic Lantern doing permanent damage on the 60D.
   
   However, there are reports on CHDK forum that some users `bricked their 350D <http://chdk.setepontos.com/index.php?topic=4202.315>`_, most probably by installing a hack on the wrong firmware version. There are also lots of reports of camera refusing to boot after installing ML; this happens because they have tried to start the camera from a bootable (i.e. prepared) card without ``autoexec.bin``.
 * Starting the camera with a bootable card without an ``autoexec.bin`` **will cause symptoms similar to a bricked one** (it will not boot). This may scare you. If it happens, **take the battery out quickly** and the camera should be fine. There are many reports about cameras which behave like being bricked, when in fact it was just ``autoexec.bin`` missing. That's why you should read the install instructions carefully.
@@ -293,15 +261,14 @@ Risks
 * Risks are low with pre-built binaries, since we test them on our cameras before making them public.
 * Risks are minimal with official versions (from the main repo), since they get tested by many users before releasing them.
 
-That being said, Magic Lantern for 550D was downloaded over 10000 times (without counting downloads from the mailing list or from other sites), and most users run it successfully and use it for production, not only for testing.
-
+Don't forget that Magic Lantern for 60D is in a very early stage, so be aware that it might crash or function improperly.
 Source code
 ===========
 
-You can build your own ``AUTOEXEC.BIN`` files with `the 550d branch of the 
-source code <http://bitbucket.org/hudson/magic-lantern/overview>`_::
+You can build your own ``AUTOEXEC.BIN`` files with `the 60d branch of the 
+source code <http://bitbucket.org/sztupy/magic-lantern-for-60d/overview>`_::
 
-    hg clone -r 550d https://bitbucket.org/hudson/magic-lantern
+    hg clone -r 60d https://bitbucket.org/sztupy/magic-lantern-for-60d
 
 There is **no** Canon source or object code in the Magic Lantern tree 
 and we do **not** distribute ROM dumps since they contain code that is 
