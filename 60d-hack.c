@@ -28,7 +28,7 @@
 #include "bmp.h"
 #include "menu.h"
 #include "version.h"
-#include "consts-60d.108.h"
+#include "consts-60d.109.h"
 
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
 #undef CONFIG_EARLY_PORT
@@ -223,8 +223,6 @@ my_dump_task( void )
 }
 
 
-struct config * global_config;
-
 static volatile int init_funcs_done;
 
 static void
@@ -252,6 +250,7 @@ call_init_funcs( void * priv )
 
 #endif // !CONFIG_EARLY_PORT
 
+struct config * global_config;
 
 static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));

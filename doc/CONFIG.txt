@@ -1,4 +1,4 @@
-Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8
+Magic Lantern 0.2 for Canon 60D, Firmware 1.0.9
 ================================================
 
 .. _magic.cfg:

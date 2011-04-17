@@ -27,7 +27,7 @@
 #include "property.h"
 #include "bmp.h"
 #include "config.h"
-#include "consts-60d.108.h"
+#include "consts-60d.109.h"
 #include "lens.h"
 
 static PROP_INT(PROP_GUI_STATE, gui_state);

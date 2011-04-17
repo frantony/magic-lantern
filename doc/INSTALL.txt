@@ -1,4 +1,4 @@
-Installing Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8
+Installing Magic Lantern 0.2 for Canon 60D, Firmware 1.0.9
 
 
 
@@ -56,18 +56,19 @@ There are 2 ways of running user code on the 60D:
    This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
 
 To install Magic Lantern on your camera, you must download the right 
-magiclantern for your firmware: 1.0.8.
+magiclantern for your firmware: 1.0.9.
 
-Magic Lantern on 60D with firmware 1.0.9 and 1.0.5 is not supported. 
+Magic Lantern on 60D with firmware 1.0.5 is not supported.
+Magic Lantern on 60D with firmware 1.0.8 is discontinued.
 Magic Lantern does not work at all with earlier firmware versions.
 
-Installing Magic Lantern for 60D firmware 1.0.8 for the first time
+Installing Magic Lantern for 60D firmware 1.0.9 for the first time
 ===========================================================================
 
-**Make sure you have the Canon Firmware 1.0.8 first!**
+**Make sure you have the Canon Firmware 1.0.9 first!**
 **Running Magic Lantern on an incorrect firmware version may brick your camera!**
 
-If you already use a previous version of Magic Lantern for 60D firmware **1.0.8**, it's easy.
+If you already use a previous version of Magic Lantern for 60D firmware **1.0.9**, it's easy.
 Download the latest ML and unzip everything on your SD card. Done. Enjoy!
 
 {{clr}}
@@ -91,7 +92,7 @@ Step 1. Enabling bootflag
 * Format the SD card from the camera (low level, from ``Wrench 1`` menu)
 * Copy ``magiclantern.fir`` from the zip archive on the SD card
 * Launch the firmware update process. For this, 
-  start the camera and select ``Firmware ver 1.0.8`` from the ``Wrench 3`` menu 
+  start the camera and select ``Firmware ver 1.0.9`` from the ``Wrench 3`` menu 
   (must be in manual or P mode to select)
 * The installer (``magiclantern.fir``) will enable the bootdisk flag in NVRAM
   by calling the ``bootdisk_enable()`` function from Canon firmware.

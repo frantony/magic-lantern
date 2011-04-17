@@ -1311,7 +1311,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		}
 	}
 	
-	//dbg_memspy_init();
+	dbg_memspy_init();
 	int k;
 	for (k = 0; ; k++)
 	{

@@ -43,7 +43,7 @@ UMOUNT=umount
 
 all: magiclantern.fir
 
-VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').60d.fw108.$(BUILDVER)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').60d.fw109.$(BUILDVER)
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
@@ -203,7 +203,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
 	60d-hack.o \
-	stubs-60d.108.o \
+	stubs-60d.109.o \
 	version.o \
 	bmp.o \
 	font-large.o \

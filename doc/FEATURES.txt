@@ -1,4 +1,4 @@
-Magic Lantern 0.2 for Canon 60D, Firmware 1.0.8
+Magic Lantern 0.2 for Canon 60D, Firmware 1.0.9
 ================================================
 
 Features
@@ -57,7 +57,7 @@ Notes:
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``MENU -> DISP``.
+``MENU -> INFO``.
 
 
 How do I get exposure times longer than 30 seconds?
@@ -163,7 +163,7 @@ These buttons have special meaning with Magic Lantern:
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-* ``DISP`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
+* ``INFO`` in LiveView has 3 extra display modes specific to ML, which are fully customizable from `LiveV`_ menu. Each display mode has its own set of LiveV settings.
 
 .. _LCD sensor:
 
@@ -190,18 +190,18 @@ These buttons have special meaning with Magic Lantern:
 * ``Q`` while LiveView zoom is active: go to `Magic Zoom`_ item in ML menu.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
-* ``MENU`` -> ``DISP``: display extra info like `shutter count`_ and `CMOS temperature`_.
+* ``MENU`` -> ``INFO``: display extra info like `shutter count`_ and `CMOS temperature`_.
 * ``ERASE``: display Magic Lantern menu.
-* Arrows, ``SET, DISP/PLAY, Q``: ML menu navigation (see below).
+* Arrows, ``SET, INFO/PLAY, Q``: ML menu navigation (see below).
 * Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). This does not work in video mode; it works best in P, Tv, Av or M modes.
 
 Menu options
 ------------
 
 Press ERASE button to show the menu. Use arrows to navigate, ``SET`` to change values forwards
-and ``DISP`` to change values backwards. Some options may also use the ``Q`` button, or may have a different meaning for ``DISP``.
+and ``INFO`` to change values backwards. Some options may also use the ``Q`` button, or may have a different meaning for ``INFO``.
 
-For one-handed navigation in ML menu, ``PLAY`` is the same as ``DISP``.
+For one-handed navigation in ML menu, ``PLAY`` is the same as ``INFO``.
 
 Audio
 ~~~~~
@@ -323,7 +323,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   Keys:
   
   * ``SET``: toggle between ``ON/OFF/NRec``
-  * ``DISP``: change threshold for underexposure (blacks)
+  * ``INFO``: change threshold for underexposure (blacks)
   * ``Q``: change threshold for overexposure (whites)
   
   Brightness values are between 0 and 255. A threshold equal to 0 will disable blue zebras, and 255 will disable red zebras.
@@ -438,7 +438,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
     - ``MORF``: looks for fine detail lost by morphological opening and closing (which is a kind of blurring). It handles high-contrast OOF edges well, but is very sensitive to ISO noise.
 
   * ``Q``: adjust percentile threshold, between 0.1% and 5%.
-  * ``DISP``: select color mode
+  * ``INFO``: select color mode
   
     - one of ``R,G,B,C,M,Y`` (a single color)
     - ``cc1``: color coding 1 (show edge detection threshold as color, a single color for the entire frame; warmer = higher)
@@ -460,7 +460,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   * ``ZF``: triggered by ``Zoom In`` button and also by rotating the focus ring (only on lenses which report focus distance, or if you use `follow focus`_ / `movie AF`_ / `rack focus`_).
   * ``ALW``: always on
   
-  Size / magnification (change with ``DISP`` or ``PLAY``): 
+  Size / magnification (change with ``INFO`` or ``PLAY``): 
   
   * ``Small`` (150x150)
   * ``Medium`` (250x200)
@@ -490,7 +490,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
 **LiveView Zoom: x5 / x10 / :-)**
 
-  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``DISP`` and toggle ``:-)`` with ``SET``.
+  Control the zoom feature in LiveView. Change ``x5/x10`` settings with ``INFO`` and toggle ``:-)`` with ``SET``.
   
   * ``x5``: only ``x5`` zoom will be available (disables ``x10`` zoom)
   * ``x10``: only ``x10`` zoom will be available (disables ``x5`` zoom)
@@ -518,7 +518,7 @@ Functions specific to movie mode.
   Keys:
   
   * Change mode with ``SET``
-  * Change numeric value with ``Q`` and ``DISP``
+  * Change numeric value with ``Q`` and ``INFO``
   
   Notes:
   
@@ -591,7 +591,7 @@ Functions specific to movie mode.
   - Workarounds to avoid hunting (like the *mood* hack).
   
  
-  Tuning parameters (change with ``Q/DISP``):
+  Tuning parameters (change with ``Q/INFO``):
   
   * ``A=1..64``: maximum aggressiveness (maximum target % rate of change for focus magnitude).
   * ``N=0..9``: noise filter (for focus derivative).
@@ -656,7 +656,7 @@ Functions for stills shooting (some of them work for movies, too).
   AE Bracketing for HDR images and timelapses.
   
   
-  Select number of images with ``SET`` and step size with ``DISP``. To turn this off quickly, press ``Q``.
+  Select number of images with ``SET`` and step size with ``INFO``. To turn this off quickly, press ``Q``.
   
     
   In ``M`` mode, this function does shutter bracketing. In the other modes it does exposure compensation bracketing.
@@ -726,7 +726,7 @@ Functions for stills shooting (some of them work for movies, too).
 
   Power Saving:
   
-  * When not in LiveView, press ``DISP`` to turn the display off. You may also cover the LCD sensor with something.
+  * When not in LiveView, press ``INFO`` to turn the display off. You may also cover the LCD sensor with something.
   * In LiveView, enable `Force display off`_ and disable `Global Draw`_. You also have to assign the focus on the ``*`` button (otherwise the screen will wake up). ML will NOT turn off the sensor.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
 
@@ -831,7 +831,7 @@ Functions for stills shooting (some of them work for movies, too).
   Keys:
   
   * ``SET``: toggle modes (normal or hi-res)
-  * ``DISP/Q``: toggle between:
+  * ``INFO/Q``: toggle between:
   
     * ``Single/Burst`` in normal mode
     * available matrix sizes (which give the image resolutions) in Hi-Res mode.
@@ -1019,7 +1019,7 @@ Focus
   You can reverse the direction for these keybindings:
   
   * Press ``Q`` to reverse the direction for ``LEFT/RIGHT`` keys (slow speed)
-  * Press ``DISP`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
+  * Press ``INFO`` to reverse the direction for ``UP/DOWN`` keys (fast speed)
 
   To use the default behavior of the arrow keys (i.e. move the AF frame), cover the LCD sensor.
 
@@ -1213,14 +1213,14 @@ Main shooting screen (outside LiveView)
 * `MLU`_ setting (under ``Q`` icon)
 * `LCD remote`_ status icon: ⨂ ⨀ 〰
 
-MENU->DISP
+MENU->INFO
 ~~~~~~~~~~
 
 .. _shutter count:
 .. _CMOS temperature:
 
 .. figure:: InfoMenuDisp-550D.png
-    :alt: thumb|right|MENU->DISP info display
+    :alt: thumb|right|MENU->INFO info display
     :align: center
     :width: 3cm
 
