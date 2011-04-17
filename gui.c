@@ -164,6 +164,11 @@ static int handle_buttons(struct event * event)
 				event->arg);*/
 			//msleep(250);
 		}
+		// LV DMA debug
+		static int ii = 0;
+		ii++;
+		bmp_printf(FONT_SMALL, 200,ii*15, "%08x", YUV422_LV_BUFFER_DMA_ADDR);
+		if (ii>20) ii = 0;
 	}
 	
 	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
