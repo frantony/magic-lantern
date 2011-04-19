@@ -208,7 +208,8 @@ SIZE_CHECK_STRUCT( bmp_file_t, 54 );
 
 extern struct bmp_file_t *
 bmp_load(
-	const char *		name
+	const char *		name,
+        uint32_t                compression // what compression to load the file into. 0: none, 1: RLE8
 );
 
 typedef struct bmp_ov_loc_size 
