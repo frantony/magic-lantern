@@ -537,13 +537,13 @@ bmp_load(
 		uint8_t color = 0;
 		bmp->image = buf + image_offset;
 		for (y = 0; y < bmp->height; y++) {
-			uint8_t* pos = &bmp->image[y*bmp->width];
+			uint8_t* pos = bmp->image + y*bmp->width;
 			color = *pos; count = 0;
 			for (x = 0; x < bmp->width; x++) {
-				if (color==(*pos) && count<255) { count++; } else { color = *pos; count = 0; size_needed += 2; }
+				if (color==(*pos) && count<255) { count++; } else { color = *pos; count = 1; size_needed += 2; }
 				pos++;
 			}
-			if (count!=0) size_needed += 2; 
+			if (count!=0) size_needed += 2; // remaining line
 			size_needed += 2; //0000 EOL
 		}
 		size_needed += 2; //0001 EOF
@@ -552,10 +552,10 @@ bmp_load(
 		memcpy(fast_buf, buf, sizeof(struct bmp_file_t));
 		gpos = fast_buf + sizeof(struct bmp_file_t);
 		for (y = 0; y < bmp->height; y++) {
-			uint8_t* pos = &bmp->image[y*bmp->width];
+			uint8_t* pos = bmp->image + y*bmp->width;
 			color = *pos; count = 0;
 			for (x = 0; x < bmp->width; x++) {
-				if (color==(*pos) && count<255) { count++; } else { gpos[0] = count;gpos[1] = color; color = *pos; count = 0; gpos+=2;} pos++;
+				if (color==(*pos) && count<255) { count++; } else { gpos[0] = count;gpos[1] = color; color = *pos; count = 1; gpos+=2;} pos++;
 			}
 			if (count!=0) { gpos[0] = count; gpos[1] = color; gpos+=2;} 
 			gpos[0] = 0;
@@ -792,12 +792,14 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int xmax, int y
 				x = (xs-x0)*bmp->width/xmax;
 				while (x>=bmp_x_pos_end) {
 					// skip to this position
+					if (bmp_col>bmp+bmp->image_size) break;
+					if (bmp_col[0]==0) break;
 					bmp_col+=2;
+					if (bmp_col>bmp+bmp->image_size) break;
 					if (bmp_col[0]==0) break;
 					bmp_x_pos_start = bmp_x_pos_end;
 					bmp_x_pos_end = bmp_x_pos_start + bmp_col[0];
 					bmp_color = bmp_col[1];
-					if (bmp_col>bmp+bmp->image_size) return;
 				}
 				if (clear)
 				{
