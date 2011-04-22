@@ -49,22 +49,20 @@ NSTUB( 0xff017b54, create_init_task )
 NSTUB( 0xFF1CB1D0, FIO_FindFirstEx )
 NSTUB( 0xFF1CB2C4, FIO_FindNextEx )
 
-// Fake from 550d
 NSTUB( 0x3787c, LV_EX_X)
 NSTUB( 0x37880, LV_EX_Y)
 
-NILSTUB( 0xFF2DF524, AJ_guess_LED_ON )
-NILSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
-NILSTUB( 0xFF07C6A0, DispSensorStart )
-NILSTUB( 0xFF020760, GUI_CONTROL )
-NILSTUB( 0xFF31CFCC, ChangeColorPalette )
-NILSTUB( 0xFF2CFA54, MirrorDisplay )
-NILSTUB( 0xFF2CFAB4, NormalDisplay )
-NILSTUB( 0xFF2CE1F0, redraw_maybe )
-//~
+NSTUB( 0xFF334EDC, AJ_guess_LED_ON )
+NSTUB( 0xFF334F0C, AJ_guess_LED_OFF )
+NSTUB( 0xFF08259C, DispSensorStart )
+NSTUB( 0xFF0244EC, GUI_CONTROL )
+NSTUB( 0xFF21B000, ChangeColorPalette )
+NSTUB( 0xFF325754, MirrorDisplay )
+NSTUB( 0xFF3257B4, NormalDisplay )
+NSTUB( 0xFF323F08, redraw_maybe )
 
 /** Look for the normal printf strings */
-NSTUB( 0xff06b8c8, DebugMsg )
+NSTUB( 0xff06b8c8, DryosDebugMsg )
 
 /** Task dispatch hook hasn't moved in several versions, was 0x1938 in 550-109 */
 NSTUB( 0x193c, task_dispatch_hook )
@@ -73,7 +71,7 @@ NSTUB( 0x193c, task_dispatch_hook )
 NSTUB( 0x250D4, additional_version )
 NSTUB( 0xFF214404, GUI_GetFirmVersion )
 
-// Everything below here is not needed for the first boot
+/** Everything below here is not needed for the first boot */
 
 /** Camera interface? */
 NSTUB( 0xC0220000, camera_engine )
@@ -88,7 +86,7 @@ NSTUB( 0xff06b848, dmstart )
 NSTUB( 0xff06b888, dmstop )
 NSTUB( 0xFF06C268, dumpf )
 
-/** Look in DebugMsg, near the bottom.  It calls vsnprintf()
+/* Look in DebugMsg, near the bottom.  It calls vsnprintf()
  * with a buffer size of 0x4C.
  */
 NSTUB( 0xff1da58c, vsnprintf )
@@ -174,7 +172,7 @@ NSTUB( 0xFF1D6AC4, msg_queue_receive )
 NSTUB( 0xFF0A86B0, gui_local_post )     // found only by Alex tool!
 NSTUB( 0xFF0A7F70, gui_change_mode )   // GUI_ChangeMode_Post
 NSTUB( 0xFF0A8C74, gui_other_post )     // just after gui_local_post. found only by Alex tool
-//FF0248B4 GUI_CHANGE_MODE
+/* FF0248B4 GUI_CHANGE_MODE */
 
 NSTUB( 0xFF53D898, gui_main_task_functbl )
 

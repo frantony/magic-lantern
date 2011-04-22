@@ -72,11 +72,12 @@
 #define BGMT_UNPRESS_HALFSHUTTER 0x42
 
 // these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
+// zoomout sends the same codes as shutter press/release
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0xB
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xC
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
+#define BGMT_PRESS_ZOOMIN_MAYBE 0xD
+#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
 
 
 #define SENSOR_RES_X 5202

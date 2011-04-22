@@ -164,11 +164,14 @@ static int handle_buttons(struct event * event)
 				event->arg);*/
 			//msleep(250);
 		}
-		// LV DMA debug
+#if 1
+		// simple debugging of memory location - focus data in memory maybe?
 		static int ii = 0;
 		ii++;
-		bmp_printf(FONT_SMALL, 200,ii*15, "%08x", YUV422_LV_BUFFER_DMA_ADDR);
-		if (ii>20) ii = 0;
+		bmp_printf(FONT_SMALL, 0, ii*15, "%08x %08x %08x %08x %08x", *(uint32_t*)(0x54B4), *(uint32_t*)(0x54B4+0xC), *(uint32_t*)(0x54B4+0x10), *(uint32_t*)(0x54B4+0x18), *(uint32_t*)(0x54B4+0x22));
+		if (ii>30) ii = 0;
+#endif
+
 	}
 	
 	if (gui_menu_shown() && event->type == 0) // some buttons hard to detect from main menu loop
