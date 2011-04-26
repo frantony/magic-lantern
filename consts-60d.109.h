@@ -39,7 +39,7 @@
 #define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
-#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bb0) // only used to show trap focus status
+#define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 #define DISPLAY_SENSOR 0x2dec
 #define DISPLAY_SENSOR_MAYBE 0xC0220104
 #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
@@ -86,7 +86,10 @@
 #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
 #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
-// not yet tested
+/*
+ * From 550D - needs testing / modification
+ * START
+ */
 #define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
@@ -124,3 +127,11 @@
 #define DLG_Q_UNAVI 0x1F
 #define DLG_FLASH_AE 0x22
 #define DLG_PICQ 6
+
+#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
+#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74
+#define VIDEO_OUT_PROP_DELIVER_VALUE 0x1a9c
+/*
+ * From 550D - needs testing / modification
+ * END
+ */

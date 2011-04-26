@@ -104,7 +104,8 @@ void console_puts(const char* str) // don't DebugMsg from here!
 {
 	#define NEW_CHAR(c) console_buffer[mod(console_buffer_index++, BUFSIZE)] = (c)
 	
-	if (console_log_file) my_fprintf(console_log_file, "%s", str);
+	if (console_log_file)
+		FIO_WriteFile( console_log_file, UNCACHEABLE(str), strlen(str) );
 	
 	if (!console_buffer) return 0;
 	char* c = str;

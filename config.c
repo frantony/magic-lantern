@@ -40,11 +40,8 @@ config_parse_line(
 {
 	int name_len = 0;
 	int value_len = 0;
-	struct config *		cfg = AllocateMemory( sizeof(struct config)  );
-	if( !cfg )
-		goto malloc_error;
-
-	cfg->next = 0;
+	static struct config _cfg;
+	struct config * cfg = &_cfg;
 
 	// Trim any leading whitespace
 	int i = 0;
@@ -112,7 +109,7 @@ parse_error:
 	);
 
 	msleep(2000);
-	FreeMemory( cfg );
+	//~ FreeMemory( cfg );
 	dumpf();
 malloc_error:
 	return 0;
@@ -191,7 +188,6 @@ config_auto_parse(
 
 int
 config_save_file(
-	struct config *		cfg, // unused?
 	const char *		filename
 )
 {
@@ -271,7 +267,6 @@ config_parse(
 		if( !new_config )
 			goto error;
 
-		new_config->next = cfg;
 		cfg = new_config;
 		count++;
 
@@ -282,74 +277,9 @@ config_parse(
 	return cfg;
 
 error:
-	DebugMsg( DM_MAGIC, 3, "%s: ERROR Deleting config", __func__ );
-	while( cfg )
-	{
-		struct config * next = cfg->next;
-		DebugMsg( DM_MAGIC, 3, "%s: Deleting '%s' => '%s'",
-			__func__,
-			cfg->name,
-			cfg->value
-		);
-		FreeMemory( cfg );
-		cfg = next;
-	}
-
+	DebugMsg( DM_MAGIC, 3, "%s: ERROR", __func__ );
 	return NULL;
 }
-
-
-//~ char *
-//~ config_value(
-	//~ struct config *		cfg,
-	//~ const char *		name
-//~ )
-//~ {
-	//~ while( cfg )
-	//~ {
-		//~ if( streq( cfg->name, name ) )
-			//~ return cfg->value;
-//~ 
-		//~ cfg = cfg->next;
-	//~ }
-//~ 
-	//~ return NULL;
-//~ }
-
-
-//~ int
-//~ config_int(
-	//~ struct config *		cfg,
-	//~ const char *		name,
-	//~ int			def
-//~ )
-//~ {
-	//~ const char *		str = config_value( cfg, name );
-	//~ if( !str )
-	//~ {
-		//~ DebugMsg( DM_MAGIC, 3,
-			//~ "Config '%s', using default %d",
-			//~ name,
-			//~ def
-		//~ );
-//~ 
-		//~ return def;
-	//~ }
-//~ 
-	//~ def = atoi( str );
-	//~ DebugMsg( DM_MAGIC, 3,
-		//~ "Config '%s', using user value %d ('%s')",
-		//~ name,
-		//~ def,
-		//~ str
-	//~ );
-//~ 
-	//~ return def;
-//~ }
-
-
-//~ struct config head = { .name = "config.file", .value = "" };
-//~ struct config fail = { .name = "config.failure", .value = "1" };
 
 int
 config_parse_file(
@@ -357,13 +287,9 @@ config_parse_file(
 )
 {
 	FILE * file = FIO_Open( filename, 0 );
-	//~ strcpy( head.value, filename );
-	//~ msleep(100);
 	if( file == INVALID_PTR )
 	{
 		//~ bmp_printf(FONT_MED, 0, 120, "Could not open config file");
-		//~ config_auto_parse( &head );
-		//~ bmp_printf(FONT_MED, 0, 120, "Using default config values");
 		return 0;
 	}
 

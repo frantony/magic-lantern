@@ -803,7 +803,7 @@ about_print(
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 2 + 10,
-"Crypto tools and 60D/1.0.8 port by Arm.Indy");
+"Crypto tools by Arm.Indy, 60D port by SztupY");
 
 	bmp_printf(FONT_MED,
 		x, y + font_large.height + font_med.height * 3 + 15,

@@ -2807,12 +2807,12 @@ void clear_this_message_not_available_in_movie_mode()
 	int f = FLASH_BTN_MOVIE_MODE;
 	if (f == fp) return; // clear the message only once
 	fp = f;
+	crop_dirty = 5;
 	if (!f) return;
 	
 	bmp_fill(0, 0, 330, 720, 480-330);
 	msleep(50);
 	bmp_fill(0, 0, 330, 720, 480-330);
-	cropmark_redraw();
 }
 
 //this function is a mess... but seems to work
@@ -2824,8 +2824,8 @@ zebra_task( void )
     menu_add( "Debug", dbg_menus, COUNT(dbg_menus) );
     menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-
-	msleep(3000);
+	
+	msleep(1000);
 	
 	find_cropmarks();
 	int k;
@@ -2884,7 +2884,7 @@ zebra_task_loop:
 			do_disp_mode_change();
 		}
 		
-
+		int fb = FLASH_BTN_MOVIE_MODE;
 		if (shooting_mode == SHOOTMODE_MOVIE)
 			clear_this_message_not_available_in_movie_mode();
 
@@ -2892,18 +2892,24 @@ zebra_task_loop:
 		int fcp = falsecolor_displayed;
 		if (falsecolor_draw == 0) falsecolor_displayed = 0;
 		if (falsecolor_draw == 1) falsecolor_displayed = 1;
-		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || FLASH_BTN_MOVIE_MODE);
-		if (falsecolor_draw == 3 && (dofpreview || FLASH_BTN_MOVIE_MODE))
+		if (falsecolor_draw == 2) falsecolor_displayed = (dofpreview || fb);
+		if (falsecolor_draw == 3 && (dofpreview || fb))
 		{
 			falsecolor_canceled = 0;
+			clrscr_mirror();
 			
 			int k = 0;
 			while (dofpreview || FLASH_BTN_MOVIE_MODE)
 			{
 				msleep(100);
 				k++;
+				
+				if (k > 10) 
+					falsecolor_canceled = 1; // long press doesn't toggle
+					
+				bmp_printf(FONT_MED, 250, 400, falsecolor_canceled ? "                  " : "False Color toggle");
 			}
-			if (k > 10) falsecolor_canceled = 1; // long press doesn't toggle
+			bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 250, 400, "                  ");
 			
 			if (!falsecolor_canceled)
 				falsecolor_displayed = !falsecolor_displayed;

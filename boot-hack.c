@@ -1,6 +1,8 @@
 /** \file
- * Code to run on the camera once it has been relocated.
+ * Code to run on the 5D once it has been relocated.
  *
+ * This has been updated to work with the 2.0.3 firmware.
+ * IT DOES NOT WORK WITH 1.1.0 NOR 1.0.7 ANY MORE!
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
@@ -28,6 +30,7 @@
 #include "bmp.h"
 #include "menu.h"
 #include "version.h"
+#include "property.h"
 #include "consts-60d.109.h"
 
 /** If CONFIG_EARLY_PORT is defined, only a few things will be enabled */
@@ -103,7 +106,7 @@ copy_and_restart( int offset )
 
 	// Set our init task to run instead of the firmware one
 	INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
-
+	
 	// Make sure that our self-modifying code clears the cache
 	clean_d_cache();
 	flush_caches();
@@ -156,8 +159,6 @@ null_task( void )
 	return;
 }
 
-
-
 /**
  * Called by DryOS when it is dispatching (or creating?)
  * a new task.
@@ -169,13 +170,13 @@ my_task_dispatch_hook(
 {
 	if( !context )
 		return;
-
+	
 	// Do nothing unless a new task is starting via the trampoile
 	if( (*context)->pc != (uint32_t) task_trampoline )
 		return;
-
+	
 	// Determine the task address
-	struct task * const task = *(struct task**)  HIJACK_TASK_ADDR;
+	struct task * const task = *(struct task**) HIJACK_TASK_ADDR;
 
 	thunk entry = (thunk) task->entry;
 
@@ -223,6 +224,8 @@ my_dump_task( void )
 }
 
 
+struct config * global_config;
+
 static volatile int init_funcs_done;
 
 static void
@@ -240,22 +243,47 @@ call_init_funcs( void * priv )
 			init_func->name,
 			(unsigned) init_func->entry
 		);
-
 		thunk entry = (thunk) init_func->entry;
 		entry();
 	}
 
-	init_funcs_done = 1;
 }
 
 #endif // !CONFIG_EARLY_PORT
 
-struct config * global_config;
 
 static void nop( void ) { }
 void menu_init( void ) __attribute__((weak,alias("nop")));
 void debug_init( void ) __attribute__((weak,alias("nop")));
 
+int magic_off = 0;
+int magic_is_off() 
+{
+	return magic_off; 
+}
+
+int _hold_your_horses = 1;
+
+// only after this task finished, the others are started
+void init_task_read_config()
+{
+	config_parse_file( "B:/magic.cfg" );
+	debug_init_stuff();
+	_hold_your_horses = 0;
+}
+
+void hold_your_horses(int showlogo)
+{
+	while (_hold_your_horses)
+	{
+		msleep( 500 );
+		if (showlogo)
+		{
+			show_logo();
+			display_clock();
+		}
+	}
+}
 
 /** Initial task setup.
  *
@@ -272,7 +300,7 @@ my_init_task(void)
 #ifndef CONFIG_EARLY_PORT
 	// Overwrite the PTPCOM message
 	dm_names[ DM_MAGIC ] = "[MAGIC] ";
-	dmstart();
+	//~ dmstart(); // already called by firmware?
 
 	DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
 		build_version,
@@ -298,39 +326,51 @@ my_init_task(void)
 	additional_version[6] = build_version[2];
 	additional_version[7] = build_version[3];
 	additional_version[8] = build_version[4];
-	additional_version[9] = '\0';
+	additional_version[9] = build_version[5];
+	additional_version[10] = build_version[6];
+	additional_version[11] = build_version[7];
+	additional_version[12] = build_version[8];
+	additional_version[13] = '\0';
 
 #ifndef CONFIG_EARLY_PORT
 
 	msleep( 1500 );
 
-	menu_init();
-	debug_init();
+	magic_off = FOCUS_CONFIRMATION_AF_PRESSED ? 1 : 0;
+	if (magic_off)
+	{
+		bmp_printf(FONT_LARGE, 0, 0, "Magic OFF");
+		additional_version[0] = '-';
+		additional_version[1] = 'm';
+		additional_version[2] = 'l';
+		additional_version[3] = '-';
+		additional_version[4] = 'o';
+		additional_version[5] = 'f';
+		additional_version[6] = 'f';
+		additional_version[7] = '\0';
+		return;
+	}
 
 	msleep( 1000 );
-        /*
-	bmp_printf( FONT_MED, 0, 40,
+
+	menu_init();
+	debug_init();
+	call_init_funcs( 0 );
+
+
+/*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
 		"Built on %s by %s\n",
 		build_version,
 		build_id,
 		build_date,
 		build_user
-	);
-        
-	// Parse our config file
-	const char * config_filename = "B:/magic.cfg";
-	global_config = config_parse_file( config_filename );
-	bmp_printf( FONT_MED, 0, 70,
-		"Config file %s: %s",
-		config_filename,
-		global_config ? "YES" : "NO"
-	);
-        */
-	init_funcs_done = 0;
-	call_init_funcs( 0 );
+	);*/
 
-	msleep( 1000 );
+	// this is better in a separate task (not sure why, but causes instability if called right from here)
+	// let's try not to open files from here
+	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
+	hold_your_horses(0); 
 
 	// Create all of our auto-create tasks
 	extern struct task_create _tasks_start[];
@@ -340,13 +380,13 @@ my_init_task(void)
 	int ml_tasks = 0;
 	for( ; task < _tasks_end ; task++ )
 	{
-		DebugMsg( DM_MAGIC, 3,
-			"Creating task %s(%d) pri=%02x flags=%08x",
-			task->name,
-			task->arg,
-			task->priority,
-			task->flags
-		);
+		//~ DebugMsg( DM_MAGIC, 3,
+			//~ "Creating task %s(%d) pri=%02x flags=%08x",
+			//~ task->name,
+			//~ task->arg,
+			//~ task->priority,
+			//~ task->flags
+		//~ );
 
 		task_create(
 			task->name,
@@ -357,12 +397,14 @@ my_init_task(void)
 		);
 		ml_tasks++;
 	}
-	/*
-	bmp_printf( FONT_MED, 0, 85,
-		"Magic Lantern is up and running... %d tasks started.",
-		ml_tasks
-	);
-        */
-	DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
+	//~ bmp_printf( FONT_MED, 0, 85,
+		//~ "Magic Lantern is up and running... %d tasks started.",
+		//~ ml_tasks
+	//~ );
+
+	msleep(500);
+	lv_redraw();
+
+	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );
 #endif // !CONFIG_EARLY_PORT
 }

@@ -26,19 +26,20 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=alpha.$(shell whoami)
+BUILDVER=alpha4.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
+CONFIG_CONSOLE		= n
 
 #MacOS
 #UMOUNT=hdiutil unmount
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DIGITAL/
+CF_CARD=/media/EOS_DEVELOP/
 UMOUNT=umount
 
 all: magiclantern.fir
@@ -84,6 +85,8 @@ install: autoexec.bin
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
 	cp cropmks/*.bmp $(CF_CARD)/cropmks/
 
+	cp logo.bmp $(CF_CARD)
+
 	$(UMOUNT) $(CF_CARD)
 
 ptpinstall: autoexec.bin
@@ -107,6 +110,7 @@ magiclantern-$(VERSION).zip: \
 	UserGuide.pdf \
 	UserGuide-diff.pdf \
 	make_bootable.sh\
+	logo.bmp\
 	cropmks/* \
 
 	-rm $@
@@ -191,7 +195,7 @@ dumper_entry.o: flasher-stubs.S
 
 reboot.o: reboot.c magiclantern.bin
 
-5d-hack.bin: 5d-hack
+boot-hack.bin: boot-hack
 
 magiclantern.lds: magiclantern.lds.S
 	$(call build,CPP,$(CPP) $(CFLAGS) $< | grep -v '^#' > $@)
@@ -202,7 +206,7 @@ magiclantern.lds: magiclantern.lds.S
 ML_OBJS-y = \
 	magiclantern.lds \
 	entry.o \
-	60d-hack.o \
+	boot-hack.o \
 	stubs-60d.109.o \
 	version.o \
 	bmp.o \
@@ -225,7 +229,6 @@ ML_OBJS-y = \
 	hotplug.o \
 
 NO=\
-	console.o \
 	bootflags.o \
 	aj_port.o \
 	aj_lib_port.o \
@@ -250,6 +253,9 @@ ML_OBJS-$(CONFIG_RELOC) += \
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
 	timecode.o \
+
+ML_OBJS-$(CONFIG_CONSOLE) += \
+	console.o \
 
 # Extract the stdio files that we need
 STDIO_OBJ = \
@@ -535,6 +541,5 @@ clean:
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		*.pdf \
-		*.bmp \
 
 -include .*.d
