@@ -61,6 +61,10 @@ NSTUB( 0xFF325754, MirrorDisplay )
 NSTUB( 0xFF3257B4, NormalDisplay )
 NSTUB( 0xFF323F08, redraw_maybe )
 
+NSTUB( 0xFF27E5E4, af_control_handler )
+NSTUB( 0xFF27F454, lens_control_maybe )
+NSTUB( 0xFF28D7FC, move_lens_maybe )
+
 /** Look for the normal printf strings */
 NSTUB( 0xff06b8c8, DryosDebugMsg )
 
