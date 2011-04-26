@@ -164,7 +164,7 @@ static int handle_buttons(struct event * event)
 				event->arg);*/
 			//msleep(250);
 		}
-#if 1
+#if 0
 		// simple debugging of memory location - focus data in memory maybe?
 		static int ii = 0;
 		ii++;
@@ -238,10 +238,18 @@ static int handle_buttons(struct event * event)
 				case BGMT_PRESS_DOWN:
 					lens_focus_start(-5 * get_follow_focus_dir_v());
 					return 0;
+#ifdef BGMT_NO_SEPARATE_UNPRESS
+				case BGMT_CENTER:
+				case BGMT_PRESS_UP_LEFT:
+				case BGMT_PRESS_UP_RIGHT:
+				case BGMT_PRESS_DOWN_LEFT:
+				case BGMT_PRESS_DOWN_RIGHT:
+#else
 				case BGMT_UNPRESS_LEFT:
 				case BGMT_UNPRESS_RIGHT:
 				case BGMT_UNPRESS_UP:
 				case BGMT_UNPRESS_DOWN:
+#endif
 					lens_focus_stop();
 					return 0;
 			}

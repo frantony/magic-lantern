@@ -49,14 +49,16 @@
 #define GMT_FUNCTABLE 0xFF53D898
 
 // button codes as received by gui_main_task
-#define BGMT_PRESS_LEFT 0x1c
-#define BGMT_UNPRESS_LEFT 0x1d
-#define BGMT_PRESS_UP 0x1e
-#define BGMT_UNPRESS_UP 0x1f
-#define BGMT_PRESS_RIGHT 0x1a
-#define BGMT_UNPRESS_RIGHT 0x1b
-#define BGMT_PRESS_DOWN 0x20
-#define BGMT_UNPRESS_DOWN 0x21
+#define BGMT_PRESS_LEFT 0x2a
+#define BGMT_PRESS_UP 0x24
+#define BGMT_PRESS_RIGHT 0x26
+#define BGMT_PRESS_DOWN 0x28
+#define BGMT_PRESS_UP_LEFT 0x2b
+#define BGMT_PRESS_UP_RIGHT 0x25
+#define BGMT_PRESS_DOWN_LEFT 0x29
+#define BGMT_PRESS_DOWN_RIGHT 0x27
+#define BGMT_CENTER 0x2c
+#define BGMT_NO_SEPARATE_UNPRESS 1
 
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
