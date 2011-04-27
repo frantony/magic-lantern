@@ -1411,7 +1411,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		bmp_printf(FONT_MED, 50, 50, "%x %x %x        ", aper1, aper2, aper3);
+		bmp_printf(FONT_MED, 50, 50, "%x %x %x       ", aper1, aper2, aper3);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -1546,15 +1546,12 @@ debug_loop_task( void ) // screenshot, draw_prop
 		{
 			if (get_zoom_in_pressed()) 
 			{
-				bmp_printf(FONT_LARGE, 0, 0, "ZUUUM");
 				msleep(300);
-				int i = 0;
-				for (i = 0; i < 10; i++) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+				while (get_zoom_in_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
 			}
 			
 			if (get_zoom_out_pressed())
 			{
-				bmp_printf(FONT_LARGE, 0, 0, "Zuuum");
 				msleep(300);
 				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
 			}

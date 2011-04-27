@@ -75,8 +75,8 @@
 
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xC
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0xF
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x10
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
