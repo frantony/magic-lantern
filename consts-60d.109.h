@@ -92,14 +92,14 @@
  * From 550D - needs testing / modification
  * START
  */
-#define AJ_LCD_Palette 0x2CDB0
+#define AJ_LCD_Palette 0x3BFA4
 
-#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
-#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
+#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5680) == 0xF) || ((*(int*)0x2A430) != 0x17))
+#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF)
 
 #define COLOR_FG_NONLV 80
 
-#define MVR_752_STRUCT (*(void**)0x1e70)
+#define MVR_752_STRUCT (*(void**)0x1eF0)
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
@@ -114,12 +114,12 @@
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN (*(int*)(228 + MVR_752_STRUCT))
 
-#define MOV_REC_STATEOBJ (*(void**)0x5B34)
+#define MOV_REC_STATEOBJ (*(void**)0x5A40)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-#define AE_VALUE (*(int8_t*)0x14c25)
+#define AE_VALUE (*(int8_t*)0x24bd9)
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x39ac)
+#define CURRENT_DIALOG_MAYBE (*(int*)0x3d5c)
 #define DLG_WB 5
 #define DLG_FOCUS_MODE 9
 #define DLG_DRIVE_MODE 8
@@ -131,8 +131,8 @@
 #define DLG_PICQ 6
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
-#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74
-#define VIDEO_OUT_PROP_DELIVER_VALUE 0x1a9c
+#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a84
+#define VIDEO_OUT_PROP_DELIVER_VALUE 0x1ac4
 /*
  * From 550D - needs testing / modification
  * END

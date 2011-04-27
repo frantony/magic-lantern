@@ -410,10 +410,18 @@ lens_focus(
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 
-	lctr.off_0x228 = 1; // mode?: 1,2,3, 0x8001, 0x8002, 0x8003 allowed
-	lctr.off_0x224 = 0;
-	lctr.off_0x20C = 0;
-	lctr.off_0x1D4 = step; // directionality?
+	static int ii = 0;
+	ii++;
+	if (ii>5) ii=0;
+	switch (ii) {
+		case 0: lctr.off_0x228 = 1;break; //forward
+		case 1: lctr.off_0x228 = 2;break;
+		case 2: lctr.off_0x228 = 3;break;
+		case 3: lctr.off_0x228 = 0x8001;break; // backward
+		case 4: lctr.off_0x228 = 0x8002;break;
+		case 5: lctr.off_0x228 = 0x8003;break;
+	}
+
 	lens_control_maybe(&lctr);
 
 	dump_seg(&lctr,sizeof(lctr),"B:/LENS.BIN");
@@ -834,6 +842,8 @@ PROP_HANDLER( PROP_LV_LENS )
 	const struct prop_lv_lens * const lv_lens = (void*) buf;
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
+
+	memcpy(&lctr,&lv_lens,sizeof(lv_lens));
 	
 	static int old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
