@@ -1372,6 +1372,11 @@ void display_clock()
 
 PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 
+PROP_INT(PROP_APERTURE, aper1);
+PROP_INT(PROP_APERTURE2, aper2);
+PROP_INT(PROP_APERTURE3, aper3);
+
+
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
 int screenshot_sec = 0;
@@ -1406,7 +1411,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%8x", *(int*)0xc0220070);
+		bmp_printf(FONT_MED, 50, 50, "%x %x %x        ", aper1, aper2, aper3);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
