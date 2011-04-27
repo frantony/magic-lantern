@@ -1610,39 +1610,56 @@ flash_ae_display( void * priv, int x, int y, int selected )
 }
 
 
-uint32_t cfn[4];
-PROP_HANDLER( PROP_CFN )
+uint32_t cfn1[2];
+uint32_t cfn2[1];
+uint32_t cfn3[2];
+uint32_t cfn4[2];
+PROP_HANDLER( PROP_CFN1 )
 {
-	cfn[0] = buf[0];
-	cfn[1] = buf[1];
-	cfn[2] = buf[2];
-	cfn[3] = buf[3] & 0xFF;
-	//~ bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
+	cfn1[0] = buf[0];
+	cfn1[1] = buf[1];
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN2 )
+{
+	cfn2[0] = buf[0];
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN3 )
+{
+	cfn3[0] = buf[0];
+	cfn3[1] = buf[1] & 0xFFFF;
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN4 )
+{
+	cfn3[0] = buf[0];
+	cfn3[1] = buf[1] & 0xFFFF;
 	return prop_cleanup( token, property );
 }
 
 int get_htp()
 {
-	if (cfn[1] & 0x10000) return 1;
+	if (cfn2[0] & 0x1000000) return 1;
 	return 0;
 }
 
 int set_htp(int enable)
 {
-	if (enable) cfn[1] |= 0x10000;
-	else cfn[1] &= ~0x10000;
-	prop_request_change(PROP_CFN, cfn, 0xD);
+	if (enable) cfn2[0] |= 0x1000000;
+	else cfn2[0] &= ~0x1000000;
+	prop_request_change(PROP_CFN2, cfn2, CFN2_LEN);
 }
 
 void set_mlu(int enable)
 {
-	if (enable) cfn[2] |= 0x1;
-	else cfn[2] &= ~0x1;
-	prop_request_change(PROP_CFN, cfn, 0xD);
+	if (enable) cfn3[1] |= 0x100;
+	else cfn3[1] &= ~0x100;
+	prop_request_change(PROP_CFN3, cfn3, CFN3_LEN);
 }
 int get_mlu()
 {
-	return cfn[2] & 0x1;
+	return cfn3[1] & 0x100;
 }
 
 PROP_INT(PROP_ALO, alo);
