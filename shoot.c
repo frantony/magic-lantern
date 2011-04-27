@@ -2239,13 +2239,14 @@ void iso_refresh_display()
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
+		bmp_printf(fnt, 560, 27, "ISO %5d", iso);
 	else
-		bmp_printf(fnt, 470, 27, "ISO AUTO");
+		bmp_printf(fnt, 560, 27, "ISO AUTO");
 }
 
 void display_shooting_info() // called from debug task
 {
+	return;
 	if (lv_drawn()) return;
 	
 	int bg = bmp_getpixel(314, 260);
@@ -2253,18 +2254,18 @@ void display_shooting_info() // called from debug task
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 360, 279, "%5dK", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
+		if (ba) bmp_printf(fnt, 310, 425, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(fnt, 435, 240, "   ");
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
+		if (gm) bmp_printf(fnt, 310, 395, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
 		else bmp_printf(fnt, 435, 270, "   ");
 	}
 
@@ -2274,11 +2275,11 @@ void display_shooting_info() // called from debug task
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
 	if (hdr_steps > 1)
-		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
+		bmp_printf(fnt, 200, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
-		bmp_printf(fnt, 380, 450, "           ");
+		bmp_printf(fnt, 200, 450, "           ");
 
-	bmp_printf(fnt, 200, 450, "Flash:%s%s", 
+	bmp_printf(fnt, 400, 430, "Flash:%s%s", 
 		strobo_firing == 0 ? " ON" : 
 		strobo_firing == 1 ? "OFF" : "Auto", 
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "

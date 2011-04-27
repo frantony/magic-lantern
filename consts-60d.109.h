@@ -97,7 +97,7 @@
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5780) == 0xF) || ((*(int*)0x20164) != 0x17))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5780) == 0xF)
 
-#define COLOR_FG_NONLV 80
+#define COLOR_FG_NONLV 1
 
 #define MVR_752_STRUCT (*(void**)0x1e70)
 
