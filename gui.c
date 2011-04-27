@@ -94,6 +94,7 @@ static int handle_buttons(struct event * event)
 	static int kev = 0;
 
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
+	/*
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
@@ -120,7 +121,7 @@ static int handle_buttons(struct event * event)
 			falsecolor_cancel();
 			return 0;
 		}
-	}
+	}*/
 
 	// event 0 is button press maybe?
 	if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
@@ -135,11 +136,12 @@ static int handle_buttons(struct event * event)
 			gui_stop_menu();
 			return 0;
 		}
+		/*
 		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
 		{
 			center_lv_afframe();
 			return 0;
-		}
+		}*/
 	}
 	if (get_draw_event())
 	{
@@ -154,14 +156,14 @@ static int handle_buttons(struct event * event)
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
-/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
 				event->type, 
 				event->param, 
 				event->obj ? *(uint32_t*)(event->obj) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
-				event->arg);*/
+				event->arg);
 			//msleep(250);
 		}
 #if 0
@@ -190,6 +192,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
+	/*
 	if (get_lcd_sensor_shortcuts() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (!gui_menu_shown())
@@ -254,7 +257,7 @@ static int handle_buttons(struct event * event)
 					return 0;
 			}
 		}
-	}
+	}*/
 	
 	if (event->type == 0)
 	{
@@ -263,29 +266,31 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
+	/*
 	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn() && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
 		fake_simple_button(BGMT_UNPRESS_SET);
-	}
+	}*/
 	
 	// for faster zoom in in Play mode
 	if (event->type == 0)
 	{
 		if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
-		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
-		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+		//~ if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+		//~ if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
  	}
 	
 	// override DISP button in LiveView mode
+	/*
 	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 	{
 		if (houtput_type == 0)
 			return toggle_disp_mode();
 		else
 			schedule_disp_mode_change();
-	}
+	}*/
 	
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
@@ -305,12 +310,14 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
+	/*
 	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
-	}
+	}*/
 	
+	/*
 	if (recording && get_zoom_overlay_mode())
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
@@ -321,7 +328,7 @@ static int handle_buttons(struct event * event)
 			move_lv_afframe(0, -200);
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 			move_lv_afframe(0, 200);
-	}
+	}*/
 
 
 /*
@@ -371,6 +378,7 @@ static int handle_buttons(struct event * event)
 	*/
 	
 	// quick access to some menu items
+	/*
 	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
 	{
 		if (ISO_ADJUSTMENT_ACTIVE)
@@ -422,8 +430,9 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 		
-	}
+	}*/
 
+	/*
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
 	{
 		int value = *(int*)(event->obj + 4);
@@ -448,7 +457,7 @@ static int handle_buttons(struct event * event)
 			}
 		}
 		old = value; 
-	}
+	}*/
 
 	return 1;
 }

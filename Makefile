@@ -32,14 +32,14 @@ CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
-CONFIG_CONSOLE		= n
+CONFIG_CONSOLE		= y
 
 #MacOS
 #UMOUNT=hdiutil unmount
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DEVELOP/
+CF_CARD=/media/EOS_DIGITAL/
 UMOUNT=umount
 
 all: magiclantern.fir

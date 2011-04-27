@@ -1453,12 +1453,13 @@ debug_loop_task( void ) // screenshot, draw_prop
 			recording_prev = recording;
 		}
 		
+		/*
 		if (movie_af == 3)
 		{
 			int fm = get_spot_focus(100);
 			if (get_focus_graph() && get_global_draw()) plot_focus_mag(fm);
 			movie_af_step(fm);
-		}
+		}*/
 		
 		do_movie_mode_remap();
 		
@@ -1514,37 +1515,41 @@ debug_loop_task( void ) // screenshot, draw_prop
 			if (!afframe_countdown) clear_lv_afframe();
 		}
 
+/*
 		if (!DISPLAY_SENSOR_POWERED) // force sensor on
 		{
 			DispSensorStart();
-		}
+		}*/
 		
 		if (lv_drawn() && display_force_off && !gui_menu_shown() && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed() && k % 100 == 0 && (!DISPLAY_SENSOR_POWERED || display_sensor_neg))
 		{
 			turn_off_display();
 			if (k % 500 == 0) card_led_blink(1, 20, 0);
 		}
-		if (lv_drawn() && (DISPLAY_SENSOR_POWERED && !display_sensor_neg))
+		/*if (lv_drawn() && (DISPLAY_SENSOR_POWERED && !display_sensor_neg))
 		{
 			display_on();
-		}
+		}*/
 		
-		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
+		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
 		{
 			lv_metering_adjust();
-		}
+		}*/
 		
 		// faster zoom in play mode
 		if (gui_state == GUISTATE_PLAYMENU)
 		{
 			if (get_zoom_in_pressed()) 
 			{
+				bmp_printf(FONT_LARGE, 0, 0, "ZUUUM");
 				msleep(300);
-				while (get_zoom_in_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
+				int i = 0;
+				for (i = 0; i < 10; i++) {	fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); msleep(50); }
 			}
 			
 			if (get_zoom_out_pressed())
 			{
+				bmp_printf(FONT_LARGE, 0, 0, "Zuuum");
 				msleep(300);
 				while (get_zoom_out_pressed()) {	fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); msleep(50); }
 			}
@@ -1955,6 +1960,7 @@ void show_logo()
 
 void restore_kelvin_wb()
 {
+	return;
 	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
 	lens_set_kelvin(workaround_wb_kelvin);
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
@@ -1975,7 +1981,6 @@ debug_init_stuff( void )
 	restore_kelvin_wb();
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	
 	
 	/*
 	DEBUG();
