@@ -226,9 +226,9 @@ ML_OBJS-y = \
 	focus.o \
 	chdk-gui_draw.o \
 	ptp.o \
-	hotplug.o \
 
 NO=\
+	hotplug.o \
 	bootflags.o \
 	aj_port.o \
 	aj_lib_port.o \

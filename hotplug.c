@@ -94,7 +94,7 @@ my_hotplug_task( void )
 	msleep(500);
 	menu_add("Audio", hotplug_menus, COUNT(hotplug_menus));
 	hotplug_setting_load();
-	audio_monitoring_force_display_on();
+	//~ audio_monitoring_force_display_on();
 
 	while(1)
 	{
