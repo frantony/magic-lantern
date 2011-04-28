@@ -387,6 +387,8 @@ struct lens_control {
 
 struct lens_control lctr;
 
+#define SWAP_ENDIAN(x) ((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24);
+
 void
 lens_focus(
 	unsigned		mode,
@@ -394,7 +396,7 @@ lens_focus(
 )
 {
 	// Should we timeout to avoid hanging?
-//	if( take_semaphore( focus_done_sem, 100 ) != 0 )
+	if( take_semaphore( focus_done_sem, 100 ) != 0 )
 //		return;
 	
 	if (!lv_drawn()) return;
@@ -410,21 +412,69 @@ lens_focus(
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 
-	static int ii = 0;
-	ii++;
-	if (ii>5) ii=0;
-	switch (ii) {
-		case 0: lctr.off_0x228 = 1;break; //forward
-		case 1: lctr.off_0x228 = 2;break;
-		case 2: lctr.off_0x228 = 3;break;
-		case 3: lctr.off_0x228 = 0x8001;break; // backward
-		case 4: lctr.off_0x228 = 0x8002;break;
-		case 5: lctr.off_0x228 = 0x8003;break;
-	}
+/*		case 0: lctr.off_0x228 = 1;break; //forward step slow
+		case 1: lctr.off_0x228 = 2;break; medium
+		case 2: lctr.off_0x228 = 3;break; fast
+		case 3: lctr.off_0x228 = 0x8001;break; // backward step slow
+		case 4: lctr.off_0x228 = 0x8002;break; medium
+		case 5: lctr.off_0x228 = 0x8003;break; fast */
 
-	lens_control_maybe(&lctr);
+	lctr.off_0x228 = 0x1;
+	if (step<0) { lctr.off_0x228 += 0x8000; step = -step; }
+/*	if (step>10) lctr.off_0x228+=1;
+	if (step>100) lctr.off_0x228+=1;*/
 
-	dump_seg(&lctr,sizeof(lctr),"B:/LENS.BIN");
+	bmp_printf(FONT_SMALL,0,50,"%d",step);
+
+/*	lctr.off_0x1D4 = FA_GetAfValYpInLv();
+	lctr.off_0x1D8 = FA_GetAfValMmpInLv();
+	lctr.off_0x1DC = FA_GetAfValYitgInLv();
+	lctr.off_0x1E0 = FA_GetAfValTesInLv();
+	lctr.off_0x1E4 = FA_GetAfValFesInLv();
+	lctr.off_0x1E8 = FA_GetAfValFepInLv();
+	lctr.off_0x1EC = FA_GetAfValTepInLv();*/
+
+//	EMD_DRIVE_RES(&lctr, 0x80050005);
+//	AfCtrl_SetLensParameter(&lctr);
+
+	float a = 0.1/((float)step); //doesn't work. Same result no matter what the step is
+	uint32_t* aconv = &a;
+
+	lctr.off_0x1D4 = SWAP_ENDIAN(*aconv); //0x00400F3C; // single floating point number: 0x008743286
+	lctr.off_0x1D8 = 0x0000803F; // single floating point number: 1
+	lctr.off_0x1F4 = 0x08080000;
+	lctr.off_0x200 = 0x00003200;
+	lctr.off_0x20C = 0xFF000000;
+	lctr.off_0x210 = 0x000000FF;
+	lctr.off_0x214 = 0xFFFFFF00;
+	lctr.off_0x218 = 0x0000FFFF;
+
+/*	lctr.off_0x1D4 = 0x01020304;
+	lctr.off_0x1D8 = 0x05060708;*/
+/*	lctr.off_0x1DC = 0x09101112;
+	lctr.off_0x1E0 = 0x13141516;
+	lctr.off_0x1E4 = 0x17181920;
+	lctr.off_0x1E8 = 0x21222324;
+	lctr.off_0x1EC = 0x25262728;
+	lctr.off_0x1F0 = 0x29303132;
+	lctr.off_0x1F4 = 0x33343536;
+	lctr.off_0x1F8 = 0x37383940;
+	lctr.off_0x1FC = 0x41424344;
+	lctr.off_0x200 = 0x45464748;
+	lctr.off_0x204 = 0x49505152;
+	lctr.off_0x208 = 0x53545556;
+	lctr.off_0x20C = 0x57585960;
+	lctr.off_0x210 = 0x61626364;
+	lctr.off_0x214 = 0x65666768;
+	lctr.off_0x218 = 0x69707172;
+	lctr.off_0x21C = 0x73747576;
+	lctr.off_0x220 = 0x77787985;
+	lctr.off_0x224 = 0x81828384;*/
+	AfCtrl_SetLensParameterRemote(&lctr);
+
+//	dump_seg(&lctr,sizeof(lctr),"B:/LENS.BIN");
+//	dump_seg(0x549DC,0x300,"B:/L549DC.BIN");
+//	dump_seg(0x54A28,0x300,"B:/L54A28.BIN");
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
 }
@@ -843,7 +893,7 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
-	memcpy(&lctr,&lv_lens,sizeof(lv_lens));
+//	memcpy(((char*)(&lctr))+0x1D4,&lv_lens,sizeof(struct prop_lv_lens));
 	
 	static int old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)

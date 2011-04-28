@@ -61,10 +61,21 @@ NSTUB( 0xFF325754, MirrorDisplay )
 NSTUB( 0xFF3257B4, NormalDisplay )
 NSTUB( 0xFF323F08, redraw_maybe )
 
-NSTUB( 0xFF27E5E4, af_control_handler )
-NSTUB( 0xFF27F454, lens_control_maybe )
+/*NSTUB( 0xFF27E5E4, af_control_handler )*/
+NSTUB( 0xFF27F454, AfCtrl_SetLensParameterRemote )
+/*NSTUB( 0xFF27F41C, AfCtrl_SetLensParameter )
+NSTUB( 0xFF27EB80, EMD_DRIVE_RES )
 NSTUB( 0xFF28D7FC, move_lens_maybe )
-NSTUB( 0xFF28D114, lens_controller )
+NSTUB( 0xFF28D114, lens_controller )*/
+
+/*NSTUB( 0xFF28E61C, FA_GetAfValYitgInLv )
+NSTUB( 0xFF28E604, FA_GetAfValYpInLv )
+NSTUB( 0xFF28E5cc, FA_GetAfValFepInLv )
+NSTUB( 0xFF28E5b0, FA_GetAfValTepInLv )
+NSTUB( 0xFF28E5e8, FA_GetAfValMmpInLv )
+NSTUB( 0xFF28E594, FA_GetAfValFesInLv )
+NSTUB( 0xFF28E578, FA_GetAfValTesInLv )*/
+
 
 /** Look for the normal printf strings */
 NSTUB( 0xff06b8c8, DryosDebugMsg )
