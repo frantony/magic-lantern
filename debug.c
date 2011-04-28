@@ -15,8 +15,62 @@
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
+CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
 CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
-CONFIG_INT( "wbs.gm", workaround_wbs_gm, 10);
+CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
+CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
+
+CONFIG_INT( "expsim.auto", expsim_auto, 1);
+
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
+void set_expsim( int x )
+{
+	if (expsim != x)
+		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+}
+static void
+expsim_toggle( void * priv )
+{
+	// off, on, auto
+	if (!expsim_auto && !expsim) // off->on
+	{
+		set_expsim(1);
+	}
+	else if (!expsim_auto && expsim) // on->auto
+	{
+		expsim_auto = 1;
+	}
+	else // auto->off
+	{
+		expsim_auto = 0;
+		set_expsim(0);
+	}
+}
+static void
+expsim_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Sim.  : %s",
+		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
+		expsim ? "ON " : "OFF"
+	);
+}
+
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+int shooting_mode;
+
+void expsim_update()
+{
+	if (!lv_drawn()) return;
+	if (shooting_mode == SHOOTMODE_MOVIE) return;
+	if (expsim_auto)
+	{
+		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
+		else set_expsim(1);
+	}
+}
 
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
@@ -58,8 +112,6 @@ static PROP_INT(PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-int shooting_mode;
 
 extern void bootdisk_disable();
 
@@ -446,7 +498,7 @@ CONFIG_INT( "h264.qscale.index", qscale_index, 6 );
 CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR, MAX
 CONFIG_INT( "h264.bitrate.value.index", bitrate_value_index, 14 );
 
-int qscale_values[] = {16,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
+int qscale_values[] = {16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
 int bitrate_values[] = {1,2,3,4,5,6,7,8,10,12,15,18,20,25,30,35,40,45,50,60,70,80,90,100,110,120};
 
 #define BITRATE_VALUE bitrate_values[mod(bitrate_value_index, COUNT(bitrate_values))]
@@ -655,6 +707,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	if (shooting_mode != buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
+	restore_kelvin_wb();
 	return prop_cleanup(token, property);
 }
 
@@ -904,22 +957,25 @@ void movie_af_noisefilter_bump(void* priv)
 	movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
 }
 
+int setting_shooting_mode = 0;
 void set_shooting_mode(int m)
 {
+	setting_shooting_mode = 1;
 	msleep(200);
 	prop_request_change(PROP_SHOOTING_MODE, &m, 4);
 	msleep(500);
 	mode_remap_done = 1;
+	setting_shooting_mode = 0;
 }
 
 void do_movie_mode_remap()
 {
 	if (!movie_mode_remap) return;
 	if (mode_remap_done) return;
+	if (setting_shooting_mode) return;
 	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
 	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
 	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
-	restore_kelvin_wb();
 	mode_remap_done = 1;
 }
 /*
@@ -1179,6 +1235,8 @@ void fake_simple_button(int bgmt_code)
 
 void lv_redraw()
 {
+	if (recording && MVR_FRAME_NUMBER < 50) return;
+
 	if (lv_drawn())
 	{
 		zebra_pause();
@@ -1189,7 +1247,8 @@ void lv_redraw()
 		bmp_enabled = 1;
 		zebra_resume();
 	}
-	else redraw_maybe();
+	else
+		redraw_maybe();
 
 	afframe_countdown = 50;
 }
@@ -1372,6 +1431,11 @@ void display_clock()
 
 PROP_INT(PROP_AE_MODE_MOVIE, ae_mode_movie);
 
+PROP_INT(PROP_APERTURE, aper1);
+PROP_INT(PROP_APERTURE2, aper2);
+PROP_INT(PROP_APERTURE3, aper3);
+
+
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
 int screenshot_sec = 0;
@@ -1406,7 +1470,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			display_info();
 		}
 		
-		//~ bmp_printf(FONT_MED, 50, 50, "%8x", *(int*)0xc0220070);
+		//~ bmp_printf(FONT_MED, 50, 50, "%x %x %x       ", aper1, aper2, aper3);
 		//~ struct tm now;
 		//~ LoadCalendarFromRTC(&now);
 		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x14c00, 32*5);
@@ -1452,6 +1516,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 			}
 			recording_prev = recording;
 		}
+		
 		
 		if (movie_af == 3)
 		{
@@ -1501,11 +1566,10 @@ debug_loop_task( void ) // screenshot, draw_prop
 					{
 						vbr_bump(SGN(qscale_values[qscale_index] - qscale));
 					}
-					
 				}
 				prev_fn = MVR_FRAME_NUMBER;
 			}
-			vbr_set();
+			if (bitrate_mode) vbr_set();
 		}
 		
 		if (af_frame_autohide && lv_drawn() && afframe_countdown)
@@ -1514,25 +1578,26 @@ debug_loop_task( void ) // screenshot, draw_prop
 			if (!afframe_countdown) clear_lv_afframe();
 		}
 
+/*
 		if (!DISPLAY_SENSOR_POWERED) // force sensor on
 		{
 			DispSensorStart();
-		}
+		}*/
 		
 		if (lv_drawn() && display_force_off && !gui_menu_shown() && gui_state == GUISTATE_IDLE && !get_halfshutter_pressed() && k % 100 == 0 && (!DISPLAY_SENSOR_POWERED || display_sensor_neg))
 		{
 			turn_off_display();
 			if (k % 500 == 0) card_led_blink(1, 20, 0);
 		}
-		if (lv_drawn() && (DISPLAY_SENSOR_POWERED && !display_sensor_neg))
+		/*if (lv_drawn() && (DISPLAY_SENSOR_POWERED && !display_sensor_neg))
 		{
 			display_on();
-		}
+		}*/
 		
-		if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
+		/*if (lv_metering && shooting_mode != SHOOTMODE_MOVIE && lv_drawn() && k % 10 == 0)
 		{
 			lv_metering_adjust();
-		}
+		}*/
 		
 		// faster zoom in play mode
 		if (gui_state == GUISTATE_PLAYMENU)
@@ -1552,6 +1617,9 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		workaround_wb_kelvin = lens_info.kelvin;
 		workaround_wbs_gm = lens_info.wbs_gm + 100;
+		workaround_wbs_ba = lens_info.wbs_ba + 100;
+		
+		expsim_update();
 
 		/*if (big_clock && k % 10 == 0)
 		{
@@ -1627,16 +1695,20 @@ struct menu_entry debug_menus[] = {
 		.display = auto_burst_pic_display,
 	},
 	{
+		.select = expsim_toggle, 
+		.display = expsim_display,
+	},
+	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	{
+	/*{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},
+	},*/
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1955,9 +2027,12 @@ void show_logo()
 
 void restore_kelvin_wb()
 {
+	if (!white_balance_workaround) return;
+	
 	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
-	lens_set_kelvin(workaround_wb_kelvin);
+	lens_set_kelvin_value_only(workaround_wb_kelvin);
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
+	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
 }
 
 void
@@ -1975,7 +2050,6 @@ debug_init_stuff( void )
 	restore_kelvin_wb();
 	// It was too early to turn these down in debug_init().
 	// Only record important events for the display and face detect
-	
 	
 	/*
 	DEBUG();

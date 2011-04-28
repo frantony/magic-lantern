@@ -32,17 +32,15 @@
 #include "gui.h"
 #include "lens.h"
 
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define WAVEFORM_MAX_HEIGHT			240
-#define WAVEFORM_MAX_WIDTH			360
-#define WAVEFORM_HALFSIZE (waveform_draw == 1)
-#define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
-#define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
+#define WAVEFORM_WIDTH 120
+#define WAVEFORM_HEIGHT 180
 
 CONFIG_INT("disp.mode", disp_mode, 0);
 CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
@@ -559,6 +557,7 @@ hist_draw_image(
 )
 {
 	if (!lv_drawn()) return;
+	if (!expsim) return;
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -607,6 +606,7 @@ waveform_draw_image(
 )
 {
     if (!lv_drawn()) return;
+    if (!expsim) return;
 	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
@@ -866,11 +866,11 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		waveform = AllocateMemory(WAVEFORM_MAX_WIDTH * sizeof(uint32_t*));
+		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
-		for (i = 0; i < WAVEFORM_MAX_WIDTH; i++) {
-			waveform[i] = AllocateMemory(WAVEFORM_MAX_HEIGHT * sizeof(uint32_t));
+		for (i = 0; i < WAVEFORM_WIDTH; i++) {
+			waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
 			if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
@@ -895,13 +895,13 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bvram_mirror = AllocateMemory(BMPPITCH*540 + 100);
+		bvram_mirror = AllocateMemory(BMPPITCH*540 + 10);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, 960*540);
+		bzero32(bvram_mirror, BMPPITCH*540);
 	}
 }
 
@@ -1387,6 +1387,7 @@ draw_zebra_and_focus( void )
 	}
 	
 	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
+	if (!expsim) zd = 0;
 	if (zd)
 	{
 		uint32_t zlh = zebra_level_hi << 8;
@@ -1508,6 +1509,8 @@ void
 draw_false_downsampled( void )
 {
 	if (!global_draw) return;
+	if (!expsim) return;
+	if (should_draw_zoom_overlay()) return;
 	bvram_mirror_init();
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -1733,7 +1736,7 @@ static void find_cropmarks()
 	int k = 0;
 	do {
 		int n = strlen(file.name);
-		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")))
+		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")) && (file.name[0] != '.'))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -2535,14 +2538,14 @@ void time_indicator_show()
 	}
 }
 
-
+/*
 PROP_HANDLER(PROP_LV_ACTION)
 {
 	crop_dirty = 5;
 	if (buf[0] == 0) ChangeColorPalette(2);
 
 	return prop_cleanup( token, property );
-}
+}*/
 
 
 void 
@@ -2672,7 +2675,6 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
-	if (falsecolor_displayed) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
@@ -2845,7 +2847,7 @@ zebra_task_loop:
 
 		if (zebra_paused)
 		{
-			clrscr_mirror();
+			//~ clrscr_mirror();
 			while (zebra_paused)
 			{
 				msleep(100);
@@ -3055,7 +3057,7 @@ TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x13, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
-	return (zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
+	return (get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
 }
 static void
 zoom_overlay_task( void )

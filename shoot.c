@@ -1610,39 +1610,56 @@ flash_ae_display( void * priv, int x, int y, int selected )
 }
 
 
-uint32_t cfn[4];
-PROP_HANDLER( PROP_CFN )
+uint32_t cfn1[2];
+uint32_t cfn2[1];
+uint32_t cfn3[2];
+uint32_t cfn4[2];
+PROP_HANDLER( PROP_CFN1 )
 {
-	cfn[0] = buf[0];
-	cfn[1] = buf[1];
-	cfn[2] = buf[2];
-	cfn[3] = buf[3] & 0xFF;
-	//~ bmp_printf(FONT_MED, 0, 450, "cfn: %x/%x/%x/%x", cfn[0], cfn[1], cfn[2], cfn[3]);
+	cfn1[0] = buf[0];
+	cfn1[1] = buf[1];
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN2 )
+{
+	cfn2[0] = buf[0];
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN3 )
+{
+	cfn3[0] = buf[0];
+	cfn3[1] = buf[1] & 0xFFFF;
+	return prop_cleanup( token, property );
+}
+PROP_HANDLER( PROP_CFN4 )
+{
+	cfn3[0] = buf[0];
+	cfn3[1] = buf[1] & 0xFFFF;
 	return prop_cleanup( token, property );
 }
 
 int get_htp()
 {
-	if (cfn[1] & 0x10000) return 1;
+	if (cfn2[0] & 0x1000000) return 1;
 	return 0;
 }
 
 int set_htp(int enable)
 {
-	if (enable) cfn[1] |= 0x10000;
-	else cfn[1] &= ~0x10000;
-	prop_request_change(PROP_CFN, cfn, 0xD);
+	if (enable) cfn2[0] |= 0x1000000;
+	else cfn2[0] &= ~0x1000000;
+	prop_request_change(PROP_CFN2, cfn2, CFN2_LEN);
 }
 
 void set_mlu(int enable)
 {
-	if (enable) cfn[2] |= 0x1;
-	else cfn[2] &= ~0x1;
-	prop_request_change(PROP_CFN, cfn, 0xD);
+	if (enable) cfn3[1] |= 0x100;
+	else cfn3[1] &= ~0x100;
+	prop_request_change(PROP_CFN3, cfn3, CFN3_LEN);
 }
 int get_mlu()
 {
-	return cfn[2] & 0x1;
+	return cfn3[1] & 0x100;
 }
 
 PROP_INT(PROP_ALO, alo);
@@ -2115,6 +2132,9 @@ void movie_end()
 	msleep(500);
 
 	call("MovieEnd");
+
+	while (recording) msleep(100);
+	msleep(500);
 }
 
 static void
@@ -2222,13 +2242,14 @@ void iso_refresh_display()
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 470, 27, "ISO %5d", iso);
+		bmp_printf(fnt, 560, 27, "ISO %5d", iso);
 	else
-		bmp_printf(fnt, 470, 27, "ISO AUTO");
+		bmp_printf(fnt, 560, 27, "ISO AUTO");
 }
 
 void display_shooting_info() // called from debug task
 {
+	return;
 	if (lv_drawn()) return;
 	
 	int bg = bmp_getpixel(314, 260);
@@ -2236,18 +2257,18 @@ void display_shooting_info() // called from debug task
 
 	if (lens_info.wb_mode == WB_KELVIN)
 	{
-		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
+		bmp_printf(fnt, 360, 279, "%5dK", lens_info.kelvin);
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
 		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
+		if (ba) bmp_printf(fnt, 310, 425, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
 		else bmp_printf(fnt, 435, 240, "   ");
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
+		if (gm) bmp_printf(fnt, 310, 395, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
 		else bmp_printf(fnt, 435, 270, "   ");
 	}
 
@@ -2257,11 +2278,11 @@ void display_shooting_info() // called from debug task
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
 	if (hdr_steps > 1)
-		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
+		bmp_printf(fnt, 200, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
-		bmp_printf(fnt, 380, 450, "           ");
+		bmp_printf(fnt, 200, 450, "           ");
 
-	bmp_printf(fnt, 200, 450, "Flash:%s%s", 
+	bmp_printf(fnt, 400, 430, "Flash:%s%s", 
 		strobo_firing == 0 ? " ON" : 
 		strobo_firing == 1 ? "OFF" : "Auto", 
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "

@@ -424,7 +424,7 @@ lens_focus(
 /*	if (step>10) lctr.off_0x228+=1;
 	if (step>100) lctr.off_0x228+=1;*/
 
-	bmp_printf(FONT_SMALL,0,50,"%d",step);
+	bmp_printf(FONT_SMALL,0,50,"%d  ",step);
 
 /*	lctr.off_0x1D4 = FA_GetAfValYpInLv();
 	lctr.off_0x1D8 = FA_GetAfValMmpInLv();
@@ -877,6 +877,14 @@ lens_set_kelvin(int k)
 	prop_request_change(PROP_WB_MODE_LV, &mode, 4);
 	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
 	prop_request_change(PROP_WB_MODE_PH, &mode, 4);
+	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+}
+
+void
+lens_set_kelvin_value_only(int k)
+{
+	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
+	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
 }
 
