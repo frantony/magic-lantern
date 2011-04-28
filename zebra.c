@@ -38,11 +38,8 @@ static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define WAVEFORM_MAX_HEIGHT			240
-#define WAVEFORM_MAX_WIDTH			360
-#define WAVEFORM_HALFSIZE (waveform_draw == 1)
-#define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
-#define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
+#define WAVEFORM_WIDTH 120
+#define WAVEFORM_HEIGHT 180
 
 CONFIG_INT("disp.mode", disp_mode, 0);
 CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
@@ -866,11 +863,12 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		waveform = AllocateMemory(WAVEFORM_MAX_WIDTH * sizeof(uint32_t*));
+		bmp_printf(FONT_LARGE, 0, 50, "wave init");
+		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
-		for (i = 0; i < WAVEFORM_MAX_WIDTH; i++) {
-			waveform[i] = AllocateMemory(WAVEFORM_MAX_HEIGHT * sizeof(uint32_t));
+		for (i = 0; i < WAVEFORM_WIDTH; i++) {
+			waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
 			if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
@@ -878,6 +876,7 @@ void waveform_init()
 
 void histo_init()
 {
+	bmp_printf(FONT_LARGE, 0, 50, "hist init");
 	if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t*));
 	if (!hist) fail("Hist malloc failed");
 
@@ -895,13 +894,14 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bvram_mirror = AllocateMemory(BMPPITCH*540 + 100);
+		bmp_printf(FONT_LARGE, 0, 50, "bvrm init");
+		bvram_mirror = AllocateMemory(BMPPITCH*540 + 10);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, 960*540);
+		bzero32(bvram_mirror, BMPPITCH*540);
 	}
 }
 
@@ -2405,7 +2405,7 @@ int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	crop_dirty = 50;
-	lv_redraw();
+	//~ lv_redraw();
 	recording = buf[0];
 	if (!recording)
 	{
@@ -2535,14 +2535,14 @@ void time_indicator_show()
 	}
 }
 
-
+/*
 PROP_HANDLER(PROP_LV_ACTION)
 {
 	crop_dirty = 5;
 	if (buf[0] == 0) ChangeColorPalette(2);
 
 	return prop_cleanup( token, property );
-}
+}*/
 
 
 void 
