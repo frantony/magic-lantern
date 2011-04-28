@@ -2132,6 +2132,9 @@ void movie_end()
 	msleep(500);
 
 	call("MovieEnd");
+
+	while (recording) msleep(100);
+	msleep(500);
 }
 
 static void

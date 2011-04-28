@@ -15,8 +15,60 @@
 int config_autosave = 1;
 #define CONFIG_AUTOSAVE_FLAG_FILE "B:/AUTOSAVE.NEG"
 
+CONFIG_INT( "white.balance.workaround", white_balance_workaround, 1);
 CONFIG_INT( "wb.kelvin", workaround_wb_kelvin, 6500);
-CONFIG_INT( "wbs.gm", workaround_wbs_gm, 10);
+CONFIG_INT( "wbs.gm", workaround_wbs_gm, 100);
+CONFIG_INT( "wbs.ba", workaround_wbs_ba, 100);
+
+CONFIG_INT( "expsim.auto", expsim_auto, 1);
+
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
+void set_expsim( int x )
+{
+	if (expsim != x)
+		prop_request_change(PROP_LIVE_VIEW_VIEWTYPE, &x, 4);
+}
+static void
+expsim_toggle( void * priv )
+{
+	// off, on, auto
+	if (!expsim_auto && !expsim) // off->on
+	{
+		set_expsim(1);
+	}
+	else if (!expsim_auto && expsim) // on->auto
+	{
+		expsim_auto = 1;
+	}
+	else // auto->off
+	{
+		expsim_auto = 0;
+		set_expsim(0);
+	}
+}
+static void
+expsim_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Exposure Sim.  : %s",
+		expsim_auto ? (expsim ? "Auto (ON)" : "Auto (OFF)") : 
+		expsim ? "ON " : "OFF"
+	);
+}
+
+PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
+
+void expsim_update()
+{
+	if (!lv_drawn()) return;
+	if (expsim_auto)
+	{
+		if (lv_dispsize > 1 || should_draw_zoom_overlay()) set_expsim(0);
+		else set_expsim(1);
+	}
+}
 
 //////////////////////////////////////////////////////////
 // debug manager enable/disable
@@ -58,7 +110,6 @@ static PROP_INT(PROP_EFIC_TEMP, efic_temp );
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_MAX_AUTO_ISO, max_auto_iso);
 static PROP_INT(PROP_PIC_QUALITY, pic_quality);
-PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 int shooting_mode;
 
 extern void bootdisk_disable();
@@ -446,7 +497,7 @@ CONFIG_INT( "h264.qscale.index", qscale_index, 6 );
 CONFIG_INT( "h264.bitrate.mode", bitrate_mode, 0 ); // off, CBR, VBR, MAX
 CONFIG_INT( "h264.bitrate.value.index", bitrate_value_index, 14 );
 
-int qscale_values[] = {16,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
+int qscale_values[] = {16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14,-15,-16};
 int bitrate_values[] = {1,2,3,4,5,6,7,8,10,12,15,18,20,25,30,35,40,45,50,60,70,80,90,100,110,120};
 
 #define BITRATE_VALUE bitrate_values[mod(bitrate_value_index, COUNT(bitrate_values))]
@@ -655,6 +706,7 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 {
 	if (shooting_mode != buf[0]) mode_remap_done = 0;
 	shooting_mode = buf[0];
+	restore_kelvin_wb();
 	return prop_cleanup(token, property);
 }
 
@@ -919,7 +971,6 @@ void do_movie_mode_remap()
 	int movie_newmode = movie_mode_remap == 1 ? SHOOTMODE_ADEP : SHOOTMODE_CA;
 	if (shooting_mode == movie_newmode) set_shooting_mode(SHOOTMODE_MOVIE);
 	else if (shooting_mode == SHOOTMODE_MOVIE) set_shooting_mode(movie_newmode);
-	restore_kelvin_wb();
 	mode_remap_done = 1;
 }
 /*
@@ -1559,6 +1610,9 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		workaround_wb_kelvin = lens_info.kelvin;
 		workaround_wbs_gm = lens_info.wbs_gm + 100;
+		workaround_wbs_ba = lens_info.wbs_ba + 100;
+		
+		expsim_update();
 
 		/*if (big_clock && k % 10 == 0)
 		{
@@ -1634,16 +1688,20 @@ struct menu_entry debug_menus[] = {
 		.display = auto_burst_pic_display,
 	},
 	{
+		.select = expsim_toggle, 
+		.display = expsim_display,
+	},
+	{
 		.priv = &lv_metering,
 		.select = menu_quinternary_toggle, 
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	{
+	/*{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},
+	},*/
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,
@@ -1962,10 +2020,12 @@ void show_logo()
 
 void restore_kelvin_wb()
 {
-	return;
+	if (!white_balance_workaround) return;
+	
 	// sometimes Kelvin WB and WBShift are not remembered, usually in Movie mode 
-	lens_set_kelvin(workaround_wb_kelvin);
+	lens_set_kelvin_value_only(workaround_wb_kelvin);
 	lens_set_wbs_gm(COERCE(((int)workaround_wbs_gm) - 100, -9, 9));
+	lens_set_wbs_ba(COERCE(((int)workaround_wbs_ba) - 100, -9, 9));
 }
 
 void
