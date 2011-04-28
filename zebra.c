@@ -866,7 +866,6 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		bmp_printf(FONT_LARGE, 0, 50, "wave init");
 		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
@@ -879,7 +878,6 @@ void waveform_init()
 
 void histo_init()
 {
-	bmp_printf(FONT_LARGE, 0, 50, "hist init");
 	if (!hist) hist = AllocateMemory(hist_width * sizeof(uint32_t*));
 	if (!hist) fail("Hist malloc failed");
 
@@ -897,7 +895,6 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bmp_printf(FONT_LARGE, 0, 50, "bvrm init");
 		bvram_mirror = AllocateMemory(BMPPITCH*540 + 10);
 		if (!bvram_mirror) 
 		{	
@@ -2411,7 +2408,7 @@ int movie_elapsed_time_01s = 0;   // seconds since starting the current movie * 
 PROP_HANDLER(PROP_MVR_REC_START)
 {
 	crop_dirty = 50;
-	//~ lv_redraw();
+	lv_redraw();
 	recording = buf[0];
 	if (!recording)
 	{
@@ -2850,7 +2847,7 @@ zebra_task_loop:
 
 		if (zebra_paused)
 		{
-			clrscr_mirror();
+			//~ clrscr_mirror();
 			while (zebra_paused)
 			{
 				msleep(100);
