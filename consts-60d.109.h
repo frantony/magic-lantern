@@ -68,10 +68,12 @@
 #define BGMT_DISP 7
 #define BGMT_Q 8
 #define BGMT_Q_ALT 0xF
-#define BGMT_PLAY 9
+#define BGMT_PLAY 0xb
 
 #define BGMT_PRESS_HALFSHUTTER 0x41
 #define BGMT_UNPRESS_HALFSHUTTER 0x42
+
+#define BGMT_LV 0x1A
 
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
@@ -119,16 +121,13 @@
 
 #define AE_VALUE (*(int8_t*)0x14c25)
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x39ac)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define CURRENT_DIALOG_MAYBE (*(int*)0x5680)
+#define DLG_AF 0xA
+#define DLG_DRIVE_MODE 0xB
+#define DLG_ISO 0xF
+#define DLG_METERING 0xC
+#define DLG_AF_POINTS 0xE
 #define DLG_Q_UNAVI 0x1F
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a74

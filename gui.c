@@ -458,6 +458,13 @@ static int handle_buttons(struct event * event)
 		}
 		old = value; 
 	}*/
+	
+	// movie mode shortcut
+	if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_AF || CURRENT_DIALOG_MAYBE == DLG_METERING))
+	{
+		set_shooting_mode(SHOOTMODE_MOVIE);
+		return 0;
+	}
 
 	return 1;
 }
