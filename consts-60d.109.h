@@ -38,7 +38,7 @@
 #define YUV422_HD_PITCH_REC_480P 1280
 #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
+#define FOCUS_CONFIRMATION (*(int*)0x4680)
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 #define DISPLAY_SENSOR 0x2dec
 #define DISPLAY_SENSOR_MAYBE 0xC0220104
