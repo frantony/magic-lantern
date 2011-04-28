@@ -822,7 +822,7 @@ static void movie_af_step(int mag)
 	static int focus_pos = 0;
 	int focus_delta = movie_af_stepsize * SGN(dir);
 	focus_pos += focus_delta;
-	lens_focus(7, focus_delta);  // send focus command
+	lens_focus(7, focus_delta*10);  // send focus command
 
 	//~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
 	
