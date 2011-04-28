@@ -132,7 +132,7 @@ static struct semaphore * focus_task_sem;
 static int focus_task_dir;
 static int focus_task_delta;
 static int focus_rack_delta;
-CONFIG_INT( "focus.rack-speed", focus_rack_speed, 4 );
+CONFIG_INT( "focus.rack-speed", focus_rack_speed, 2 );
 
 void follow_focus_reverse_dir()
 {
@@ -211,7 +211,7 @@ focus_rack_speed_display(
 }
 
 
-unsigned rack_speed_values[] = {1,2,3,4,5,7,10,13,17,22,28,36,50,75,100,200,300,500,1000};
+unsigned rack_speed_values[] = {1,2,3};
 
 int current_rack_speed_index()
 {

@@ -221,11 +221,11 @@ static int handle_buttons(struct event * event)
 				return 0;
 			}
 		}
-	}
+	}*/
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts()))
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn())
 		{
 			switch(event->param)
 			{
@@ -236,28 +236,17 @@ static int handle_buttons(struct event * event)
 					lens_focus_start(-1 * get_follow_focus_dir_h());
 					return 0;
 				case BGMT_PRESS_UP:
-					lens_focus_start(5 * get_follow_focus_dir_v());
+					lens_focus_start(2 * get_follow_focus_dir_v());
 					return 0;
 				case BGMT_PRESS_DOWN:
-					lens_focus_start(-5 * get_follow_focus_dir_v());
+					lens_focus_start(-2 * get_follow_focus_dir_v());
 					return 0;
-#ifdef BGMT_NO_SEPARATE_UNPRESS
-				case BGMT_CENTER:
-				case BGMT_PRESS_UP_LEFT:
-				case BGMT_PRESS_UP_RIGHT:
-				case BGMT_PRESS_DOWN_LEFT:
-				case BGMT_PRESS_DOWN_RIGHT:
-#else
-				case BGMT_UNPRESS_LEFT:
-				case BGMT_UNPRESS_RIGHT:
-				case BGMT_UNPRESS_UP:
-				case BGMT_UNPRESS_DOWN:
-#endif
+				case BGMT_UNPRESS_UDLR:
 					lens_focus_stop();
 					return 0;
 			}
 		}
-	}*/
+	}
 	
 	if (event->type == 0)
 	{
