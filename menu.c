@@ -500,10 +500,9 @@ menu_handler(
 
 	//~ if( event == GUI_PROP_EVENT )
 	//~ {
-		//~ if(0) bmp_printf( FONT_SMALL, 400, 40,
-			//~ "prop %08x => %08x",
-			//~ arg4,
-			//~ *(unsigned*) arg4
+		//~ bmp_printf( FONT_SMALL, 400, 40,
+			//~ "evt %8x(%8x,%8x,%8x",
+			//~ event, arg2, arg3, arg4
 		//~ );
 
 		// Mine!  No one else gets it
@@ -555,6 +554,7 @@ menu_handler(
 	case PRESS_MENU_BUTTON:
 	case EVENTID_METERING_START: // If they press the shutter halfway
 	case 0x10000048:
+	case 0x10000062:
 		gui_stop_menu();
 		return 1;
 
