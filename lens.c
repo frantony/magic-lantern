@@ -794,6 +794,14 @@ lens_set_kelvin(int k)
 	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
 }
 
+void
+lens_set_kelvin_value_only(int k)
+{
+	k = COERCE(k, KELVIN_MIN, KELVIN_MAX);
+	prop_request_change(PROP_WB_KELVIN_LV, &k, 4);
+	prop_request_change(PROP_WB_KELVIN_PH, &k, 4);
+}
+
 void update_stuff()
 {
 	calc_dof( &lens_info );
@@ -813,8 +821,6 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.lens_rotation = *((float*)&lrswap);
 	lens_info.lens_step = *((float*)&lsswap);
 	
-	bmp_hexdump(FONT_SMALL, 0, 50, lv_lens, sizeof(struct prop_lv_lens));
-
 	static int old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{

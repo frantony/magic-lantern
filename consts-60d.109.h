@@ -38,7 +38,7 @@
 #define YUV422_HD_PITCH_REC_480P 1280
 #define YUV422_HD_HEIGHT_REC_480P 480
 
-#define FOCUS_CONFIRMATION 0x4698	// 60D: 0 - none; 1 - success; 2 - failed
+#define FOCUS_CONFIRMATION (*(int*)0x4680)
 #define FOCUS_CONFIRMATION_AF_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 #define DISPLAY_SENSOR 0x2dec
 #define DISPLAY_SENSOR_MAYBE 0xC0220104
@@ -57,7 +57,7 @@
 #define BGMT_PRESS_UP_RIGHT 0x25
 #define BGMT_PRESS_DOWN_LEFT 0x29
 #define BGMT_PRESS_DOWN_RIGHT 0x27
-#define BGMT_CENTER 0x2c
+#define BGMT_UNPRESS_UDLR 0x2c
 #define BGMT_NO_SEPARATE_UNPRESS 1
 
 #define BGMT_PRESS_SET 0x4
@@ -68,15 +68,17 @@
 #define BGMT_DISP 7
 #define BGMT_Q 8
 #define BGMT_Q_ALT 0xF
-#define BGMT_PLAY 9
+#define BGMT_PLAY 0xb
 
 #define BGMT_PRESS_HALFSHUTTER 0x41
 #define BGMT_UNPRESS_HALFSHUTTER 0x42
 
+#define BGMT_LV 0x1A
+
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xC
+#define BGMT_PRESS_ZOOMOUT_MAYBE 0xF
+#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x10
 
 #define BGMT_PRESS_ZOOMIN_MAYBE 0xD
 #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
@@ -97,38 +99,35 @@
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x5680) == 0xF) || ((*(int*)0x2A430) != 0x17))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5680) == 0xF)
 
-#define COLOR_FG_NONLV 80
+#define COLOR_FG_NONLV 1
 
-#define MVR_752_STRUCT (*(void**)0x1eF0)
+#define MVR_968_STRUCT (*(void**)0x1eF0)
 
 #define MEM(x) (*(int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-100*MEM(256 + MVR_752_STRUCT) - 100*MEM(264 + MVR_752_STRUCT) - 100*MEM(724 + MVR_752_STRUCT) - 100*MEM(732 + MVR_752_STRUCT) + 100*MEM(260 + MVR_752_STRUCT) + 100*MEM(268 + MVR_752_STRUCT), -MEM(256 + MVR_752_STRUCT) - MEM(264 + MVR_752_STRUCT) + MEM(260 + MVR_752_STRUCT) + MEM(268 + MVR_752_STRUCT)))
-#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(436 + MVR_752_STRUCT) + 100*MEM(424 + MVR_752_STRUCT), 0xa)
+#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-100*MEM(340 + MVR_968_STRUCT) - 100*MEM(348 + MVR_968_STRUCT) - 100*MEM(928 + MVR_968_STRUCT) - 100*MEM(936 + MVR_968_STRUCT) + 100*MEM(344 + MVR_968_STRUCT) + 100*MEM(352 + MVR_968_STRUCT), -MEM(340 + MVR_968_STRUCT) - MEM(348 + MVR_968_STRUCT) + MEM(344 + MVR_968_STRUCT) + MEM(352 + MVR_968_STRUCT)))
+#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(528 + MVR_968_STRUCT) + 100*MEM(516 + MVR_968_STRUCT), 0xa)
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
-#define MVR_FRAME_NUMBER (*(int*)(236 + MVR_752_STRUCT))
-//#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(228 + MVR_752_STRUCT))
+#define MVR_FRAME_NUMBER (*(int*)(312 + MVR_968_STRUCT))
+//#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_968_STRUCT))
+#define MVR_BYTES_WRITTEN (*(int*)(280 + MVR_968_STRUCT))
 
 #define MOV_REC_STATEOBJ (*(void**)0x5A40)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 #define AE_VALUE (*(int8_t*)0x24bd9)
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3d5c)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define CURRENT_DIALOG_MAYBE (*(int*)0x5680)
+#define DLG_AF 0xA
+#define DLG_DRIVE_MODE 0xB
+#define DLG_ISO 0xF
+#define DLG_METERING 0xC
+#define DLG_AF_POINTS 0xE
 #define DLG_Q_UNAVI 0x1F
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a84

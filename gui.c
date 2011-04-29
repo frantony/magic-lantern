@@ -94,6 +94,7 @@ static int handle_buttons(struct event * event)
 	static int kev = 0;
 
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
+	/*
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_UP)
@@ -120,7 +121,7 @@ static int handle_buttons(struct event * event)
 			falsecolor_cancel();
 			return 0;
 		}
-	}
+	}*/
 
 	// event 0 is button press maybe?
 	if( gui_state != GUISTATE_PLAYMENU && event->type == 0 )
@@ -135,11 +136,12 @@ static int handle_buttons(struct event * event)
 			gui_stop_menu();
 			return 0;
 		}
+		/*
 		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
 		{
 			center_lv_afframe();
 			return 0;
-		}
+		}*/
 	}
 	if (get_draw_event())
 	{
@@ -154,7 +156,7 @@ static int handle_buttons(struct event * event)
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
-/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+			/*console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
 				event->type, 
 				event->param, 
@@ -190,6 +192,7 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
+	/*
 	if (get_lcd_sensor_shortcuts() && event->type == 0 && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED) // button presses while display sensor is covered
 	{ // those are shortcut keys
 		if (!gui_menu_shown())
@@ -218,11 +221,11 @@ static int handle_buttons(struct event * event)
 				return 0;
 			}
 		}
-	}
+	}*/
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && (display_sensor_neg != 0 || !get_lcd_sensor_shortcuts()))
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn())
 		{
 			switch(event->param)
 			{
@@ -238,18 +241,7 @@ static int handle_buttons(struct event * event)
 				case BGMT_PRESS_DOWN:
 					lens_focus_start(-5 * get_follow_focus_dir_v());
 					return 0;
-#ifdef BGMT_NO_SEPARATE_UNPRESS
-				case BGMT_CENTER:
-				case BGMT_PRESS_UP_LEFT:
-				case BGMT_PRESS_UP_RIGHT:
-				case BGMT_PRESS_DOWN_LEFT:
-				case BGMT_PRESS_DOWN_RIGHT:
-#else
-				case BGMT_UNPRESS_LEFT:
-				case BGMT_UNPRESS_RIGHT:
-				case BGMT_UNPRESS_UP:
-				case BGMT_UNPRESS_DOWN:
-#endif
+				case BGMT_UNPRESS_UDLR:
 					lens_focus_stop();
 					return 0;
 			}
@@ -263,11 +255,12 @@ static int handle_buttons(struct event * event)
 	}
 	
 	// force a SET press in photo mode when you adjust the settings and press half-shutter
+	/*
 	if (set_on_halfshutter && event->type == 0 && event->param == BGMT_PRESS_HALFSHUTTER && gui_state == GUISTATE_PLAYMENU && !lv_drawn() && !gui_menu_shown())
 	{
 		fake_simple_button(BGMT_PRESS_SET);
 		fake_simple_button(BGMT_UNPRESS_SET);
-	}
+	}*/
 	
 	// for faster zoom in in Play mode
 	if (event->type == 0)
@@ -279,13 +272,14 @@ static int handle_buttons(struct event * event)
  	}
 	
 	// override DISP button in LiveView mode
+	/*
 	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
 	{
 		if (houtput_type == 0)
 			return toggle_disp_mode();
 		else
 			schedule_disp_mode_change();
-	}
+	}*/
 	
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
@@ -305,12 +299,14 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 	
+	/*
 	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
 		zoom_overlay_toggle();
 		return 0;
-	}
+	}*/
 	
+	/*
 	if (recording && get_zoom_overlay_mode())
 	{
 		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
@@ -321,7 +317,7 @@ static int handle_buttons(struct event * event)
 			move_lv_afframe(0, -200);
 		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
 			move_lv_afframe(0, 200);
-	}
+	}*/
 
 
 /*
@@ -371,6 +367,7 @@ static int handle_buttons(struct event * event)
 	*/
 	
 	// quick access to some menu items
+	/*
 	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
 	{
 		if (ISO_ADJUSTMENT_ACTIVE)
@@ -422,8 +419,9 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 		
-	}
+	}*/
 
+	/*
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
 	{
 		int value = *(int*)(event->obj + 4);
@@ -448,6 +446,13 @@ static int handle_buttons(struct event * event)
 			}
 		}
 		old = value; 
+	}*/
+	
+	// movie mode shortcut
+	if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_AF || CURRENT_DIALOG_MAYBE == DLG_METERING))
+	{
+		set_shooting_mode(SHOOTMODE_MOVIE);
+		return 0;
 	}
 
 	return 1;

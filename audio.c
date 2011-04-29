@@ -31,6 +31,7 @@
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
 
+int audio_monitoring_enabled() { return 0; }
 
 struct gain_struct
 {

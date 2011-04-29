@@ -32,17 +32,15 @@
 #include "gui.h"
 #include "lens.h"
 
+PROP_INT( PROP_LIVE_VIEW_VIEWTYPE, expsim )
 
 static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
 #define hist_width			128
-#define WAVEFORM_MAX_HEIGHT			240
-#define WAVEFORM_MAX_WIDTH			360
-#define WAVEFORM_HALFSIZE (waveform_draw == 1)
-#define WAVEFORM_WIDTH (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_WIDTH/2 : WAVEFORM_MAX_WIDTH)
-#define WAVEFORM_HEIGHT (WAVEFORM_HALFSIZE ? WAVEFORM_MAX_HEIGHT/2 : WAVEFORM_MAX_HEIGHT)
+#define WAVEFORM_WIDTH 120
+#define WAVEFORM_HEIGHT 180
 
 CONFIG_INT("disp.mode", disp_mode, 0);
 CONFIG_INT("disp.mode.aaa", disp_mode_a, 0x285c41);
@@ -61,6 +59,7 @@ CONFIG_INT( "crop.draw",	crop_draw,	0 ); // index of crop file
 CONFIG_INT( "crop.playback", cropmark_playback, 0);
 CONFIG_INT( "crop.movieonly", cropmark_movieonly, 1);
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
+CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
 CONFIG_INT( "zoom.overlay.mode", zoom_overlay_mode, 0);
 CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
@@ -140,10 +139,12 @@ PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 PROP_INT(PROP_DOF_PREVIEW_MAYBE, dofpreview);
 int recording = 0;
 
-uint8_t false_colour[256] = {
-0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F 
+uint8_t false_colour[4][256] = {
+	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6E, 0x6F},
+	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x26, 0x26, 0x26, 0x26, 0x26, 0x26, 0x27, 0x27, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x29, 0x29, 0x29, 0x29, 0x29, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2A, 0x2B, 0x2B, 0x2B, 0x2B, 0x2B, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2C, 0x2D, 0x2D, 0x2D, 0x2D, 0x2D, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2E, 0x2F, 0x2F, 0x2F, 0x2F, 0x2F, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x31, 0x31, 0x31, 0x31, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x33, 0x33, 0x33, 0x33, 0x33, 0x34, 0x34, 0x34, 0x34, 0x34, 0x34, 0x35, 0x35, 0x35, 0x35, 0x35, 0x36, 0x36, 0x36, 0x36, 0x36, 0x36, 0x37, 0x37, 0x37, 0x37, 0x37, 0x38, 0x38, 0x38, 0x38, 0x38, 0x38, 0x39, 0x39, 0x39, 0x39, 0x39, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3A, 0x3B, 0x3B, 0x3B, 0x3B, 0x3B, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3C, 0x3D, 0x3D, 0x3D, 0x3D, 0x3D, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3E, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x43, 0x43, 0x43, 0x43, 0x43, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x45, 0x45, 0x45, 0x45, 0x45, 0x46, 0x46, 0x46, 0x46, 0x46, 0x46, 0x47, 0x47, 0x47, 0x47, 0x47, 0x48, 0x48, 0x48, 0x48, 0x48, 0x48, 0x49, 0x49, 0x49, 0x49, 0x49, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4A, 0x4B, 0x4B, 0x4B, 0x4B, 0x4B, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4C, 0x4D, 0x4D, 0x4D, 0x4D, 0x4D, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4E, 0x4F, 0x4F, 0x4F, 0x4F, 0x4F, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
+	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13, 0x13,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
+	{0x0E, 0x0E, 0x0E, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0xAE, 0x6F},
 };
-
 
 int crop_dirty = 0;
 
@@ -569,6 +570,27 @@ static int hist_rgb_color(int y, int sizeR, int sizeG, int sizeB)
 	return 0;
 }
 
+#define ZEBRA_COLOR_WORD_SOLID(x) ( (x) | (x)<<8 | (x)<<16 | (x)<<24 )
+static int zebra_rgb_color(int underexposed, int clipR, int clipG, int clipB)
+{
+	if (underexposed) return ZEBRA_COLOR_WORD_SOLID(COLOR_WHITE);
+	
+	switch ((clipR ? 0 : 1) |
+			(clipG ? 0 : 2) |
+			(clipB ? 0 : 4))
+	{
+		case 0b000: return ZEBRA_COLOR_WORD_SOLID(COLOR_BLACK);
+		case 0b001: return ZEBRA_COLOR_WORD_SOLID(COLOR_RED);
+		case 0b010: return ZEBRA_COLOR_WORD_SOLID(7); // green
+		case 0b100: return ZEBRA_COLOR_WORD_SOLID(9); // strident blue
+		case 0b011: return ZEBRA_COLOR_WORD_SOLID(COLOR_YELLOW);
+		case 0b110: return ZEBRA_COLOR_WORD_SOLID(5); // cyan
+		case 0b101: return ZEBRA_COLOR_WORD_SOLID(14); // magenta
+		case 0b111: return 0;
+	}
+	return 0;
+}
+
 
 /** Draw the histogram image into the bitmap framebuffer.
  *
@@ -583,6 +605,7 @@ hist_draw_image(
 )
 {
 	if (!lv_drawn()) return;
+	if (!expsim) return;
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -609,7 +632,7 @@ hist_draw_image(
 			if (hist_draw == 2) // RGB
 				*col = hist_rgb_color(y, sizeR, sizeG, sizeB);
 			else
-				*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
+				*col = y > size ? COLOR_BG : (falsecolor_displayed ? false_colour[falsecolor_palette][(i * 256 / hist_width) & 0xFF]: COLOR_WHITE);
 		}
 	}
 
@@ -631,6 +654,7 @@ waveform_draw_image(
 )
 {
     if (!lv_drawn()) return;
+    if (!expsim) return;
 	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
@@ -890,11 +914,11 @@ void waveform_init()
 {
 	if (!waveform)
 	{
-		waveform = AllocateMemory(WAVEFORM_MAX_WIDTH * sizeof(uint32_t*));
+		waveform = AllocateMemory(WAVEFORM_WIDTH * sizeof(uint32_t*));
 		if (!waveform) fail("Waveform malloc failed");
 		int i;
-		for (i = 0; i < WAVEFORM_MAX_WIDTH; i++) {
-			waveform[i] = AllocateMemory(WAVEFORM_MAX_HEIGHT * sizeof(uint32_t));
+		for (i = 0; i < WAVEFORM_WIDTH; i++) {
+			waveform[i] = AllocateMemory(WAVEFORM_HEIGHT * sizeof(uint32_t));
 			if (!waveform[i]) fail("Waveform malloc failed");
 		}
 	}
@@ -919,13 +943,13 @@ static void bvram_mirror_init()
 {
 	if (!bvram_mirror)
 	{
-		bvram_mirror = AllocateMemory(BMPPITCH*540 + 100);
+		bvram_mirror = AllocateMemory(BMPPITCH*540 + 10);
 		if (!bvram_mirror) 
 		{	
 			bmp_printf(FONT_MED, 30, 30, "Failed to allocate BVRAM mirror");
 			return;
 		}
-		bzero32(bvram_mirror, 960*540);
+		bzero32(bvram_mirror, BMPPITCH*540);
 	}
 }
 
@@ -961,8 +985,11 @@ static void little_cleanup(uint8_t* bp, uint8_t* mp)
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 }
 
+
 static int zebra_color_word_row(int c, int y)
 {
+	if (!c) return 0;
+	
 	uint32_t cw = 0;
 	switch(y % 4)
 	{
@@ -987,6 +1014,29 @@ static int* dirty_pixels = 0;
 static int dirty_pixels_num = 0;
 static int very_dirty = 0;
 
+static int zebra_color_word_row_thick(int c, int y)
+{
+	if (!c) return 0;
+	
+	uint32_t cw = 0;
+	switch(y % 4)
+	{
+		case 0:
+			cw  = c  | c  << 8 | c << 16;
+			break;
+		case 1:
+			cw  = c << 8 | c << 16 | c << 24;
+			break;
+		case 2:
+			cw = c  << 16 | c << 24 | c;
+			break;
+		case 3:
+			cw  = c  << 24 | c | c << 8;
+			break;
+	}
+	return cw;
+}
+
 // thresholded edge detection
 static void draw_zebra_and_focus_unified( void )
 {
@@ -1008,8 +1058,8 @@ static void draw_zebra_and_focus_unified( void )
 	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 
 	uint32_t x,y;
-	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
-	if (focus_peaking || zd) {
+	int zd = zebra_draw && expsim;
+	if (focus_peaking) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
 		if (!dirty_pixels) dirty_pixels = AllocateMemory(MAX_DIRTY_PIXELS * sizeof(int));
@@ -1410,11 +1460,11 @@ draw_zebra_and_focus( void )
 		thr = COERCE(thr, thr_min, 255);
 	}
 	
-	int zd = (zebra_draw == 1) || (zebra_draw == 2 && recording == 0);  // when to draw zebras
+	int zd = zebra_draw && expsim;  // when to draw zebras
 	if (zd)
 	{
-		uint32_t zlh = zebra_level_hi << 8;
-		uint32_t zll = zebra_level_lo << 8;
+		uint32_t zlh = zebra_level_hi;
+		uint32_t zll = zebra_level_lo;
 
 		uint8_t * const lvram = YUV422_LV_BUFFER;
 		int lvpitch = YUV422_LV_PITCH;
@@ -1441,19 +1491,40 @@ draw_zebra_and_focus( void )
 				#define MN (*(mp + BMPPITCH/4))
 				if (BP != 0 && BP != MP) { little_cleanup(bp, mp); continue; }
 				if (BN != 0 && BN != MN) { little_cleanup(bp + BMPPITCH/4, mp + BMPPITCH/4); continue; }
-				uint32_t p0 = *lvp & 0xFF00;
-				if (p0 > zlh)
+				
+				if (zebra_draw == 2) // rgb
 				{
-					BP = MP = color_over;
-					BN = MN = color_over_2;
+					uint32_t pixel = *lvp;
+					uint32_t p1 = (pixel >> 24) & 0xFF;
+					uint32_t p2 = (pixel >>  8) & 0xFF;
+					int Y = (p1+p2) / 2;
+					int8_t U = (pixel >>  0) & 0xFF;
+					int8_t V = (pixel >> 16) & 0xFF;
+					int R = Y + 1437 * V / 1024;
+					int G = Y -  352 * U / 1024 - 731 * V / 1024;
+					int B = Y + 1812 * U / 1024;
+					
+					//~ bmp_printf(FONT_SMALL, 0, 0, "%d %d %d %d   ", Y, R, G, B);
+
+					BP = MP = BN = MN = zebra_rgb_color(Y < zll, R > zlh, G > zlh, B > zlh );
 				}
-				else if (p0 < zll)
+				else
 				{
-					BP = MP = color_under;
-					BN = MN = color_under_2;
+					uint32_t p0 = (*lvp) >> 8 & 0xFF;
+					if (p0 > zlh)
+					{
+						BP = MP = color_over;
+						BN = MN = color_over_2;
+					}
+					else if (p0 < zll)
+					{
+						BP = MP = color_under;
+						BN = MN = color_under_2;
+					}
+					else if (BP)
+						BN = MN = BP = MP = 0;
 				}
-				else if (BP)
-					BN = MN = BP = MP = 0;
+					
 				#undef MP
 				#undef BP
 			}
@@ -1532,6 +1603,8 @@ void
 draw_false_downsampled( void )
 {
 	if (!global_draw) return;
+	if (!expsim) return;
+	if (should_draw_zoom_overlay()) return;
 	bvram_mirror_init();
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -1553,7 +1626,7 @@ draw_false_downsampled( void )
 		for (lvp = v_row, bp = b_row, mp = m_row; lvp < v_row + 720 ; lvp++, bp++, mp++)
 		{
 			if (*bp != 0 && *bp != *mp) continue;
-			int16_t c = false_colour[((*lvp) >> 8) & 0xFF];
+			int16_t c = false_colour[falsecolor_palette][((*lvp) >> 8) & 0xFF];
 			*mp = *bp = c | (c << 8);
 		}
 	}
@@ -1757,7 +1830,7 @@ static void find_cropmarks()
 	int k = 0;
 	do {
 		int n = strlen(file.name);
-		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")))
+		if ((n > 4) && (streq(file.name + n - 4, ".BMP") || streq(file.name + n - 4, ".bmp")) && (file.name[0] != '.'))
 		{
 			if (k >= MAX_CROPMARKS)
 			{
@@ -1842,7 +1915,7 @@ zebra_draw_display( void * priv, int x, int y, int selected )
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
 		"Zebras      : %s, %d..%d",
-		z == 1 ? "ON " : (z == 2 ? "NRec" : "OFF"),
+		z == 1 ? "Luma" : (z == 2 ? "RGB" : "OFF"),
 		zebra_level_lo, zebra_level_hi
 	);
 }
@@ -1854,12 +1927,19 @@ falsecolor_display( void * priv, int x, int y, int selected )
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
-		"False Color : %s",
+		"False Color : %s,P%d",
 		fc == 0 ? "OFF" :
 		fc == 1 ? "Always ON" : 
 		fc == 2 ? "Hold Flas/DOF" :
-		fc == 3 ? "Togg Flas/DOF" : "err"
+		fc == 3 ? "Togg Flas/DOF" : "err",
+		falsecolor_palette+1
 	);
+}
+
+static void
+falsecolor_palette_toggle(void* priv)
+{
+	falsecolor_palette = mod(falsecolor_palette+1, COUNT(false_colour));
 }
 /*
 static void
@@ -2294,6 +2374,7 @@ struct menu_entry zebra_menus[] = {
 		.display	= falsecolor_display,
 		.select		= menu_quaternary_toggle,
 		.select_reverse = menu_quaternary_toggle_reverse, 
+		.select_auto = falsecolor_palette_toggle,
 	},
 	{
 		.priv		= &cropmark_playback,
@@ -2563,8 +2644,6 @@ void time_indicator_show()
 PROP_HANDLER(PROP_LV_ACTION)
 {
 	crop_dirty = 5;
-	if (buf[0] == 0) ChangeColorPalette(2);
-
 	return prop_cleanup( token, property );
 }
 
@@ -2696,7 +2775,6 @@ void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 
 void draw_zoom_overlay()
 {
-	if (falsecolor_displayed) return;
 	if (!lv_drawn()) return;
 	if (!get_global_draw()) return;
 	if (gui_menu_shown()) return;
@@ -2869,7 +2947,7 @@ zebra_task_loop:
 
 		if (zebra_paused)
 		{
-			clrscr_mirror();
+			//~ clrscr_mirror();
 			while (zebra_paused)
 			{
 				msleep(100);
@@ -3079,7 +3157,7 @@ TASK_CREATE( "movie_clock_task", movie_clock_task, 0, 0x13, 0x1000 );
 
 int should_draw_zoom_overlay()
 {
-	return (zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
+	return (get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
 }
 
 static void

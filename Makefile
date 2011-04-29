@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=alpha5.$(shell whoami)
+BUILDVER=alpha7.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -226,9 +226,9 @@ ML_OBJS-y = \
 	focus.o \
 	chdk-gui_draw.o \
 	ptp.o \
-	hotplug.o \
 
 NO=\
+	hotplug.o \
 	bootflags.o \
 	aj_port.o \
 	aj_lib_port.o \

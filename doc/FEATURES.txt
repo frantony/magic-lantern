@@ -159,6 +159,7 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
+* ISO followed by LV from photo mode: shortcut key for movie mode
 * Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
 * ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
@@ -307,22 +308,22 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
 .. _zebras:
 
-**Zebras: ON/OFF/NRec, lo_level..hi_level**
+**Zebras: OFF/Luma/RGB, lo_level..hi_level**
 
-  .. raw:: latex
-  
-    Enable/disable zebra stripes, which indicate overexposed \overexposed\ or underexposed \underexposed\ areas.
-    \par
-  
-  ``NRec`` setting: zebras are only displayed while not recording.
+  Enable/disable zebra stripes. which indicate overexposed or underexposed areas.
+    
+  Modes:
+    
+  * ``Luma``: zebras are computed from Y channel only; overexposure is red, underexposure is blue.
+  * ``RGB``: overexposure zebras are computed from RGB channels; underexposure zebras are computed from Y. Clipped channels are displayed in the opposite color (i.e. clipped red displayed as cyan, underexposed displayed as white...).
   
   Keys:
   
-  * ``SET``: toggle between ``ON/OFF/NRec``
+  * ``SET``: toggle between ``OFF/Luma/RGB``
   * ``INFO``: change threshold for underexposure (blacks)
   * ``Q``: change threshold for overexposure (whites)
   
-  Brightness values are between 0 and 255. A threshold equal to 0 will disable blue zebras, and 255 will disable red zebras.
+  Brightness values are between 0 and 255. A threshold equal to 0 will disable zebras for underexposure, and 255 will disable zebras for overexposure.
 
 .. _false color:
 
@@ -338,6 +339,13 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
 
   * **Togg Flas/DOF**: false color appearance will be toggled by the shortcut keys above-mentioned.
   
+  There are 4 color palettes available (toggle with ``Q``):
+
+  .. figure:: falsecolor.png
+      :alt: thumb|right|False color palettes
+      :align: center
+      :width: 13cm
+
   The implementation uses a half-resolution C code.
   
 .. _Cropmark:
@@ -479,7 +487,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   * On HDMI displays, it only works well during recording. It does not work on SD (RCA) displays.
   * It does not work in certain video modes (e.g. 720p) when not recording.
-  * Focus peaking is disabled automatically when the zoom overlay is active. If `false color`_ mode is enabled, the zoom overlay will not work.
+  * `Focus peaking`_ and `false color`_ are disabled automatically when the zoom overlay is active.
   * Half-pressing the shutter will turn off the zoom overlay (except for "always on" mode).
 
 .. _zoom in Face Detect mode:
@@ -509,7 +517,7 @@ Functions specific to movie mode.
   
   * ``FW default``: default bitrate used by Canon firmware (CBR, around 41mbps)
   * ``CBRe``: constant bitrate, emulated. Range: 1...120mbps.
-  * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16..-1; +16. Lower numbers mean higher bitrates.
+  * ``QScale``: constant quality, variable bitrate (VBR). Available values: -16 ... +16. Lower numbers mean higher bitrates.
     
   Keys:
   
@@ -910,7 +918,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   Kelvin white balance.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
-
+  
 **WBShift G/M: Green 0..9 / Magenta 0..9**
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.
@@ -1134,6 +1142,16 @@ Debug
   
   * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
   * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
+
+**Exposure Sim: OFF / ON / Auto**
+
+  Exposure simulation (ExpSim) in LiveView display (for photo mode only).
+  
+  * ``ON``: LiveView display image reflects exposure of the final image.
+  * ``OFF``: LiveView display image does not reflect the exposure, but may be useful for framing and checking focus.
+  * ``Auto``: ExpSim is disabled during zoom (x5, x10 and MagicZoom) and enabled otherwise.
+  
+  When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
 
 **LV metering**
 

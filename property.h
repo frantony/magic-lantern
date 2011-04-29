@@ -201,7 +201,21 @@
 #define ALO_HIGH 2
 #define ALO_OFF 3
 
-#define PROP_CFN 0x80010004 // 13 bytes
+#define PROP_CFN1 0x80010004 // 8 bytes
+#define PROP_CFN2 0x80010005 // 4 bytes
+#define PROP_CFN3 0x80010006 // 6 bytes
+#define PROP_CFN4 0x80010007 // 6 bytes
+
+#ifdef CONFIG_60D
+#define CFN1_LEN 8
+#define CFN2_LEN 4
+#define CFN3_LEN 6
+#define CFN4_LEN 6
+#endif
+
+#ifdef CONFIG_550D
+#define CFN1_LEN 13
+#endif
 
 /** Job progress
  * 0xB == capture end?
@@ -265,6 +279,8 @@
 #define PROP_AE_MODE_MOVIE 0x8000003a
 
 #define PROP_WINDCUT_MODE 0x02050016
+
+#define PROP_SCREEN_COLOR 0x0204000b
 
 /** Properties */
 extern void
@@ -336,6 +352,14 @@ struct prop_handler
 	void *		token; // must be before token_handler
 	uint32_t	token_handler[2]; // function goes here!
 };
+
+
+/** Configure a property handler; only necessary if not using automated functions */
+extern void
+prop_handler_init(
+	struct prop_handler * handler
+);
+
 
 /** Register a property handler with automated token function */
 #define REGISTER_PROP_HANDLER( id, func ) \
