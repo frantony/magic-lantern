@@ -156,14 +156,14 @@ static int handle_buttons(struct event * event)
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
 				event->arg);
-			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+			/*console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
 				event->type, 
 				event->param, 
 				event->obj ? *(uint32_t*)(event->obj) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
 				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
-				event->arg);
+				event->arg);*/
 			//msleep(250);
 		}
 #if 0
