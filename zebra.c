@@ -236,18 +236,42 @@ struct vram_info * get_yuv422_hd_vram()
 	return &_vram_info;
 }
 
+static int fastrefresh_direction = 0;
+
 void* get_fastrefresh_422_buf()
 {
-	switch (YUV422_LV_BUFFER_DMA_ADDR)
-	{
-		case YUV422_LV_BUFFER:
-			return YUV422_LV_BUFFER_2;
-		case YUV422_LV_BUFFER_2:
-			return YUV422_LV_BUFFER_3;
-		case YUV422_LV_BUFFER_3:
-			return YUV422_LV_BUFFER;
+	if (fastrefresh_direction) {
+		switch (YUV422_LV_BUFFER_DMA_ADDR)
+		{
+			case YUV422_LV_BUFFER:
+				return YUV422_LV_BUFFER_2;
+			case YUV422_LV_BUFFER_2:
+				return YUV422_LV_BUFFER_3;
+			case YUV422_LV_BUFFER_3:
+				return YUV422_LV_BUFFER;
+		}
+		return YUV422_LV_BUFFER; // fall back to default
+	} else {
+		switch (YUV422_LV_BUFFER_DMA_ADDR)
+		{
+			case YUV422_LV_BUFFER:
+				return YUV422_LV_BUFFER_3;
+			case YUV422_LV_BUFFER_2:
+				return YUV422_LV_BUFFER;
+			case YUV422_LV_BUFFER_3:
+				return YUV422_LV_BUFFER_2;
+		}
+		return YUV422_LV_BUFFER; // fall back to default
+
 	}
-	return YUV422_LV_BUFFER; // fall back to default
+}
+
+static void guess_fastrefresh_direction() {
+	static int old_pos = YUV422_LV_BUFFER;
+	if (old_pos == YUV422_LV_BUFFER_DMA_ADDR) return;
+	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
+	if (old_pos == YUV422_LV_BUFFER && YUV422_LV_BUFFER_DMA_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+	old_pos = YUV422_LV_BUFFER_DMA_ADDR;
 }
 
 void* get_write_422_buf()
@@ -3057,11 +3081,13 @@ int should_draw_zoom_overlay()
 {
 	return (zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown || zoom_overlay_mode==3));
 }
+
 static void
 zoom_overlay_task( void )
 {
 	while(1)
 	{
+		guess_fastrefresh_direction();
 	/*	if (card_benchmark_start)
 		{
 			card_benchmark_start = 0;

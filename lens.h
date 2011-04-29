@@ -61,6 +61,9 @@ struct lens_info
 	uint8_t			raw_shutter;
 	uint8_t			raw_iso;
 	uint8_t			raw_picstyle;
+
+	float 			lens_rotation;
+	float			lens_step;
 };
 
 extern struct lens_info lens_info;
@@ -68,8 +71,8 @@ extern struct lens_info lens_info;
 
 struct prop_lv_lens
 {
-	uint32_t		off_0x00;
-	uint32_t		off_0x04;
+	uint32_t		lens_rotation; // float in little-endian actually
+	uint32_t		lens_step; // float in little-endian actually
 	uint32_t		off_0x08;
 	uint32_t		off_0x0c;
 	uint32_t		off_0x10;

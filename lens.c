@@ -333,56 +333,13 @@ lens_focus_wait( void )
 }
 
 struct lens_control {
-	uint32_t off_0x00;uint32_t off_0x04;uint32_t off_0x08;uint32_t off_0x0C;
-	uint32_t off_0x10;uint32_t off_0x14;uint32_t off_0x18;uint32_t off_0x1C;
-	uint32_t off_0x20;uint32_t off_0x24;uint32_t off_0x28;uint32_t off_0x2C;
-	uint32_t off_0x30;uint32_t off_0x34;uint32_t off_0x38;uint32_t off_0x3C;
-	uint32_t off_0x40;uint32_t off_0x44;uint32_t off_0x48;uint32_t off_0x4C;
-	uint32_t off_0x50;uint32_t off_0x54;uint32_t off_0x58;uint32_t off_0x5C;
-	uint32_t off_0x60;uint32_t off_0x64;uint32_t off_0x68;uint32_t off_0x6C;
-	uint32_t off_0x70;uint32_t off_0x74;uint32_t off_0x78;uint32_t off_0x7C;
-	uint32_t off_0x80;uint32_t off_0x84;uint32_t off_0x88;uint32_t off_0x8C;
-	uint32_t off_0x90;uint32_t off_0x94;uint32_t off_0x98;uint32_t off_0x9C;
-	uint32_t off_0xA0;uint32_t off_0xA4;uint32_t off_0xA8;uint32_t off_0xAC;
-	uint32_t off_0xB0;uint32_t off_0xB4;uint32_t off_0xB8;uint32_t off_0xBC;
-	uint32_t off_0xC0;uint32_t off_0xC4;uint32_t off_0xC8;uint32_t off_0xCC;
-	uint32_t off_0xD0;uint32_t off_0xD4;uint32_t off_0xD8;uint32_t off_0xDC;
-	uint32_t off_0xE0;uint32_t off_0xE4;uint32_t off_0xE8;uint32_t off_0xEC;
-	uint32_t off_0xF0;uint32_t off_0xF4;uint32_t off_0xF8;uint32_t off_0xFC;
-
-	uint32_t off_0x100;uint32_t off_0x104;uint32_t off_0x108;uint32_t off_0x10C;
-	uint32_t off_0x110;uint32_t off_0x114;uint32_t off_0x118;uint32_t off_0x11C;
-	uint32_t off_0x120;uint32_t off_0x124;uint32_t off_0x128;uint32_t off_0x12C;
-	uint32_t off_0x130;uint32_t off_0x134;uint32_t off_0x138;uint32_t off_0x13C;
-	uint32_t off_0x140;uint32_t off_0x144;uint32_t off_0x148;uint32_t off_0x14C;
-	uint32_t off_0x150;uint32_t off_0x154;uint32_t off_0x158;uint32_t off_0x15C;
-	uint32_t off_0x160;uint32_t off_0x164;uint32_t off_0x168;uint32_t off_0x16C;
-	uint32_t off_0x170;uint32_t off_0x174;uint32_t off_0x178;uint32_t off_0x17C;
-	uint32_t off_0x180;uint32_t off_0x184;uint32_t off_0x188;uint32_t off_0x18C;
-	uint32_t off_0x190;uint32_t off_0x194;uint32_t off_0x198;uint32_t off_0x19C;
-	uint32_t off_0x1A0;uint32_t off_0x1A4;uint32_t off_0x1A8;uint32_t off_0x1AC;
-	uint32_t off_0x1B0;uint32_t off_0x1B4;uint32_t off_0x1B8;uint32_t off_0x1BC;
-	uint32_t off_0x1C0;uint32_t off_0x1C4;uint32_t off_0x1C8;uint32_t off_0x1CC;
-	uint32_t off_0x1D0;uint32_t off_0x1D4;uint32_t off_0x1D8;uint32_t off_0x1DC;
+	// 0x00-0x1D4: not used
+	                   uint32_t off_0x1D4;uint32_t off_0x1D8;uint32_t off_0x1DC; //1D4: amount of rotation, 1D8: step size (?)
 	uint32_t off_0x1E0;uint32_t off_0x1E4;uint32_t off_0x1E8;uint32_t off_0x1EC;
 	uint32_t off_0x1F0;uint32_t off_0x1F4;uint32_t off_0x1F8;uint32_t off_0x1FC;
-
 	uint32_t off_0x200;uint32_t off_0x204;uint32_t off_0x208;uint32_t off_0x20C;
 	uint32_t off_0x210;uint32_t off_0x214;uint32_t off_0x218;uint32_t off_0x21C;
-	uint32_t off_0x220;uint32_t off_0x224;uint32_t off_0x228;uint32_t off_0x22C;
-	uint32_t off_0x230;uint32_t off_0x234;uint32_t off_0x238;uint32_t off_0x23C;
-	uint32_t off_0x240;uint32_t off_0x244;uint32_t off_0x248;uint32_t off_0x24C;
-	uint32_t off_0x250;uint32_t off_0x254;uint32_t off_0x258;uint32_t off_0x25C;
-	uint32_t off_0x260;uint32_t off_0x264;uint32_t off_0x268;uint32_t off_0x26C;
-	uint32_t off_0x270;uint32_t off_0x274;uint32_t off_0x278;uint32_t off_0x27C;
-	uint32_t off_0x280;uint32_t off_0x284;uint32_t off_0x288;uint32_t off_0x28C;
-	uint32_t off_0x290;uint32_t off_0x294;uint32_t off_0x298;uint32_t off_0x29C;
-	uint32_t off_0x2A0;uint32_t off_0x2A4;uint32_t off_0x2A8;uint32_t off_0x2AC;
-	uint32_t off_0x2B0;uint32_t off_0x2B4;uint32_t off_0x2B8;uint32_t off_0x2BC;
-	uint32_t off_0x2C0;uint32_t off_0x2C4;uint32_t off_0x2C8;uint32_t off_0x2CC;
-	uint32_t off_0x2D0;uint32_t off_0x2D4;uint32_t off_0x2D8;uint32_t off_0x2DC;
-	uint32_t off_0x2E0;uint32_t off_0x2E4;uint32_t off_0x2E8;uint32_t off_0x2EC;
-	uint32_t off_0x2F0;uint32_t off_0x2F4;uint32_t off_0x2F8;uint32_t off_0x2FC;
+	uint32_t off_0x220;uint32_t off_0x224;uint32_t off_0x228;
 }__attribute__((packed));
 
 struct lens_control lctr;
@@ -397,7 +354,7 @@ lens_focus(
 {
 	// Should we timeout to avoid hanging?
 	if( take_semaphore( focus_done_sem, 100 ) != 0 )
-//		return;
+		return;
 	
 	if (!lv_drawn()) return;
 	if ((af_mode & 0xF) == 3 ) return;
@@ -412,71 +369,28 @@ lens_focus(
 
 	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
 
-/*		case 0: lctr.off_0x228 = 1;break; //forward step slow
-		case 1: lctr.off_0x228 = 2;break; medium
-		case 2: lctr.off_0x228 = 3;break; fast
-		case 3: lctr.off_0x228 = 0x8001;break; // backward step slow
-		case 4: lctr.off_0x228 = 0x8002;break; medium
-		case 5: lctr.off_0x228 = 0x8003;break; fast */
-
 	lctr.off_0x228 = 0x1;
 	if (step<0) { lctr.off_0x228 += 0x8000; step = -step; }
-/*	if (step>10) lctr.off_0x228+=1;
-	if (step>100) lctr.off_0x228+=1;*/
 
-	bmp_printf(FONT_SMALL,0,50,"%d",step);
-
-/*	lctr.off_0x1D4 = FA_GetAfValYpInLv();
-	lctr.off_0x1D8 = FA_GetAfValMmpInLv();
-	lctr.off_0x1DC = FA_GetAfValYitgInLv();
-	lctr.off_0x1E0 = FA_GetAfValTesInLv();
-	lctr.off_0x1E4 = FA_GetAfValFesInLv();
-	lctr.off_0x1E8 = FA_GetAfValFepInLv();
-	lctr.off_0x1EC = FA_GetAfValTepInLv();*/
-
-//	EMD_DRIVE_RES(&lctr, 0x80050005);
-//	AfCtrl_SetLensParameter(&lctr);
-
-	float a = 0.1/((float)step); //doesn't work. Same result no matter what the step is
+	float a = lens_info.lens_rotation/((float)step);
+	float b = lens_info.lens_step;
 	uint32_t* aconv = &a;
+	uint32_t* bconv = &b;
 
 	lctr.off_0x1D4 = SWAP_ENDIAN(*aconv); //0x00400F3C; // single floating point number: 0x008743286
-	lctr.off_0x1D8 = 0x0000803F; // single floating point number: 1
+	lctr.off_0x1D8 = SWAP_ENDIAN(*bconv); // single floating point number: 1
 	lctr.off_0x1F4 = 0x08080000;
 	lctr.off_0x200 = 0x00003200;
 	lctr.off_0x20C = 0xFF000000;
 	lctr.off_0x210 = 0x000000FF;
 	lctr.off_0x214 = 0xFFFFFF00;
 	lctr.off_0x218 = 0x0000FFFF;
-
-/*	lctr.off_0x1D4 = 0x01020304;
-	lctr.off_0x1D8 = 0x05060708;*/
-/*	lctr.off_0x1DC = 0x09101112;
-	lctr.off_0x1E0 = 0x13141516;
-	lctr.off_0x1E4 = 0x17181920;
-	lctr.off_0x1E8 = 0x21222324;
-	lctr.off_0x1EC = 0x25262728;
-	lctr.off_0x1F0 = 0x29303132;
-	lctr.off_0x1F4 = 0x33343536;
-	lctr.off_0x1F8 = 0x37383940;
-	lctr.off_0x1FC = 0x41424344;
-	lctr.off_0x200 = 0x45464748;
-	lctr.off_0x204 = 0x49505152;
-	lctr.off_0x208 = 0x53545556;
-	lctr.off_0x20C = 0x57585960;
-	lctr.off_0x210 = 0x61626364;
-	lctr.off_0x214 = 0x65666768;
-	lctr.off_0x218 = 0x69707172;
-	lctr.off_0x21C = 0x73747576;
-	lctr.off_0x220 = 0x77787985;
-	lctr.off_0x224 = 0x81828384;*/
-	AfCtrl_SetLensParameterRemote(&lctr);
-
-//	dump_seg(&lctr,sizeof(lctr),"B:/LENS.BIN");
-//	dump_seg(0x549DC,0x300,"B:/L549DC.BIN");
-//	dump_seg(0x54A28,0x300,"B:/L54A28.BIN");
+	
+	AfCtrl_SetLensParameterRemote(((char*)&lctr)-0x1D4);
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
+
+	give_semaphore( focus_done_sem );
 }
 
 /*
@@ -893,8 +807,14 @@ PROP_HANDLER( PROP_LV_LENS )
 	lens_info.focal_len	= bswap16( lv_lens->focal_len );
 	lens_info.focus_dist	= bswap16( lv_lens->focus_dist );
 
-//	memcpy(((char*)(&lctr))+0x1D4,&lv_lens,sizeof(struct prop_lv_lens));
+	uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
+	uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
+
+	lens_info.lens_rotation = *((float*)&lrswap);
+	lens_info.lens_step = *((float*)&lsswap);
 	
+	bmp_hexdump(FONT_SMALL, 0, 50, lv_lens, sizeof(struct prop_lv_lens));
+
 	static int old_focus_dist = 0;
 	if (get_zoom_overlay_mode()==2 && lv_drawn() && old_focus_dist && lens_info.focus_dist != old_focus_dist)
 	{
@@ -978,6 +898,9 @@ lens_init( void )
 	focus_done_sem = create_named_semaphore( "focus_sem", 1 );
 	//~ job_sem = create_named_semaphore( "job", 1 ); // seems to cause lockups
 	menu_add("Movie", lens_menus, COUNT(lens_menus));
+
+	lens_info.lens_rotation = 0.1;
+	lens_info.lens_step = 1.0;
 }
 
 INIT_FUNC( "lens", lens_init );
