@@ -26,7 +26,7 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 
-BUILDVER=alpha7.$(shell whoami)
+BUILDVER=alpha8.$(shell whoami)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
@@ -39,7 +39,7 @@ CONFIG_CONSOLE		= n
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DEVELOP/
+CF_CARD=/media/EOS_DIGITAL/
 UMOUNT=umount
 
 all: magiclantern.fir

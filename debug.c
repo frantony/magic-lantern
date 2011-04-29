@@ -1196,9 +1196,7 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	static int i = 0;
-	ChangeColorPalette(i);
-	i = mod(i+1, 10);
+	audio_monitoring_force_display_on();
 	
 	/*
 	int i;
