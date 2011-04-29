@@ -130,7 +130,7 @@
 #define DLG_Q_UNAVI 0x1F
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
-#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a84
+#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c
 #define VIDEO_OUT_PROP_DELIVER_VALUE 0x1ac4
 /*
  * From 550D - needs testing / modification

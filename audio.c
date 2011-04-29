@@ -31,8 +31,6 @@
 // Dump the audio registers to a file if defined
 #undef CONFIG_AUDIO_REG_LOG
 
-int audio_monitoring_enabled() { return 0; }
-
 struct gain_struct
 {
 	struct semaphore *	sem;
@@ -60,6 +58,7 @@ int loopback = 1;
 CONFIG_INT( "audio.input-choice",	input_choice,		0 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
 CONFIG_INT( "audio.disable-filters",	disable_filters,	1 ); //disable the HPF, LPF and pre-emphasis filters
 CONFIG_INT("audio.draw-meters", cfg_draw_meters, 2);
+CONFIG_INT("audio.monitoring", audio_monitoring, 1);
 PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 int do_draw_meters = 0;
 
@@ -896,6 +895,17 @@ void draw_meters_toggle(void* priv)
 	if (!*val && lv_drawn()) bmp_fill( 0x0, 0, 0, 720, 40);
 }
 
+static void
+audio_monitoring_display( void * priv, int x, int y, int selected )
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Monitoring-USB: %s",
+		audio_monitoring ? "ON" : "OFF"
+	);
+}
+
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &cfg_draw_meters,
@@ -964,6 +974,11 @@ static struct menu_entry audio_menus[] = {
 		.select		= audio_3bit_toggle,
 		.select_reverse		= audio_3bit_toggle_reverse,
 		.display	= audio_lovl_display,
+	},
+	{
+		.priv		= &audio_monitoring,
+		.select		= menu_binary_toggle,
+		.display	= audio_monitoring_display,
 	},
 };
 
@@ -1069,7 +1084,7 @@ my_sounddev_task( int some_param )
 	{
 		// will be unlocked by the property handler
 		int rc = take_semaphore( gain.sem, 1000 );
-		if(gui_state != GUISTATE_PLAYMENU || (audio_monitoring_enabled() && AUDIO_MONITORING_HEADPHONES_CONNECTED)) {
+		if(gui_state != GUISTATE_PLAYMENU || (audio_monitoring && AUDIO_MONITORING_HEADPHONES_CONNECTED)) {
 			audio_configure( rc == 0 ); // force it if we got the semaphore
 		}
 	}
@@ -1224,3 +1239,33 @@ void volume_display_clear()
 	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
 	crop_set_dirty(1);
 }
+
+PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
+
+void audio_monitoring_force_display_on()
+{
+	int x = 0;
+	prop_deliver(*(int*)(VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
+}
+
+static void
+audio_monitoring_task()
+{
+	while(1)
+	{
+		msleep(200);
+		if (audio_monitoring && rca_monitor)
+		{
+			audio_monitoring_force_display_on();
+			int i;
+			for (i = 0; i < 10; i++)
+			{
+				bmp_printf(FONT_LARGE, 10, 40, " Audio monitoring ");
+				msleep(200);
+			}
+			lv_redraw();
+		}
+	}
+}
+
+TASK_CREATE( "audiomon_task", audio_monitoring_task, 0, 0x1f, 0x1000 );
