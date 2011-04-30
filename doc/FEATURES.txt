@@ -269,8 +269,6 @@ Audio tweaks.
   
   To use this feature, you may use a modified USB - RCA cable or a USB - jack adapter. See `here <http://vimeo.com/groups/magiclantern/forumthread:237296>`_ for details.
   
-  Note: after you unplug the cable in LiveView, press ``MENU`` twice to restore the image on the built-in display.
-
 **Output volume (dB)**
 
   Volume for audio monitoring. It does not have effect on the internal camera speaker.

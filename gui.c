@@ -246,7 +246,7 @@ static int handle_buttons(struct event * event)
 					return 0;
 				case BGMT_UNPRESS_UDLR:
 					lens_focus_stop();
-					return 0;
+					return 1;
 			}
 		}
 	}
