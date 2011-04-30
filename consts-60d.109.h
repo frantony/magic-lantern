@@ -130,8 +130,8 @@
 #define DLG_Q_UNAVI 0x1F
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
-#define VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c
-#define VIDEO_OUT_PROP_DELIVER_VALUE 0x1ac4
+#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
+#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ac4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 /*
  * From 550D - needs testing / modification
  * END

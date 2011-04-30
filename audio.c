@@ -906,6 +906,29 @@ audio_monitoring_display( void * priv, int x, int y, int selected )
 	);
 }
 
+PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
+
+void audio_monitoring_force_display(int x)
+{
+	prop_deliver(*(int*)(HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
+}
+
+static void audio_monitoring_update()
+{
+	// kill video connect/disconnect event... or not
+	*(int*)HOTPLUG_VIDEO_OUT_STATUS_ADDR = audio_monitoring ? 2 : 0;
+	
+	if (audio_monitoring && rca_monitor)
+		audio_monitoring_force_display(0);
+}
+
+static void
+audio_monitoring_toggle( void * priv)
+{
+	audio_monitoring = !audio_monitoring;
+	audio_monitoring_update();
+}
+
 static struct menu_entry audio_menus[] = {
 	{
 		.priv		= &cfg_draw_meters,
@@ -976,8 +999,7 @@ static struct menu_entry audio_menus[] = {
 		.display	= audio_lovl_display,
 	},
 	{
-		.priv		= &audio_monitoring,
-		.select		= menu_binary_toggle,
+		.select		= audio_monitoring_toggle,
 		.display	= audio_monitoring_display,
 	},
 };
@@ -1076,9 +1098,7 @@ my_sounddev_task( int some_param )
 #endif
 
 	msleep(2000);
-	// Create the menu items
-
-	int count = 0;
+	audio_monitoring_update();
 
 	while(1)
 	{
@@ -1239,33 +1259,3 @@ void volume_display_clear()
 	bmp_printf(FONT(FONT_MED,COLOR_WHITE,0), 50, 40, "                          ");
 	crop_set_dirty(1);
 }
-
-PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
-
-void audio_monitoring_force_display_on()
-{
-	int x = 0;
-	prop_deliver(*(int*)(VIDEO_OUT_PROP_DELIVER_ADDR), &x, 4, 0x0);
-}
-
-static void
-audio_monitoring_task()
-{
-	while(1)
-	{
-		msleep(200);
-		if (audio_monitoring && rca_monitor)
-		{
-			audio_monitoring_force_display_on();
-			int i;
-			for (i = 0; i < 10; i++)
-			{
-				bmp_printf(FONT_LARGE, 10, 40, " Audio monitoring ");
-				msleep(200);
-			}
-			lv_redraw();
-		}
-	}
-}
-
-TASK_CREATE( "audiomon_task", audio_monitoring_task, 0, 0x1f, 0x1000 );
