@@ -325,14 +325,6 @@ update_lens_display(
 }
 
 
-
-void
-lens_focus_wait( void )
-{
-	take_semaphore( focus_done_sem, 0 );
-	give_semaphore( focus_done_sem );
-}
-
 struct lens_control {
 	// 0x00-0x1D4: not used
 	                   uint32_t off_0x1D4;uint32_t off_0x1D8;uint32_t off_0x1DC; //1D4: amount of rotation, 1D8: step size (?)
@@ -353,22 +345,11 @@ lens_focus(
 	int			step
 )
 {
-	// Should we timeout to avoid hanging?
-	if( take_semaphore( focus_done_sem, 100 ) != 0 )
-		return;
-	
 	if (!lv_drawn()) return;
-	if ((af_mode & 0xF) == 3 ) return;
-	
-	struct prop_focus focus = {
-		.active		= 1,
-		.mode		= mode,
-		.step_hi	= (step >> 8) & 0xFF,
-		.step_lo	= (step >> 0) & 0xFF,
-		.unk		= 0,
-	};
+	if (MANUAL_FOCUS) return;
 
-	prop_request_change( PROP_LV_FOCUS, &focus, sizeof(focus) );
+	while (lens_info.job_state) msleep(100);
+	msleep(10);
 
 	lctr.off_0x228 = 0x1;
 	if (step<0) { lctr.off_0x228 += 0x8000; step = -step; }
@@ -390,8 +371,6 @@ lens_focus(
 	AfCtrl_SetLensParameterRemote(((char*)&lctr)-0x1D4);
 
 	if (get_zoom_overlay_mode()==2) zoom_overlay_set_countdown(300);
-
-	give_semaphore( focus_done_sem );
 }
 
 /*

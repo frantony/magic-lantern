@@ -1196,8 +1196,6 @@ void font_test(void* priv)
 
 void xx_test(void* priv)
 {
-	audio_monitoring_force_display_on();
-	
 	/*
 	int i;
 	char fn[100];

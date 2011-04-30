@@ -92,8 +92,8 @@ void focus_stack_ensure_preconditions()
 	if (!lv_drawn())
 	{
 		msleep(200);
-		SW1(1,0);
-		SW1(0,0);
+		SW1(1,100);
+		SW1(0,100);
 		msleep(200);
 		while (!lv_drawn())
 		{
@@ -141,7 +141,7 @@ focus_stack(
 		focus_stack_ensure_preconditions();
 
 		lens_focus( 1, step );
-		lens_focus_wait();
+		//~ lens_focus_wait();
 		focus_moved_total += step;
 	}
 
