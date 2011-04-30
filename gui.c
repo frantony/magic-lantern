@@ -30,6 +30,9 @@
 #include "consts-60d.109.h"
 #include "lens.h"
 
+CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
+
+
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
 static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
@@ -451,7 +454,15 @@ static int handle_buttons(struct event * event)
 	// movie mode shortcut
 	if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_AF || CURRENT_DIALOG_MAYBE == DLG_METERING))
 	{
-		set_shooting_mode(SHOOTMODE_MOVIE);
+		if (shooting_mode != SHOOTMODE_MOVIE)
+		{
+			previous_photo_mode = shooting_mode;
+			set_shooting_mode(SHOOTMODE_MOVIE);
+		}
+		else
+		{
+			set_shooting_mode(previous_photo_mode);
+		}
 		return 0;
 	}
 
