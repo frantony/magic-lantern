@@ -624,7 +624,7 @@ menu_handler(
 	case 1:          // Synthetic redraw event
 		break;
 
-	case 0x10000097: // canon code might have drawn over menu
+	//~ case 0x10000097: // canon code might have drawn over menu
 	case 0x100000e8: // when you press Q on ISO
 		menu_damage = 1;
 		break;
@@ -718,11 +718,11 @@ gui_stop_menu( void )
 	gui_menu_task = NULL;
 
 	//workaround, otherwise screen does not refresh after closing menu
-	if (!lv_drawn())
+	/*if (!lv_drawn())
 	{
 		while (get_halfshutter_pressed()) msleep(100);
 		fake_simple_button(BGMT_Q);
-	}
+	}*/
 
 	msleep(50);
 	clrscr();
