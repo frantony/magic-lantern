@@ -245,7 +245,7 @@ void adjust_burst_pic_quality()
 
 PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 
-PROP_HANDLER(PROP_BURST_COUNT)
+/*PROP_HANDLER(PROP_BURST_COUNT)
 {
 	burst_count = buf[0];
 
@@ -255,7 +255,7 @@ PROP_HANDLER(PROP_BURST_COUNT)
 	}
 
 	return prop_cleanup(token, property);
-}
+}*/
 
 static void
 auto_burst_pic_display(
@@ -1689,11 +1689,11 @@ struct menu_entry debug_menus[] = {
 		.select = menu_binary_toggle,
 		.display = af_frame_autohide_display,
 	},
-	{
+	/*{
 		.priv = &auto_burst_pic_quality, 
 		.select = menu_binary_toggle, 
 		.display = auto_burst_pic_display,
-	},
+	},*/
 	{
 		.select = expsim_toggle, 
 		.display = expsim_display,
