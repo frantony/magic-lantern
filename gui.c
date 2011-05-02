@@ -228,7 +228,7 @@ static int handle_buttons(struct event * event)
 
 	if (event->type == 0)
 	{
-		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn())
+		if (is_follow_focus_active() && !is_manual_focus() && !gui_menu_shown() && lv_drawn() && gui_state == GUISTATE_IDLE)
 		{
 			switch(event->param)
 			{
