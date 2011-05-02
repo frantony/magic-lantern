@@ -50,7 +50,7 @@ VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').60d.fw109.$(BUILDVER)
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR		= 0xFF010000
-RESTARTSTART		= 0x0008B000
+RESTARTSTART		= 0x5f000
 
 # Firmware file IDs
 FIRMWARE_ID_5D		= 0x80000218
