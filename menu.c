@@ -478,6 +478,19 @@ void menu_select_current(int reverse)
 	menu_entry_select(menu,reverse);
 }
 
+static void 
+menu_redraw_if_damaged()
+{
+	if( menu_damage )
+	{
+		if (!lv_drawn()) show_only_selected = 0;
+		bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
+		menu_damage = 0;
+		menus_display( menus, 40, 65 );
+	}
+}
+
+
 static int
 menu_handler(
 	void *			priv,
@@ -537,6 +550,8 @@ menu_handler(
 
 	case GOT_TOP_OF_CONTROL:
 		DebugMsg( DM_MAGIC, 3, "Menu task GOT_TOP_OF_CONTROL" );
+		menu_damage = 1;
+		menu_redraw_if_damaged();
 		menu_damage = 1;
 		break;
 
@@ -651,13 +666,7 @@ menu_handler(
 	if( menu_hidden || !gui_menu_task )
 		return 0;
 
-	if( menu_damage )
-	{
-		if (!lv_drawn()) show_only_selected = 0;
-		bmp_fill( show_only_selected ? 0 : COLOR_BG, 30, 55, 720-60, 480-110 );
-		menu_damage = 0;
-		menus_display( menus, 40, 65 );
-	}
+	menu_redraw_if_damaged();
 
 	return 0;
 }
