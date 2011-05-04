@@ -1312,6 +1312,8 @@ kelvin_toggle_reverse( void * priv )
 	kelvin_toggle(-1);
 }
 
+PROP_INT( PROP_WB_KELVIN_PH, wb_kelvin_ph );
+
 static void 
 kelvin_display( void * priv, int x, int y, int selected )
 {
@@ -1320,8 +1322,9 @@ kelvin_display( void * priv, int x, int y, int selected )
 		bmp_printf(
 			selected ? MENU_FONT_SEL : MENU_FONT,
 			x, y,
-			"WhiteBalance: %dK",
-			lens_info.kelvin
+			"WhiteBalance: %dK%s",
+			lens_info.kelvin,
+			lens_info.kelvin == wb_kelvin_ph ? "" : "*"
 		);
 	}
 	else
@@ -1546,7 +1549,7 @@ static void
 picstyle_toggle( int sign )
 {
 	int p = lens_info.picstyle;
-	p = (p + sign - 1) % 9 + 1;
+	p = mod(p + sign - 1, 9) + 1;
 	p = get_prop_picstyle_from_index(p);
 	if (p) prop_request_change(PROP_PICTURE_STYLE, &p, 4);
 	menu_show_only_selected();
@@ -1930,6 +1933,7 @@ struct menu_entry shoot_menus[] = {
 		.display = bulb_display, 
 		.select = bulb_toggle_fwd, 
 		.select_reverse = bulb_toggle_rev,
+		.select_auto = bulb_toggle_fwd,
 	},
 	{
 		.priv = &mlu_mode,
@@ -2339,7 +2343,7 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 int wave_count = 0;
 int wave_count_countdown = 0;
 int display_sensor_active = 0;
-PROP_HANDLER(PROP_DISPSENSOR_CTRL)
+/*PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	int on = !buf[0];
 	int off = !on;
@@ -2365,7 +2369,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 
 	end:
 	return prop_cleanup(token, property);
-}
+}*/
 
 void display_lcd_remote_info()
 {

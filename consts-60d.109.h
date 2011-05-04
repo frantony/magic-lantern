@@ -69,11 +69,17 @@
 #define BGMT_Q 0x19
 #define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 0xb
+#define BGMT_UNLOCK 0x11
 
 #define BGMT_PRESS_HALFSHUTTER 0x41
 #define BGMT_UNPRESS_HALFSHUTTER 0x42
 
 #define BGMT_LV 0x1A
+
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
+#define BGMT_WHEEL_UP 0
+#define BGMT_WHEEL_DOWN 1
 
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
@@ -132,6 +138,14 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ac4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
+
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && *(int*)0x3d74 == 1)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && *(int*)0x3d74 == 2)
+
+#define BTN_METERING_PRESSED_IN_LV ((*(int*)0x24c0c) & 0x800)
+//~ 308f4 & 0x10000
+//~ 24bd0 & 0x80000
+
 /*
  * From 550D - needs testing / modification
  * END

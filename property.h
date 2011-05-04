@@ -290,6 +290,8 @@
 
 #define PROP_SCREEN_COLOR 0x0204000b
 
+#define PROP_ROLLING_PITCHING_LEVEL 0x80030039
+
 /** Properties */
 extern void
 prop_register_slave(

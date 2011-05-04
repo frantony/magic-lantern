@@ -32,17 +32,20 @@
 
 CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
 
+int lv_disp_mode;
+PROP_HANDLER(PROP_HOUTPUT_TYPE)
+{
+	lv_disp_mode = buf[1];
+	return prop_cleanup(token, property);
+}
 
 static PROP_INT(PROP_GUI_STATE, gui_state);
 static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
-static PROP_INT(PROP_HOUTPUT_TYPE, houtput_type);
 static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
 static PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 static PROP_INT(PROP_MVR_REC_START, recording);
 
-int button_menu_on = BGMT_TRASH;
-int button_menu_off = BGMT_TRASH;
-int button_center_lvafframe = BGMT_PRESS_SET;
+//~ int button_center_lvafframe = BGMT_PRESS_SET;
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
 int halfshutter_pressed = 0;
@@ -53,8 +56,10 @@ int get_halfshutter_pressed()
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
+int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
+int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -127,25 +132,24 @@ static int handle_buttons(struct event * event)
 	}*/
 
 	// event 0 is button press maybe?
-	if( gui_state == GUISTATE_IDLE && event->type == 0 )
+	if(event->type == 0 && ( gui_state == GUISTATE_IDLE || MENU_MODE))
 	{
-		if (event->param == button_menu_on && !gui_menu_shown()) 
+		if (event->param == BGMT_TRASH || event->param == BGMT_UNLOCK)
 		{
-			give_semaphore( gui_sem );
+			if (!gui_menu_shown()) 
+				give_semaphore( gui_sem );
+			else
+				gui_stop_menu();
 			return 0;
 		}
-		if (event->param == button_menu_off && gui_menu_shown()) 
-		{
-			gui_stop_menu();
-			return 0;
-		}
-		/*
-		if (lv_drawn() && event->param == button_center_lvafframe && !gui_menu_shown())
-		{
-			center_lv_afframe();
-			return 0;
-		}*/
 	}
+	
+	if (event->type == 0 && gui_menu_shown())
+	{
+		//~ if (event->param >= 0 && event->param <= 3) // wheel
+			//~ return 0;
+	}
+	
 	if (get_draw_event())
 	{
 		if (event->type == 0)
@@ -272,13 +276,15 @@ static int handle_buttons(struct event * event)
 		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
 		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+		if (event->param == BGMT_PRESS_SET) { set_pressed = 1; }
+		if (event->param == BGMT_UNPRESS_SET) { set_pressed = 0; }
  	}
 	
 	// override DISP button in LiveView mode
-	/*
-	if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && !gui_menu_shown() && gui_state == GUISTATE_IDLE)
+	
+	/*if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && zebra_should_run())
 	{
-		if (houtput_type == 0)
+		if (lv_disp_mode == 0)
 			return toggle_disp_mode();
 		else
 			schedule_disp_mode_change();
@@ -464,6 +470,15 @@ static int handle_buttons(struct event * event)
 			set_shooting_mode(previous_photo_mode);
 		}
 		return 0;
+	}
+	
+	// enable LiveV stuff in Play mode
+	if (event->type == 0 && PLAY_MODE)
+	{
+		if (event->param == BGMT_UNLOCK)
+			livev_playback_toggle();
+		else
+			livev_playback_reset();
 	}
 
 	return 1;
