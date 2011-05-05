@@ -366,10 +366,11 @@ void show_big_clock()
 }
 */
 
-CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
+//~ CONFIG_INT("lcd.sensor.shortcuts", lcd_sensor_shortcuts, 1);
 
-int get_lcd_sensor_shortcuts() { return lcd_sensor_shortcuts; }
+int get_lcd_sensor_shortcuts() { return 0; }
 
+/*
 static void
 lcd_sensor_shortcuts_print(
 	void *			priv,
@@ -384,7 +385,7 @@ lcd_sensor_shortcuts_print(
 		"SensorShortcuts: %s", 
 		lcd_sensor_shortcuts ? "ON" : "OFF"
 	);
-}
+}*/
 
 
 void take_screenshot( void * priv )
@@ -1342,11 +1343,9 @@ PROP_INT(PROP_BATTERY_RAW_LEVEL_MAYBE, battery_level_raw_maybe);*/
 
 void display_info()
 {
-	bmp_printf(FONT_MED, 20, 400, "Shutter Count: %d", shutter_count);
-	bmp_printf(FONT_MED, 20, 420, "CMOS Temperat: %d", efic_temp);
-	//~ bmp_printf(FONT_MED, 20, 440, "Battery level: %d or %d", battery_level_raw, battery_level_raw_maybe);
-	bmp_printf(FONT_MED, 20, 440, "Lens: %s          ", lens_info.name);
-	//~ bmp_printf(FONT_MED, 20, 440, "%d  ", *(int*)0x25334);
+	bmp_printf(FONT_MED, 400, 0, "Shutter Count: %d", shutter_count);
+	bmp_printf(FONT_MED, 400, 20, "CMOS Temperat: %d", efic_temp);
+	bmp_printf(FONT_MED, 400, 40, "Lens: %s          ", lens_info.name);
 }
 
 void display_shortcut_key_hints_lv()
@@ -1410,7 +1409,7 @@ void display_clock()
 	else
 	{
 		uint32_t fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
-		bmp_printf(fnt, 200, 410, "%02d:%02d", now.tm_hour, now.tm_min);
+		bmp_printf(fnt, 400, 410, "%02d:%02d", now.tm_hour, now.tm_min);
 	}
 }
 
@@ -1483,7 +1482,7 @@ debug_loop_task( void ) // screenshot, draw_prop
 		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
-		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2 && k % 10 == 0)
+		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2)
 		{
 			display_clock();
 			display_shooting_info();
@@ -1666,12 +1665,12 @@ spy_print(
 
 
 struct menu_entry debug_menus[] = {
-	{
+	/*{
 		.priv		= &lcd_sensor_shortcuts,
 		.select		= menu_binary_toggle,
 		.display	= lcd_sensor_shortcuts_print,
 	},
-	/*{
+	{
 		.priv = &big_clock, 
 		.select = menu_binary_toggle,
 		.display = big_clock_print,
@@ -1696,11 +1695,11 @@ struct menu_entry debug_menus[] = {
 		.select_reverse = menu_quinternary_toggle_reverse, 
 		.display = lv_metering_print,
 	},
-	/*{
+	{
 		.priv		= "Draw palette",
 		.select		= bmp_draw_palette,
 		.display	= menu_print,
-	},*/
+	},
 	{
 		.priv		= "Screenshot (10 s)",
 		.select		= screenshot_start,

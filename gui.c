@@ -94,7 +94,7 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
-CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
+//~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -424,7 +424,7 @@ static int handle_buttons(struct event * event)
 		}*/
 		else if (lv_dispsize > 1)
 		{
-			select_menu("LiveV", 8);
+			select_menu("LiveV", 7);
 			give_semaphore( gui_sem ); 
 			return 0;
 		}

@@ -49,7 +49,7 @@ CONFIG_INT( "zoom.enable.face", zoom_enable_face, 1);
 CONFIG_INT( "zoom.disable.x5", zoom_disable_x5, 0);
 CONFIG_INT( "zoom.disable.x10", zoom_disable_x10, 0);
 CONFIG_INT( "bulb.duration.index", bulb_duration_index, 2);
-CONFIG_INT( "lcd.release", lcd_release_running, 0);
+//~ CONFIG_INT( "lcd.release", lcd_release_running, 0);
 CONFIG_INT( "mlu.mode", mlu_mode, 2); // off, on, auto
 
 int get_silent_pic_mode() { return silent_pic_mode; } // silent pic will disable trap focus
@@ -1900,12 +1900,12 @@ struct menu_entry shoot_menus[] = {
 		.display	= intervalometer_display,
 		.select_auto = intervalometer_wait_toggle,
 	},
-	{
+	/*{
 		.priv		= &lcd_release_running,
 		.select		= menu_quaternary_toggle, 
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.display	= lcd_release_display,
-	},
+	},*/
  	{
 		.priv		= &audio_release_running,
 		.select		= menu_binary_toggle,
@@ -2241,18 +2241,18 @@ void iso_refresh_display()
 		update_lens_display(lens_info);
 		return;
 	}
+	
 	int bg = bmp_getpixel(680, 40);
 	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	int iso = lens_info.iso;
 	if (iso)
-		bmp_printf(fnt, 560, 27, "ISO %5d", iso);
+		{}//~ bmp_printf(fnt, 560, 27, "ISO %5d", iso);
 	else
 		bmp_printf(fnt, 560, 27, "ISO AUTO");
 }
 
 void display_shooting_info() // called from debug task
 {
-	return;
 	if (lv_drawn()) return;
 	
 	int bg = bmp_getpixel(314, 260);
@@ -2264,15 +2264,16 @@ void display_shooting_info() // called from debug task
 	}
 	if (lens_info.wbs_gm || lens_info.wbs_ba)
 	{
-		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
+		bg = bmp_getpixel(15, 430);
+		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 
 		int ba = lens_info.wbs_ba;
-		if (ba) bmp_printf(fnt, 310, 425, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
-		else bmp_printf(fnt, 435, 240, "   ");
+		if (ba) bmp_printf(fnt, 320 + 2 * font_med.width, 450, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
+		else    bmp_printf(fnt, 320 + 2 * font_med.width, 450, "  ");
 
 		int gm = lens_info.wbs_gm;
-		if (gm) bmp_printf(fnt, 310, 395, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
-		else bmp_printf(fnt, 435, 270, "   ");
+		if (gm) bmp_printf(fnt, 320, 450, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+		else    bmp_printf(fnt, 320, 450, "  ");
 	}
 
 	iso_refresh_display();
@@ -2281,11 +2282,11 @@ void display_shooting_info() // called from debug task
 	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
 	
 	if (hdr_steps > 1)
-		bmp_printf(fnt, 200, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
+		bmp_printf(fnt, 190, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
 	else
-		bmp_printf(fnt, 200, 450, "           ");
+		bmp_printf(fnt, 190, 450, "         ");
 
-	bmp_printf(fnt, 400, 430, "Flash:%s%s", 
+	bmp_printf(fnt, 400, 450, "Flash:%s%s", 
 		strobo_firing == 0 ? " ON" : 
 		strobo_firing == 1 ? "OFF" : "Auto", 
 		strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
@@ -2293,13 +2294,13 @@ void display_shooting_info() // called from debug task
 
 	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
 
-	display_lcd_remote_info();
+	//~ display_lcd_remote_info();
 	display_trap_focus_info();
 }
 
 void display_shooting_info_lv()
 {
-	display_lcd_remote_info();
+	//~ display_lcd_remote_info();
 	display_trap_focus_info();
 }
 
@@ -2373,6 +2374,7 @@ int display_sensor_active = 0;
 	return prop_cleanup(token, property);
 }*/
 
+/*
 void display_lcd_remote_info()
 {
 	int x0 = 480;
@@ -2415,7 +2417,7 @@ void display_lcd_remote_info()
 	static int prev_lr = 0;
 	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, 0, 40, 20);
 	prev_lr = lcd_release_running;
-}
+}*/
 
 
 void intervalometer_stop()
@@ -2509,7 +2511,7 @@ shoot_task( void )
 			if (mlu_mode == 1 && !get_mlu()) set_mlu(1);
 			if (mlu_mode == 2)
 			{
-				if ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || lcd_release_running == 2) && (hdr_steps < 2))
+				if ((drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE/* || lcd_release_running == 2*/) && (hdr_steps < 2))
 				{
 					if (!get_mlu()) set_mlu(1);
 				}
