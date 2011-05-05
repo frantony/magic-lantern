@@ -144,10 +144,9 @@ static int handle_buttons(struct event * event)
 		}
 	}
 	
-	if (event->type == 0 && gui_menu_shown())
+	if (event->type == 0 && event->param != 0x5a)
 	{
-		//~ if (event->param >= 0 && event->param <= 3) // wheel
-			//~ return 0;
+		clearscreen_wakeup();
 	}
 	
 	if (get_draw_event())
