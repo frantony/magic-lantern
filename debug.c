@@ -1266,7 +1266,7 @@ static int dbg_memspy_hasinit = 0;
 
 static void dbg_memspy_init() // initial state of the analyzed memory
 {
-	bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
+	//~ bmp_printf(FONT_MED, 10,10, "memspy init @ %x ... (+%x) ... %x", mem_spy_start, mem_spy_len, mem_spy_start + mem_spy_len * 4);
 	//~ msleep(2000);
 	//mem_spy_len is number of int32's
 	if (!dbg_memmirror) dbg_memmirror = AllocateMemory(mem_spy_len*4 + 100); // local copy of mem area analyzed

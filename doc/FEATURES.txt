@@ -175,6 +175,7 @@ These buttons have special meaning with Magic Lantern:
 * Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
 * Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
+* ``UNLOCK`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` while *White balance* dialog is active: go to `WhiteBalance`_ item in ML menu.
 * ``Q`` while *Picture Style* dialog is active: go to `Contrast`_ item in ML menu.
@@ -553,7 +554,7 @@ Functions specific to movie mode.
 
   **Internals**
   
-  To see how the algorithm works, disable `ClrScreen`_. You'll see:
+  To see how the algorithm works, disable any special action for `display`_. You'll see:
   
   * ``NEAR/FAR``: the direction in which it's currently moving the lens.
   * percentage of focus change from last step.

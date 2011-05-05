@@ -344,7 +344,6 @@ lens_focus(
 	int			step
 )
 {
-	return;
 	if (!lv_drawn()) return;
 	if (MANUAL_FOCUS) return;
 
