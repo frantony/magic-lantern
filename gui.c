@@ -56,10 +56,10 @@ int get_halfshutter_pressed()
 
 int zoom_in_pressed = 0;
 int zoom_out_pressed = 0;
-int set_pressed = 0;
+//~ int set_pressed = 0;
 int get_zoom_in_pressed() { return zoom_in_pressed; }
 int get_zoom_out_pressed() { return zoom_out_pressed; }
-int get_set_pressed() { return set_pressed; }
+//~ int get_set_pressed() { return set_pressed; }
 
 struct semaphore * gui_sem;
 
@@ -94,7 +94,7 @@ extern struct gui_timer_struct gui_timer_struct;
 
 extern void* gui_main_task_functbl;
 
-CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
+//~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -143,7 +143,7 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 	}
-	
+
 	if (event->type == 0 && event->param != 0x5a)
 	{
 		clearscreen_wakeup();
@@ -196,6 +196,10 @@ static int handle_buttons(struct event * event)
 			lens_focus_start( get_focus_dir() );
 			return 0;
 		}
+	}
+	if (gui_menu_shown())
+	{
+		if (event->type == 0 && event->param == 0x5a) return 0;
 	}
 	
 	/*
@@ -275,10 +279,8 @@ static int handle_buttons(struct event * event)
 		if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
 		if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
 		if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
-		if (event->param == BGMT_PRESS_SET) { set_pressed = 1; }
-		if (event->param == BGMT_UNPRESS_SET) { set_pressed = 0; }
  	}
-	
+
 	// override DISP button in LiveView mode
 	
 	/*if (event->type == 0 && event->param == BGMT_DISP && lv_drawn() && zebra_should_run())
@@ -375,21 +377,21 @@ static int handle_buttons(struct event * event)
 	*/
 	
 	// quick access to some menu items
-	/*
-	if (event->type == 0 && event->param == BGMT_Q_ALT && !gui_menu_shown())
+	
+	if (event->type == 0 && event->param == BGMT_Q && !gui_menu_shown())
 	{
-		if (ISO_ADJUSTMENT_ACTIVE)
+		if (CURRENT_DIALOG_MAYBE == DLG_ISO)
 		{
 			select_menu("Expo", 0);
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
-		else if (CURRENT_DIALOG_MAYBE == DLG_WB)
+		/*else if (CURRENT_DIALOG_MAYBE == DLG_WB)
 		{
 			select_menu("Expo", 1);
 			give_semaphore( gui_sem ); 
 			return 0;
-		}
+		}*/
 		else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
 		{
 			select_menu("Shoot", 5);
@@ -402,7 +404,7 @@ static int handle_buttons(struct event * event)
 			give_semaphore( gui_sem ); 
 			return 0;
 		}
-		else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
+		/*else if (CURRENT_DIALOG_MAYBE == DLG_PICTURE_STYLE)
 		{
 			select_menu("Expo", 7);
 			give_semaphore( gui_sem ); 
@@ -419,7 +421,7 @@ static int handle_buttons(struct event * event)
 			select_menu("Debug", 2);
 			give_semaphore( gui_sem ); 
 			return 0;
-		}
+		}*/
 		else if (lv_dispsize > 1)
 		{
 			select_menu("LiveV", 8);
@@ -427,7 +429,7 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 		
-	}*/
+	}
 
 	/*
 	if (event->param == 0 && *(uint32_t*)(event->obj) == PROP_APERTURE)
@@ -457,7 +459,7 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 	// movie mode shortcut
-	if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_AF || CURRENT_DIALOG_MAYBE == DLG_METERING))
+	if (event->type == 0 && event->param == BGMT_LV && (CURRENT_DIALOG_MAYBE == DLG_DRIVE_MODE || CURRENT_DIALOG_MAYBE == DLG_ISO || CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE || CURRENT_DIALOG_MAYBE == DLG_METERING))
 	{
 		if (shooting_mode != SHOOTMODE_MOVIE)
 		{

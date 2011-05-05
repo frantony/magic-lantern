@@ -128,7 +128,7 @@
 #define AE_VALUE (*(int8_t*)0x24bd9)
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x5680)
-#define DLG_AF 0xA
+#define DLG_FOCUS_MODE 0xA
 #define DLG_DRIVE_MODE 0xB
 #define DLG_ISO 0xF
 #define DLG_METERING 0xC
