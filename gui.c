@@ -30,20 +30,16 @@
 #include "consts-60d.109.h"
 #include "lens.h"
 
-CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
 
-int lv_disp_mode;
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
+void gui_unlock( void )
 {
-	lv_disp_mode = buf[1];
-	return prop_cleanup(token, property);
+	//~ gui_lock( 0, 1, 2 );
+	uint32_t x = 0x41000000;
+	prop_request_change(0x80020009, &x, 4);
 }
 
-static PROP_INT(PROP_GUI_STATE, gui_state);
-static PROP_INT(PROP_DISPSENSOR_CTRL, display_sensor_neg);
-static PROP_INT(PROP_SHOOTING_MODE, shooting_mode);
-static PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
-static PROP_INT(PROP_MVR_REC_START, recording);
+
+CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
 
 //~ int button_center_lvafframe = BGMT_PRESS_SET;
 
@@ -294,7 +290,7 @@ static int handle_buttons(struct event * event)
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
-		lv_redraw();
+		redraw_request();
 	}
 	
 	// stop intervalometer with MENU or PLAY
@@ -348,7 +344,7 @@ static int handle_buttons(struct event * event)
 		
 		if (old && lv_drawn())
 		{
-			if (display_sensor_neg == 0)
+			if (display_sensor)
 			{
 				if (value != old)
 				{
@@ -442,7 +438,7 @@ static int handle_buttons(struct event * event)
 		
 		if (get_lcd_sensor_shortcuts() && get_dof_adjust() && old && lv_drawn())
 		{
-			if (display_sensor_neg == 0)
+			if (display_sensor)
 			{
 				if (value != old)
 				{

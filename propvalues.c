@@ -32,12 +32,19 @@ PROP_INT(PROP_DRIVE, drive_mode);
 PROP_INT(PROP_STROBO_FIRING, strobo_firing);
 PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
-PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
+//~ PROP_INT(PROP_HOUTPUT_TYPE, lv_disp_mode);
 
 int display_sensor = 0;
 
 PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	display_sensor = !buf[0];
+	return prop_cleanup(token, property);
+}
+
+int lv_disp_mode;
+PROP_HANDLER(PROP_HOUTPUT_TYPE)
+{
+	lv_disp_mode = buf[1];
 	return prop_cleanup(token, property);
 }
