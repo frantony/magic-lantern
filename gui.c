@@ -186,7 +186,7 @@ static int handle_buttons(struct event * event)
 			lens_focus_stop();
 			return 0;
 		}
-		if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || event->param == BGMT_PRESS_ZOOMOUT_MAYBE)) // zoom out press, shared with halfshutter
+		if (lv_drawn() && (event->param == BGMT_PRESS_HALFSHUTTER || (event->param == BGMT_PRESS_ZOOMOUT_MAYBE && lvaf_mode))) // zoom out press, shared with halfshutter
 		{
 			gui_hide_menu( 50 );
 			lens_focus_start( get_focus_dir() );
@@ -305,10 +305,10 @@ static int handle_buttons(struct event * event)
 		zoom_overlay_toggle();
 	}
 
-	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
  	{
 		// magic zoom toggled by zoom in
-		if (get_zoom_overlay_mode() == 3)
+		if (get_zoom_overlay_mode() == 3 && !get_halfshutter_pressed())
 		{
 			zoom_overlay_toggle();
 			return 0;
