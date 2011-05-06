@@ -49,6 +49,7 @@ extern int gui_state;
 void menu_show_only_selected()
 {
 	show_only_selected = 1;
+	menu_damage = 1;
 }
 
 int draw_event = 0;
@@ -778,7 +779,7 @@ gui_hide_menu(
 {
 	menu_hidden = redisplay_time;
 	menu_damage = 1;
-	bmp_fill( 0, 30, 55, 720-60, 480-110 );
+	bmp_fill( 0, 0, 0, 720, 480 );
 }
 
 
