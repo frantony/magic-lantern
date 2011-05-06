@@ -314,6 +314,24 @@ update_lens_display(
 
 }
 
+int lv_focus_done = 1;
+
+PROP_HANDLER( PROP_LV_FOCUS_DONE )
+{
+	lv_focus_done = 1;
+	return prop_cleanup( token, property );
+}
+
+void
+lens_focus_wait( void )
+{
+	while (!lv_focus_done)
+	{
+		msleep(10);
+		if (!lv_drawn()) break;
+		if (is_manual_focus()) break;
+	}
+}
 
 struct lens_control {
 	// 0x00-0x1D4: not used
@@ -339,7 +357,8 @@ lens_focus(
 	if (is_manual_focus()) return;
 
 	while (lens_info.job_state) msleep(100);
-	msleep(10);
+	lens_focus_wait();
+	lv_focus_done = 0;
 
 	lctr.off_0x228 = 0x1;
 	if (step<0) { lctr.off_0x228 += 0x8000; step = -step; }
