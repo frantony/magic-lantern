@@ -9,14 +9,14 @@ Features
 * Focus tools: `focus peaking`_, `zoom while recording`_, `trap focus`_, `rack focus`_, `follow focus`_, `focus stacking`_, `focus graph`_, `zoom in Face Detect mode`_.
 * Movie helpers: `Bitrate control`_ (QScale or CBR), `custom AF algorithm`_, `movie logging`_ (Exif-like metadata), `auto-restart`_ after buffer overflow or 4 GB limit, `time remaining display`_, `clean LiveView display`_ without any overlays, `change movie position`_ on the mode dial.
 * `Cropmark`_ images: user-editable overlays to assist framing and composition.
-* Fine control for `ISO`_, `Shutter`_, `Kelvin white balance`_ and other `image settings`_.
-* Remote release with `LCD face sensor`_ and `audio trigger`_, without extra hardware.
+* Fine control for `Shutter`_ speed and other `image settings`_.
+* Remote release `audio trigger`_, without extra hardware.
 * Bracketing: `exposure bracketing`_, `focus stacking`_.
 * Timelapse: `intervalometer`_ (for photos and movies), `silent pictures`_ without shutter actuation; integration with bracketing.
 * Astro- and night photography: `bulb timer`_ for very long exposures (up to 8h).
 * Info displays: `focus and DOF info`_, `CMOS temperature`_, `shutter count`_, `clock`_.
-* For strobists: `flash exposure compensation`_ from -10 to +3 EV; auto-toggle `flash / no flash`_ (even pics without flash, odd pics with flash).
-* Power management: `Turn off display`_ in LiveView mode; quickly adjust `LCD backlight level`_.
+* For strobists: `flash exposure compensation`_ from -10 to +3 EV.
+* Power management: `Turn off display`_ in LiveView mode.
 * Fun stuff: `slit-scan pictures`_.
 
 Important notes
@@ -57,19 +57,14 @@ Notes:
 How do I see shutter counter / CMOS temperature?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``MENU -> INFO``.
+Press ``INFO`` a few times outside LiveView.
 
 
 How do I get exposure times longer than 30 seconds?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use `Bulb timer`_ together with `LCD remote shot`_, `audio trigger`_ or `intervalometer`_.
+With `Bulb timer`_.
 
-
-How do I adjust ISO in smaller steps? And Kelvin white balance?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-These settings are in the `Expo`_ menu.
 
 Why can't I set the ISO under 200?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,7 +77,6 @@ Do I have to adjust ISO/shutter/aperture/WB from ML menu only?
 
 No, you can adjust them both from ML menu or Canon user interface.
 
-Note: when you use Kelvin WB, the WB icon from Canon menu will not be displayed, but it works (you can change it).
 
 Does ML eat batteries faster, or cause overheating?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -156,40 +150,20 @@ These buttons have special meaning with Magic Lantern:
 
 * ISO followed by LV: toggle between photo and movie mode.
 * Metering button in LiveView mode: change current ``display preset`_.
-* Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others. To restore default firmware behavior (i.e. **cancel** the current selection on half-shutter press), disable `set.on.halfshutter`_.
-* ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_.
+* ``UNLOCK`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
+* ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_ or set ``Image Review`` to any other value (not ``Hold``).
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
-
-.. _LCD sensor:
-
-* LCD sensor (not really a button, but can be used as one): see `LCD Remote Shot`_ and `SensorShortcuts`_.
-
-.. _LCD backlight level:
-
-* LCD sensor + ``UP / DOWN``: adjust LCD backlight level.
-* LCD sensor + ``LEFT / RIGHT`` in LiveView: adjust `Kelvin white balance`_.
-* LCD sensor + Arrows: see `Follow Focus`_.
-* LCD sensor + aperture change in LiveView: `DOF adjust`_ (changes aperture and ISO while keeping the same exposure).
-* LCD sensor + ``Zoom In``: activates `Magic Zoom`_.
-* Flash + ``UP / DOWN`` in Movie mode: adjust `audio`_ gain (volume for recording).
-* Flash + ``LEFT / RIGHT`` in Movie mode: adjust `ISO`_.
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
-* ``UNLOCK`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
-* ``Q`` followed by ``SET``, while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
-* ``Q`` while *White balance* dialog is active: go to `WhiteBalance`_ item in ML menu.
-* ``Q`` while *Picture Style* dialog is active: go to `Contrast`_ item in ML menu.
 * ``Q`` while *AF mode* dialog is active: go to `Trap Focus`_ item in ML menu.
-* ``Q`` while *Drive mode* dialog is active: go to `LCD Remote Shot`_ item in ML menu.
-* ``Q`` while *Flash exposure comp.* dialog is active: go to `Flash AEcomp`_ item in ML menu.
-* ``Q`` while *Quality* dialog (picture quality) is active: go to `Auto Burst PicQ`_ item in ML menu.
+* ``Q`` while *Drive mode* dialog is active: go to `Audio RemoteShot`_ item in ML menu.
+* ``Q`` while *ISO speed* dialog is active: go to `ISO`_ item in ML menu.
 * ``Q`` while LiveView zoom is active: go to `Magic Zoom`_ item in ML menu.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
 * ``SET`` in LiveView: center AF area (the little rectangle).
-* ``MENU`` -> ``INFO``: display extra info like `shutter count`_ and `CMOS temperature`_.
-* ``ERASE``: display Magic Lantern menu.
+* ``ERASE`` or ``MENU->UNLOCK``: display Magic Lantern menu.
 * Arrows, ``SET, INFO/PLAY, Q``: ML menu navigation (see below).
-* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). This does not work in video mode; it works best in P, Tv, Av or M modes.
+* Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern).
 
 Menu options
 ------------
@@ -713,24 +687,8 @@ Functions for stills shooting (some of them work for movies, too).
   Note: ML will emulate half-shutter presses every second to prevent the camera from entering stand-by mode. You have to make sure it won't autofocus.
 
 .. _remote triggers:
-.. _LCD face sensor:
-.. _LCD Remote Shot:
-.. _LCD Remote:
-
-**LCD Remote Shot: OFF/Near/Away/Wave**
-
-  Start/stop remote shutter release mode with the LCD sensor. 
-  
-  * ⨂ **Near**: To take a picture, put your hand near the LCD sensor.
-  * ⨀ **Away**: Picture is taken when you get your hand away from the sensor. You may combine this setting with `Mirror Lockup`_.
-  * 〰 **Wave**: Picture is taken after you wave your hand 3 times near the sensor. You can leave it on without interfering (too much) with normal shooting.
-
-  This is useful for avoiding camera shake without extra $$$, 
-  especially if you don't have a sturdy tripod.
-  
-  In Movie mode, the ``Wave`` 〰 setting is able to start and stop recording movies. The other modes can only start recording (because it's too easy to stop recording by mistake).
-  
 .. _audio trigger:
+.. _Audio RemoteShot:
 
 **Audio RemoteShot: ON/OFF**
 
@@ -775,21 +733,6 @@ Functions for stills shooting (some of them work for movies, too).
 **Motion Detect: ON/OFF**
 
   Experimental motion detection. Right now it only reacts to brightness change in the middle of the LiveView image.
-
-.. _flash / no flash:
-
-**Flash / No flash: ON/OFF**
-
-  (disabled, is anyone using it?)
-
-  This will toggle flash setting (on/off) after each photo:
-  
-  * Even pictures (by file number) will be taken without flash
-  * Odd pictures will be taken with flash
-  
-  This function works only in P,A,S,M modes. The effect is somewhat similar to Fuji's Natural Light with Flash mode.
-  
-  Don't forget to pop up the flash :)
 
 .. _silent pictures:
 .. _Silent Picture:
@@ -850,10 +793,7 @@ Functions for stills shooting (some of them work for movies, too).
   
   * ``OFF``: always off
   * ``ON``: always on
-  * ``Timer+Remote``: this will auto-enable MLU under one of the following conditions (and disable it otherwise):
-  
-    - self-timer mode is on (either 2 second or 10 second, but not continuous)
-    - `LCD Remote Shot`_ is in ``Away`` mode.
+  * ``Timer+Remote``: this will enable MLU when self-timer is on, and disable it otherwise.
 
 .. _image settings:
 
@@ -869,27 +809,13 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 .. _ISO:
 
-**ISO: 100-25600**
+**ISO: 100-12800**
 
-  Custom steps for ISO. Possible values (rounded):
-  
-  0 (Auto), 100, 110, 115, 125, 140, 160, 170, 185, 200, 220, 235, 250, 280, 320, 350, 380, 400, 435, 470, 500, 580, 640, 700, 750, 800, 860, 930, 1000, 1100, 1250, 1400, 1500, 1600, 1750, 1900, 2000, 2250, 2500, 2750, 3000, 3200, 3500, 3750, 4000, 4500, 5000, 5500, 6000, 6400, 7200, 8000, 12800, 25600.
-  
-  To compute exact ISO values from 100 to 6400, assumming 1/8 EV steps, use this formula:
-  
-  .. raw:: latex
-  
-      $$100 \cdot 2^{k/8},\;\; k=[0:48]$$
-  
-  To get ISO values higher than 6400, turn on ISO Expansion from Custom Functions (CFn 1). To get ISO lower than 200, turn HTP off. 
-  In video mode, ISO only goes up to 6400. This is also true without ML.
-  
-  To get only "round" ISO values, i.e. 100, 160, 200, 320, 400, 640, 800, 1250, 1600, 2500, 3200, 6400, 12800 and 25600, enable `iso.round.only`_ from `magic.cfg`_.
-
+  Adjust ISO, in 1/3EV steps. No fine control available.
   
   In manual exposure modes (photo and video), press the ``Q`` button on this entry to set the ISO value automatically. 
-   
-  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/8EV. If the contrast is very low, the histogram will be centered.
+
+  * When LiveView is active, a binary search algorithm is used; the search criteria is a good balance between overexposure and underexposure; search resolution is 1/3EV. If the contrast is very low, the histogram will be centered.
   * When LiveView is off, ISO is set using the Auto ISO feature from Canon firmware, in 1EV steps.
 
 .. _Kelvin white balance:
@@ -910,7 +836,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
 
 **Shutter: 1/24...1/4000**
 
-  Custom steps for shutter speed, in 1/8 EV steps.
+  Custom values for shutter speed, in 1/8 EV steps.
   
   Assumming 1/4000 is native, you can use the `EV definition <http://en.wikipedia.org/wiki/Exposure_value>`_ to compute all available shutter speeds between 30s and 1/8000, resulting:
   
@@ -1100,14 +1026,6 @@ Debug
     :align: center
     :width: 5cm
 
-.. _SensorShortcuts:
-
-**SensorShortcuts: ON/OFF**
-
-  Enable the use of `LCD sensor`_ as an extra shift key. This function allows you to adjust `white balance`_, LCD backlight level, move the AF frame when `follow focus`_ is active, or trigger `Magic Zoom`_ when not recording.
-
-  To fully disable the `LCD sensor`_ in Magic Lantern, disable ``LCD auto off`` from Canon menu (Wrench 1). You need to do this if you are using a device which covers the LCD sensor (e.g. a loupe).
-
 **AF frame: Default / AutoHide**
 
   Control the appearance of AF frame:
@@ -1116,15 +1034,6 @@ Debug
   * AutoHide: the AF frame is only displayed when you move it, and then it disappears after 1 second or so.
 
 .. _Auto Burst PicQ:
-
-**Auto Burst PicQ: ON/OFF**
-
-  When enabled, it will temporarily reduce picture quality in burst mode in order to maintain a decent frame rate even when the buffer becomes almost full. 
-  
-  This function will reduce picture quality in the following steps:
-  
-  * ``RAW+JPG`` -> ``RAW`` -> ``JPG Large Fine`` -> ``JPG Medium Fine``
-  * ``JPG Large Coarse`` -> ``JPG Medium Coarse``
 
 **Exposure Sim: OFF / ON / Auto**
 
@@ -1218,7 +1127,7 @@ Magic Lantern saves its settings in a configuration file named `magic.cfg`_. Thi
 
   This menu item sets the maximum number of available DISP presets. To disable this feature, set the number of presets to 1.
   
-  To change the presets, press ``ISO`` followed by ``DISP``.
+  To change the presets, press the Metering button.
 
 Extra info displays
 -------------------
@@ -1228,20 +1137,18 @@ Main shooting screen (outside LiveView)
 
 .. _clock:
 
-.. figure:: InfoDisplayShooting-550D.png
+.. figure:: InfoDisplayShooting-60D.png
     :alt: thumb|right|Extra shooting info display
     :align: center
     :width: 5cm
 
 * Clock (bottom of screen)
-* ISO value in finer increments (above Canon's ISO display)
 * Trap Focus status (near MF icon)
 * Kelvin temperature (in the white balance box)
 * WB shift values for BA and GM
 * Flash setting (under clock)
 * `HDR`_ setting (under battery icon)
 * `MLU`_ setting (under ``Q`` icon)
-* `LCD remote`_ status icon: ⨂ ⨀ 〰
 
 MENU->INFO
 ~~~~~~~~~~
@@ -1295,7 +1202,6 @@ LiveView
 * Top side:
 
   * `Audio meters`_ and audio input source for each channel
-  * `LCD remote`_ status icon: ⨂ ⨀ 〰
 
 .. _focus graph:
 
@@ -1318,14 +1224,13 @@ You can:
 
 * `Turn off display`_ in LiveView mode
 * Turn off `Global Draw`_
-* Quickly adjust `LCD backlight level`_
 
-Power consumption in movie mode, idle, 24p (approximate figures derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
+Power consumption in movie mode, idle, 24p (approximate figures for 550D derived from `this test <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!&p=2254074&viewfull=1#post2254074>`_):
 
 +------------------------------------+--------------------------+
 | Item                               | Current (approx)         |
 +====================================+==========================+
-| Camera body (without lens), LCD off| 360 mA                   |
+| 550D body (without lens), LCD off  | 360 mA                   |
 +------------------------------------+--------------------------+
 | Lens (Tamron 17-50/2.8)            | 20 mA                    | 
 +------------------------------------+--------------------------+
