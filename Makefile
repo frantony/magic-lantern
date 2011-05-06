@@ -218,6 +218,7 @@ ML_OBJS-y = \
 	debug.o \
 	stdio.o \
 	audio.o \
+	bitrate.o \
 	lens.o \
 	property.o \
 	propvalues.o \
@@ -227,7 +228,6 @@ ML_OBJS-y = \
 	focus.o \
 	chdk-gui_draw.o \
 	ptp.o \
-	bitrate.o \
 	movtweaks.o \
 	tweaks.o \
 	bootflags.o \

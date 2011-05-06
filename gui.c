@@ -304,7 +304,16 @@ static int handle_buttons(struct event * event)
 	{
 		zoom_overlay_toggle();
 	}
-	
+
+	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+ 	{
+		// magic zoom toggled by zoom in
+		if (get_zoom_overlay_mode() == 3)
+		{
+			zoom_overlay_toggle();
+			return 0;
+		}
+ 	}
 	/*
 	if (get_lcd_sensor_shortcuts() && get_zoom_overlay_z() && lv_dispsize == 1 && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE && display_sensor_neg == 0 && DISPLAY_SENSOR_POWERED)
 	{
