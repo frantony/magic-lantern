@@ -2274,6 +2274,7 @@ void display_shooting_info_lv()
 void display_trap_focus_info()
 {
 	int show, fg, bg, x, y;
+	static int show_prev = 0;
 	if (lv_drawn())
 	{
 		show = trap_focus && can_lv_trap_focus_be_active();
@@ -2281,16 +2282,16 @@ void display_trap_focus_info()
 		bg = active ? COLOR_BG : 0;
 		fg = active ? COLOR_RED : COLOR_BG;
 		x = 8; y = 160;
+		if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
 	}
 	else
 	{
 		show = (trap_focus && ((af_mode & 0xF) == 3) && lens_info.raw_aperture);
-		bg = bmp_getpixel(410, 330);
+		bg = bmp_getpixel(35, 365);
 		fg = trap_focus == 2 || FOCUS_CONFIRMATION_AF_PRESSED ? COLOR_RED : COLOR_FG_NONLV;
-		x = 410; y = 331;
+		x = 35; y = 365;
+		if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP FOCUS" : "          ");
 	}
-	static int show_prev = 0;
-	if (show || show_prev) bmp_printf(FONT(FONT_MED, fg, bg), x, y, show ? "TRAP \nFOCUS" : "     \n     ");
 	show_prev = show;
 }
 
