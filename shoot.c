@@ -2313,7 +2313,7 @@ int wait_for_lv_err_msg(int wait) // 1 = msg appeared, 0 = did not appear
 int wave_count = 0;
 int wave_count_countdown = 0;
 int display_sensor_active = 0;
-PROP_HANDLER(PROP_DISPSENSOR_CTRL)
+/*PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 {
 	int on = !buf[0];
 	int off = !on;
@@ -2339,7 +2339,7 @@ PROP_HANDLER(PROP_DISPSENSOR_CTRL)
 
 	end:
 	return prop_cleanup(token, property);
-}
+}*/
 
 /*
 void display_lcd_remote_info()

@@ -497,11 +497,11 @@ struct menu_entry tweak_menus[] = {
 		.select = menu_binary_toggle, 
 		.display = quickzoom_display,
 	},
-	{
+	/*{
 		.priv = &set_on_halfshutter, 
 		.select = menu_binary_toggle, 
 		.display = set_on_halfshutter_display,
-	},
+	},*/
 	{
 		.priv = &cropmark_movieonly,
 		.display	= crop_movieonly_display,

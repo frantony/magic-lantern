@@ -59,7 +59,7 @@ NSTUB( 0xff02484c, GUI_CONTROL )
 NSTUB( 0xFF21B000, ChangeColorPalette )
 NSTUB( 0xFF325754, MirrorDisplay )
 NSTUB( 0xFF3257B4, NormalDisplay )
-NSTUB( 0xFF323F08, redraw_maybe )
+NSTUB( 0xFF323F08, RedrawDisplay )
 
 /*NSTUB( 0xFF27E5E4, af_control_handler )*/
 NSTUB( 0xFF27F454, AfCtrl_SetLensParameterRemote )

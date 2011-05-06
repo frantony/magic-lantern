@@ -521,13 +521,13 @@ menu_handler(
 	)
 		return 1; // 0 is too aggressive :)
 
-	if( event != 0x10000098 && event != 0x100000db)
+/*	if( event != 0x10000098 && event != 0x100000db)
 	{
 		bmp_printf( FONT_SMALL, 400, 40,
 			"evt %8x(%8x,%8x,%8x",
 			event, arg2, arg3, arg4
 		);
-	}
+	}*/
 
 		// Mine!  No one else gets it
 		//~ return 0;
