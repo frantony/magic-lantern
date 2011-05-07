@@ -494,6 +494,7 @@ menu_redraw_if_damaged()
 		menu_damage = 0;
 		menus_display( menus, 10, 40 );
 		update_stuff();
+		update_disp_mode_bits_from_params();
 	}
 }
 
@@ -761,8 +762,6 @@ gui_stop_menu( void )
 		while (get_halfshutter_pressed()) msleep(100);
 		fake_simple_button(BGMT_Q);
 	}*/
-
-	update_disp_mode_bits_from_params();
 	
 	lens_focus_stop();
 	show_only_selected = 0;
