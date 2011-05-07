@@ -151,7 +151,6 @@ These buttons have special meaning with Magic Lantern:
 * ISO followed by LV: toggle between photo and movie mode.
 * Metering button in LiveView mode: change current ``display preset`_.
 * ``UNLOCK`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
-* ``Zoom In`` button works right after you take a picture, which is done by going to ``PLAY`` mode instead of Quick Review. For this to work, set ``Image review``: ``Hold`` in Canon menu. To restore default behavior, disable `quick.review.allow.zoom`_ or set ``Image Review`` to any other value (not ``Hold``).
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Movie AF`_, `Rack focus`_, `Bulb timer`_, `Movie REC key`_.
@@ -322,7 +321,7 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
       :align: center
       :height: 2cm
 
-  By default, cropmarks are displayed only in Movie mode. To display them in photo modes, disable `crop.movieonly`_.
+  By default, cropmarks are displayed only in Movie mode. See `Show cropmarks in`_: Movie mode / All modes.
 
   If you use custom cropmarks, place them in ``CROPMKS`` folder on your SD card and give them short 8.3 names. The number in paranthesis ``Cropmks(x/n)`` shows the selected cropmark number and the number of detected cropmarks. You can place at most 9 cropmarks on the card.
 
@@ -337,8 +336,6 @@ LiveView overlays: histogram, zebras, cropmarks, spotmeter, focus peaking, false
   
   Tip: use ``Debug->Screenshot`` to get a bitmap with the correct palette.
 
-
-  Press ``Q`` to enable cropmarks in Playback mode.
   
 {{clr}}
 
@@ -511,47 +508,6 @@ Functions specific to movie mode.
   
   Tip: you can rename ``LOG`` files to ``CSV`` and import them in Excel.
 
-.. _custom AF algorithm:
-.. _movie af:
-
-**Movie AF: OFF/Hold/Cont**
-
-  Experimental autofocus in movie mode. It overrides the default autofocus algorithm.
-  
-  Modes:
-  
-  * ``Hold``: AF only works when you press and hold the shutter halfway, or the ``*`` button.
-    - If you press the Canon AF buton (which is half-shutter or ``*``, depending on your ``CFn.9`` setting), the exposure will be changed during autofocus.
-    - If you press the other button, the exposure will not change during AF, but the AF will be slower.
-  * ``Cont``: AF works continuously. It will be faster when you hold the AF button.
-  * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness.
-
-  **Internals**
-  
-  To see how the algorithm works, disable any special action for `display`_. You'll see:
-  
-  * ``NEAR/FAR``: the direction in which it's currently moving the lens.
-  * percentage of focus change from last step.
-  * red bar: current *focus step size*, between 0 and 64.
-  * blue bar: *target focus rate*, which is between 20% and 100% of the *aggressiveness* setting. It is used to adjust the focus step size.
-  * *mood*, which can be:
-  
-    - ``!!`` (confused): it doesn't know if it's going in the right way or not, because the focus change rate is too small. It will avoid changing the search direction until focus info becomes better. If you see it hunting in the wrong direction, a quick press of half-shutter or ``*`` will fix this. If you are holding the AF button pressed, de-press it and press it again to reverse the direction.
-    - ``:)`` (happy): in this case, the focus change rate is high enough and the algorithm believes it's going in the correct direction (and will ignore any hints from you regarding this).
-    
-  This is a modified gradient descent algorithm. It does not have global convergence, so in strong OOF situations it may not find focus. This can be solved with:
-  
-  - Better math in the focus evaluation function, which should only have a local max at the perfect focus point. Current functions also have small local maxima in strong OOF regions (besides noise). 
-  - Workarounds to avoid hunting (like the *mood* hack).
-  
- 
-  Tuning parameters (change with ``Q/INFO``):
-  
-  * ``A=1..64``: maximum aggressiveness (maximum target % rate of change for focus magnitude).
-  * ``N=0..9``: noise filter (for focus derivative).
-
-  Tip: get an external microphone and place it far away from the camera (AF is noisy)
-
 **Start with LV: ON / Movie mode / All modes**
 
   Force LiveView on startup. In movie mode, this only has effect if you use unchipped lenses. You can also force LiveView at startup in all modes.
@@ -591,6 +547,20 @@ Functions specific to movie mode.
 
  Unlike Canon's timer which assumes constant bitrate, ML timer assumes variable bitrate and works even if QScale is enabled.
  However, due to variations in bitrate, the estimated value will fluctuate a lot, and this is normal.
+
+.. WB workaround:
+
+**WB workaround: ON/OFF**
+
+  Workaround for remembering Kelvin temperature and WBShift G/M and B/A values in Movie mode.
+  
+  If this setting is on, these values are stored in config file.
+  They will be shared between movie and photo modes.
+  Enabling this setting will apply WBShift setting in auto modes, too.    
+
+**Zebra when REC: Hide / Don't Hide**
+
+  You can disable zebras during recording.
 
 Shoot
 ~~~~~
@@ -707,29 +677,6 @@ Functions for stills shooting (some of them work for movies, too).
   Be careful: this may trigger the shutter from the sounds made by camera (like focus beep or liveview switch).
 
 
-.. _trap focus:
-
-**Trap Focus: OFF/Hold/Cont.**
-
-  Takes a picture when the subject comes into focus.
-  
-  Modes:
-  
-  * ``Hold``: You hold the shutter half-pressed; camera takes a picture when something comes into focus.
-  * ``Cont.``: (buggy, disabled) You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This will disable some buttons (like ``MENU`` and ``PLAY``), so turn it off from ML menu before doing anything else.
-  
-  Trap focus works only when the lens is set to Manual focus (MF).
-  
-  * Outside LiveView, it only works with lenses with chip.
-  * In LiveView it only works for photos, in ``Hold`` mode, and it will take a picture 
-    when the focus indicator has (almost) maximum value on the `focus graph`_. 
-    
-    Notes:
-    
-    - You may have to turn the lens back and forth a few times in order to let ML
-      compute the correct focus scaling for the current scene. 
-    - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
-
 **Motion Detect: ON/OFF**
 
   Experimental motion detection. Right now it only reacts to brightness change in the middle of the LiveView image.
@@ -795,6 +742,16 @@ Functions for stills shooting (some of them work for movies, too).
   * ``ON``: always on
   * ``Timer+Remote``: this will enable MLU when self-timer is on, and disable it otherwise.
 
+**Picture Quality**
+
+  Set picture quality for stills. Available options: RAW, SRAW, MRAW and a few combinations of RAW+JPEG.
+  
+  When using SRAW and MRAW, please be aware of the following side effects:
+  
+  * Display corruption when you use Canon dialogs to change this setting;
+  * Magic Zoom / Focus Peaking may stop working; press MENU twice to fix them;
+  * There may be other side effects (not known)
+
 .. _image settings:
 
 Expo
@@ -827,7 +784,7 @@ Adjusting the exposure parameters. Most of these settings only work in Manual (p
   Kelvin white balance. Extended range (*) is only available in Movie mode and LiveView. For still pictures, Kelvin WB will be clamped to the native range, i.e. 2500...10000.
 
   In LiveView, press the ``Q`` button on this entry to set the WB temperature using the center color as reference gray. The measurement area is 200x200 pixels, centered.
-  
+
 **WBShift G/M: Green 0..9 / Magenta 0..9**
 
   Green-Magenta white balance shift. Useful for fluorescent lighting.
@@ -900,23 +857,41 @@ Focus
     :align: center
     :width: 5cm
 
-.. _rack focus:
+.. _trap focus:
 
-[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|thumb|300px|right|Rack Focus Tutorial by Daniel Thurau]]
+**Trap Focus: OFF/Hold/Cont.**
 
-**Focus dir**
-
-  This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
-
-**Focus A**
-
-    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set".
+  Takes a picture when the subject comes into focus.
+  
+  Modes:
+  
+  * ``Hold``: You hold the shutter half-pressed; camera takes a picture when something comes into focus.
+  * ``Cont.``: (buggy, disabled) You don't have to hold the shutter half-pressed; ML will emulate half-shutter presses instead. This will disable some buttons (like ``MENU`` and ``PLAY``), so turn it off from ML menu before doing anything else.
+  
+  Trap focus works only when the lens is set to Manual focus (MF).
+  
+  * Outside LiveView, it only works with lenses with chip.
+  * In LiveView it only works for photos, in ``Hold`` mode, and it will take a picture 
+    when the focus indicator has (almost) maximum value on the `focus graph`_. 
     
-    The start point will be the point where you are before selecting ``Rack focus`` in the menu.
+    Notes:
+    
+    - You may have to turn the lens back and forth a few times in order to let ML
+      compute the correct focus scaling for the current scene. 
+    - If you move from a high-contrast scene to a low-contrast one, you will also have to wait a bit until the high-contrast data disappears from the focus graph.
 
-**Rack Focus**
+.. _focus stacking:
 
-    Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
+**Stack focus**
+
+  This selection will shoot a series of photographs with varying focus points. You can also call this "focus bracketing".
+  It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
+  
+  Keys:
+  
+  * ``SET``: change the number of photos
+  * ``Q``: change the focus step size
+  * ``PLAY``: run the stack focus sequence
 
 .. _focus speed:
 
@@ -956,18 +931,65 @@ Focus
   
   Tip: you can adjust `focus speed`_ (which is multiplied by the *x* from the table above).
 
-.. _focus stacking:
 
-**Stack focus**
+.. _custom AF algorithm:
+.. _movie af:
 
-  This selection will shoot a series of photographs with varying focus points. You can also call this "focus bracketing".
-  It is used in macro photography to assemble sharper final images by merging photos where each has a different focus point. 
+**Movie AF: OFF/Hold/Cont**
+
+  Experimental autofocus in movie mode. It overrides the default autofocus algorithm.
   
-  Keys:
+  Modes:
   
-  * ``SET``: change the number of photos
-  * ``Q``: change the focus step size
-  * ``PLAY``: run the stack focus sequence
+  * ``Hold``: AF only works when you press and hold the shutter halfway, or the ``*`` button.
+    - If you press the Canon AF buton (which is half-shutter or ``*``, depending on your ``CFn.9`` setting), the exposure will be changed during autofocus.
+    - If you press the other button, the exposure will not change during AF, but the AF will be slower.
+  * ``Cont``: AF works continuously. It will be faster when you hold the AF button.
+  * ``CFPk``: a very experimental version which does not use Canon's focus estimation, but focus peaking data. It only uses the center area and computes the absolute value of edge strengths and divides by the image brightness.
+
+  **Internals**
+  
+  To see how the algorithm works, disable any special action for `display`_. You'll see:
+  
+  * ``NEAR/FAR``: the direction in which it's currently moving the lens.
+  * percentage of focus change from last step.
+  * red bar: current *focus step size*, between 0 and 64.
+  * blue bar: *target focus rate*, which is between 20% and 100% of the *aggressiveness* setting. It is used to adjust the focus step size.
+  * *mood*, which can be:
+  
+    - ``!!`` (confused): it doesn't know if it's going in the right way or not, because the focus change rate is too small. It will avoid changing the search direction until focus info becomes better. If you see it hunting in the wrong direction, a quick press of half-shutter or ``*`` will fix this. If you are holding the AF button pressed, de-press it and press it again to reverse the direction.
+    - ``:)`` (happy): in this case, the focus change rate is high enough and the algorithm believes it's going in the correct direction (and will ignore any hints from you regarding this).
+    
+  This is a modified gradient descent algorithm. It does not have global convergence, so in strong OOF situations it may not find focus. This can be solved with:
+  
+  - Better math in the focus evaluation function, which should only have a local max at the perfect focus point. Current functions also have small local maxima in strong OOF regions (besides noise). 
+  - Workarounds to avoid hunting (like the *mood* hack).
+  
+ 
+  Tuning parameters (change with ``Q/DISP``):
+  
+  * ``A=1..64``: maximum aggressiveness (maximum target % rate of change for focus magnitude).
+  * ``N=0..9``: noise filter (for focus derivative).
+
+  Tip: get an external microphone and place it far away from the camera (AF is noisy)
+
+.. _rack focus:
+
+[[Video:Magic Lantern for Canon 550D - Rack Focus Tutorial|thumb|300px|right|Rack Focus Tutorial by Daniel Thurau]]
+
+**Focus dir**
+
+  This is the direction the lens moves when pressing the camera's Zoom Out button to set the focus start and end points.
+
+**Focus A**
+
+    This is end point of rack focus. To set, focus the lens with the Zoom Out button, then press "Set".
+    
+    The start point will be the point where you are before selecting ``Rack focus`` in the menu.
+
+**Rack Focus**
+
+    Triggers the rack focus operation that moves between the start and end focus points. After the move is complete pressing again reverses the move. 
 
 .. _focus and DOF info:
 
@@ -1018,24 +1040,19 @@ The following items are display only:
 
 See also the description from the `5D2 ML User Guide <http://magiclantern.wikia.com/wiki/Magic_Lantern_0.1.6_User_Manual#Focus_menu>`_.
 
-Debug
-~~~~~
+Tweaks
+~~~~~~
 
-.. figure:: DebugMenu-550D.png
-    :alt: thumb|right|Debug menu
-    :align: center
-    :width: 5cm
+Miscellanous settings.
 
-**AF frame: Default / AutoHide**
+**AF frame display: Show / AutoHide**
 
   Control the appearance of AF frame:
   
-  * Default: no change (just like the standard firmware)
+  * Show: show the AF frame (just like the standard firmware)
   * AutoHide: the AF frame is only displayed when you move it, and then it disappears after 1 second or so.
 
-.. _Auto Burst PicQ:
-
-**Exposure Sim: OFF / ON / Auto**
+**Exposure Simulation: OFF / ON / Auto**
 
   Exposure simulation (ExpSim) in LiveView display (for photo mode only).
   
@@ -1045,7 +1062,43 @@ Debug
   
   When ExpSim is off, zebra, histogram, waveform and false color are not displayed.
 
-**LV metering**
+**After taking a photo: QuickReview / Hold->Play**
+
+  Image review behavior.
+  
+  * ``QuickReview``: just like in standard firmware
+  * ``Hold->Play``: if you set ``Image Review:Hold`` in Canon menu, it will go to ``PLAY`` mode instead. This allows you to zoom in as soon as you take the picture (without having to press ``PLAY``).
+
+**Zoom in PLAY mode**
+
+  Increase the speed of zoom function in ``PLAY`` mode.
+  
+  * ``Normal``: just like in standard firmware
+  * ``Fast``: zoom on steroids
+
+**HalfShutter in DLGs**
+
+  * ``SET``: Half-shutter press in virtually any Canon dialog window/box will **activate** the current selection. This helps you change settings faster in photo mode. It works by emulating a ``SET`` button press when ``GUI_STATE`` property is equal to ``PLAYMENU``, which includes dialogs like WB, AF, pic style, pic quality, Canon menu and submenus and others.
+  * ``Cancel``: default firmware behavior (i.e. **cancel** the current selection on half-shutter press).
+
+.. _Show cropmarks in:
+
+**Show cropmarks in: Movie mode / All modes**
+
+  It does just that. See `Cropmark`_ for more info.
+
+.. _ISO selection:
+
+**ISO selection**
+
+  * ``All values``: use all available ISO speeds, in 1/8 EV steps
+  * ``100x, 160x``: use only native ISOs (multiples of 100) and ISO values with lower digital gain (multiples of 160).
+
+**Start with LV: ON / Movie mode / All modes**
+
+  Force LiveView on startup. In movie mode, this only has effect if you use unchipped lenses. You can also force LiveView at startup in all modes.
+
+**LV Metering Override**
 
   Experimental metering methods for stills in LiveView:
   
@@ -1071,6 +1124,16 @@ Debug
   * Only the luma (Y) channel is checked for overexposure. Individual channels (R, G or B) may still be overexposed without any warning.
   * It may take a few seconds until the metering result is locked. This happens because LiveView display is not updated instantly when the exposure changes, and therefore ML has to wait a bit before reading the image brightness.
   * It's not reliable under dynamic scenes; it should work for landscapes :)
+
+
+
+Debug
+~~~~~
+
+.. figure:: DebugMenu-550D.png
+    :alt: thumb|right|Debug menu
+    :align: center
+    :width: 5cm
 
 **Draw palette**
 
@@ -1183,6 +1246,7 @@ LiveView
   * Clock
   * Current `display preset`_
   * Picture quality setting
+  * CMOS temperature
   * Number of pictures remaining (estimated)
   * Free space remaining, in GB (may be incorrect on certain cards)
 
