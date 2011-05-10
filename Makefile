@@ -39,7 +39,8 @@ CONFIG_CONSOLE		= n
 #CF_CARD="/Volumes/EOS_DIGITAL"
 
 #Linux (Ubuntu 10.04)
-CF_CARD=/media/EOS_DIGITAL/
+CF_CARD_GLOB=/media/EOS_*
+CF_CARD=$(shell echo $(CF_CARD_GLOB))
 UMOUNT=umount
 
 all: magiclantern.fir
@@ -83,7 +84,7 @@ install: autoexec.bin
 	cp $^ $(CF_CARD)
 
 	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp cropmks/*.bmp $(CF_CARD)/cropmks/
+	cp cropmks_rle/*.bmp $(CF_CARD)/cropmks/
 
 	cp logo.bmp $(CF_CARD)
 
