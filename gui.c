@@ -505,10 +505,12 @@ static int handle_buttons(struct event * event)
 	if (event->type == 0 && PLAY_MODE)
 	{
 		if (event->param == BGMT_UNLOCK)
+		{
 			livev_playback_toggle();
+			return 0;
+		}
 		else
 			livev_playback_reset();
-		return 0;
 	}
 
 	return 1;
