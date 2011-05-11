@@ -110,6 +110,7 @@ void ChangeColorPaletteLV(int x)
 {
 	if (!lv_drawn()) return;
 	if (!bmp_is_on()) return;
+	if (MENU_MODE) return;
 	ChangeColorPalette(x);
 }
 
