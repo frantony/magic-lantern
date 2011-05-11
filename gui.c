@@ -300,9 +300,16 @@ static int handle_buttons(struct event * event)
 	
 	// zoom overlay
 	
-	if (get_zoom_overlay_z() && recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_mode() && recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
+		return 0;
+	}
+
+	if (lv_drawn() && get_zoom_overlay() && event->type == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+	{
+		zoom_overlay_toggle();
+		return 0;
 	}
 
 	if (lv_drawn() && get_zoom_overlay_mode() && event->type == 0 && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
@@ -485,6 +492,7 @@ static int handle_buttons(struct event * event)
 			livev_playback_toggle();
 		else
 			livev_playback_reset();
+		return 0;
 	}
 
 	return 1;

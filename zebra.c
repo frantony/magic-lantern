@@ -72,6 +72,7 @@ int get_zoom_overlay_z() { return zoom_overlay_mode == 1 || zoom_overlay_mode ==
 
 int zoom_overlay = 0;
 int zoom_overlay_countdown = 0;
+int get_zoom_overlay() { return zoom_overlay; }
 
 CONFIG_INT( "focus.peaking", focus_peaking, 0);
 CONFIG_INT( "focus.peaking.thr", focus_peaking_pthr, 10); // 1%
@@ -865,7 +866,7 @@ void card_benchmark_schedule()
 
 static void dump_vram()
 {
-	//dump_big_seg(1, "B:/1.bin");
+	dump_big_seg(0, "B:/0.bin");
 	//dump_big_seg(4, "B:/4.bin");
 	dump_seg(0x1000, 0x100000, "B:/ram.bin");
 /*	dump_seg(0x40000000, 0x1000000, "B:/0.bin");
@@ -2428,6 +2429,11 @@ struct menu_entry dbg_menus[] = {
 		.display = menu_print,
 	},*/
 	{
+		.priv = "[debug] dump vram", 
+		.display = menu_print, 
+		.select = dump_vram,
+	},
+	{
 		.priv		= &unified_loop,
 		.select		= menu_ternary_toggle,
 		.display	= unified_loop_display,
@@ -2559,20 +2565,25 @@ int display_is_on() { return !_display_is_off; }
 
 void zoom_overlay_toggle()
 {
+	static int i = 0;
+	bmp_printf(FONT_MED, 50, 50, "Z%d m=%d o=%d c=%d", i, get_zoom_overlay_mode(), zoom_overlay, zoom_overlay_countdown);
 	zoom_overlay = !zoom_overlay;
 	if (!zoom_overlay) zoom_overlay_countdown = 0;
+
+	bmp_printf(FONT_MED, 50, 100, "Z%d m=%d o=%d c=%d", i, get_zoom_overlay_mode(), zoom_overlay, zoom_overlay_countdown);
+	i++;
 }
 
-void zoom_overlay_enable()
-{
-	zoom_overlay = 1;
-}
+//~ void zoom_overlay_enable()
+//~ {
+	//~ zoom_overlay = 1;
+//~ }
 
-void zoom_overlay_disable()
-{
-	zoom_overlay = 0;
-	zoom_overlay_countdown = 0;
-}
+//~ void zoom_overlay_disable()
+//~ {
+	//~ zoom_overlay = 0;
+	//~ zoom_overlay_countdown = 0;
+//~ }
 
 void zoom_overlay_set_countdown(int x)
 {
@@ -2598,7 +2609,7 @@ void draw_zoom_overlay()
 	if (gui_menu_shown()) return;
 	if (!bmp_is_on()) return;
 	if (lv_dispsize != 1) return;
-	if (get_halfshutter_pressed() && clearscreen != 2) return;
+	//~ if (get_halfshutter_pressed() && clearscreen != 2) return;
 	if (recording == 1) return;
 	
 	struct vram_info *	lv = get_yuv422_vram();
@@ -2962,7 +2973,9 @@ void test_fps(int* x)
 
 int should_draw_zoom_overlay()
 {
-	return (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown));
+	if (zebra_should_run() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
+	if (lv_drawn() && get_halfshutter_pressed() && get_global_draw() && zoom_overlay_mode && (zoom_overlay || zoom_overlay_countdown)) return 1;
+	return 0;
 }
 
 static void
