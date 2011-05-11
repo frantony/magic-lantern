@@ -198,8 +198,16 @@ NSTUB( 0xFF1AE0C8, mvrFixQScale )
 NSTUB( 0xFF1ADBA4, mvrSetDefQScale )
 NSTUB( 0xFF1ADBC0, mvr_set_time_const ) //mvrSetTimeConst
 NSTUB( 0xFF1AE000, mvr_setd_fullhd ) //mvrSetD_HD
+NSTUB( 0xff1adbdc, mvrSetFullHDOptSize )
+NSTUB( 0xff1add3c, mvrSetHDOptSize )
+NSTUB( 0xff1add84, mvrSetVGAOptSize )
+NSTUB( 0xff1addcc, mvrSetGopOptSizeFULLHD )
+NSTUB( 0xff1ade50, mvrSetGopOptSizeHD )
+NSTUB( 0xff1adec8, mvrSetGopOptSizeVGA )
 
-
+NSTUB( 0xff018824, strlen )
+NSTUB( 0xff07fba8, strcmp ) // cmpString
+NSTUB( 0xFF538070, memset ) // bzero32+4
 	
 #if 0   // not checked yet in 60d 109
  NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
