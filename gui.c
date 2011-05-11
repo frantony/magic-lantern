@@ -128,14 +128,30 @@ static int handle_buttons(struct event * event)
 	}*/
 
 	// event 0 is button press maybe?
-	if(event->type == 0 && ( gui_state == GUISTATE_IDLE || MENU_MODE))
+	if (event->type == 0 && event->param == BGMT_TRASH)
 	{
-		if (event->param == BGMT_TRASH || event->param == BGMT_UNLOCK)
+		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
 		{
-			if (!gui_menu_shown()) 
-				give_semaphore( gui_sem );
-			else
-				gui_stop_menu();
+			give_semaphore( gui_sem );
+			return 0;
+		}
+		else if (gui_menu_shown())
+		{
+			gui_stop_menu();
+			return 0;
+		}
+ 	}
+
+	if (event->type == 0 && event->param == BGMT_UNLOCK && MENU_MODE)
+	{
+		if (!gui_menu_shown()) 
+		{
+			give_semaphore( gui_sem );
+			return 0;
+		}
+		else if (gui_menu_shown())
+		{
+			gui_stop_menu();
 			return 0;
 		}
 	}
