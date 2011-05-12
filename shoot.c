@@ -2020,12 +2020,12 @@ struct menu_entry shoot_menus[] = {
 		.select = picq_toggle_raw,
 		.select_reverse = picq_toggle_jpegsize, 
 		.select_auto = picq_toggle_jpegtype,
-	}*/
+	}
 	{
 		.display = picq_display, 
 		.select = picq_toggle, 
 		.help = "Experimental SRAW/MRAW mode. You may get corrupted files."
-	}
+	}*/
 };
 
 static struct menu_entry vid_menus[] = {
