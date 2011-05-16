@@ -357,9 +357,15 @@ void center_lv_afframe()
 void center_lv_afframe_do()
 {
 	if (!lv_drawn() || gui_menu_shown() || gui_state != GUISTATE_IDLE) return;
-	afframe[2] = (afframe[0] - afframe[4])/2;
-	afframe[3] = (afframe[1] - afframe[5])/2;
-	//~ bmp_printf(FONT_MED, 30, 30, "center af: %d, %d ", afframe[2], afframe[3]);
+	int cx = (afframe[0] - afframe[4])/2;
+	int cy = (afframe[1] - afframe[5])/2;
+	if (afframe[2] == cx && afframe[3] == cy) 
+	{
+		move_lv_afframe(10,10);
+		msleep(100);
+	}
+	afframe[2] = cx;
+	afframe[3] = cy;
 	prop_request_change(PROP_LV_AFFRAME, afframe, 0x68);
 }
 
@@ -1948,7 +1954,6 @@ static void picq_toggle(void* priv)
 	set_pic_quality(newp);
 }
 
-
 struct menu_entry shoot_menus[] = {
 	{
 		.display	= hdr_display,
@@ -2326,7 +2331,11 @@ void remote_shot()
 		else
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
-	while (lens_info.job_state) msleep(500);
+	while (lens_info.job_state >= 10) msleep(500);
+	msleep(1000);
+	SW1(1,0);
+	SW1(0,0);
+	msleep(500);
 }
 
 void iso_refresh_display()
@@ -2476,7 +2485,7 @@ void display_lcd_remote_info()
 	int x0 = 480;
 	int cl_on = COLOR_RED;
 	int cl_off = lv_drawn() ? COLOR_WHITE : COLOR_FG_NONLV;
-	int cl = display_sensor_active ? cl_on : cl_off;
+	int cl = display_sensor ? cl_on : cl_off;
 	int bg = lv_drawn() ? 0 : bmp_getpixel(x0 - 20, 1);
 
 	if (lcd_release_running == 1)
@@ -2828,8 +2837,13 @@ shoot_task( void )
 
 			hdr_shot(0, intervalometer_wait);
 			
-			if (lv_drawn()) // simulate a half-shutter press to avoid mirror going up
+			// simulate a half-shutter press to avoid mirror going up
+			// once per minute is enough and easy to check
+			static int prev_min = 0;
+			LoadCalendarFromRTC( &now );
+			if (lv_drawn() && now.tm_min != prev_min) 
 			{
+				prev_min = now.tm_min;
 				SW1(1,10);
 				SW1(0,10);
 			}
