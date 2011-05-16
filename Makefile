@@ -33,6 +33,7 @@ CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
 CONFIG_LUA		= n
 CONFIG_CONSOLE		= n
+CONFIG_DEBUGMSG = 0
 
 #MacOS
 #UMOUNT=hdiutil unmount
@@ -130,11 +131,11 @@ FLAGS=\
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
 
 
 CFLAGS=\
 	$(FLAGS) \
-	-g \
 	-Os \
 	-Wall \
 	-W \
@@ -230,7 +231,6 @@ ML_OBJS-y = \
 	ptp.o \
 	movtweaks.o \
 	tweaks.o \
-	bootflags.o \
 	my_memset.o \
 
 NO=\
