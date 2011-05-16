@@ -302,7 +302,12 @@ static int handle_buttons(struct event * event)
 		else
 			schedule_disp_mode_change();
 	}*/
-	
+
+	if (lv_drawn() && !gui_menu_shown() && event->type == 0 && event->param == BGMT_DISP)
+	{
+		redraw_request();
+	}
+
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
