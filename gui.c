@@ -39,8 +39,6 @@ void gui_unlock( void )
 }
 
 
-CONFIG_INT("previous.photo.mode", previous_photo_mode, SHOOTMODE_M);
-
 //~ int button_center_lvafframe = BGMT_PRESS_SET;
 
 // halfshutter press is easier to detect from GUI events (PROP_HALFSHUTTER works only in LV mode)
@@ -305,13 +303,13 @@ static int handle_buttons(struct event * event)
 
 	if (lv_drawn() && !gui_menu_shown() && event->type == 0 && event->param == BGMT_DISP)
 	{
-		redraw_request();
+		redraw();
 	}
 
 	// MENU while recording => force a redraw
 	if (recording && event->type == 0 && event->param == BGMT_MENU)
 	{
-		redraw_request();
+		redraw();
 	}
 	
 	// stop intervalometer with MENU or PLAY
@@ -321,7 +319,7 @@ static int handle_buttons(struct event * event)
 	
 	// zoom overlay
 	
-	if (get_zoom_overlay_mode() && recording && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+	if (get_zoom_overlay_mode() && recording == 2 && event->type == 0 && event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
 	{
 		zoom_overlay_toggle();
 		return 0;
@@ -496,14 +494,9 @@ static int handle_buttons(struct event * event)
 	{
 		if (shooting_mode != SHOOTMODE_MOVIE)
 		{
-			previous_photo_mode = shooting_mode;
 			set_shooting_mode(SHOOTMODE_MOVIE);
+			return 0;
 		}
-		else
-		{
-			set_shooting_mode(previous_photo_mode);
-		}
-		return 0;
 	}
 	
 	// enable LiveV stuff in Play mode
