@@ -456,6 +456,7 @@ extern struct mvr_struct * mvr_struct;
 extern struct state_object * mvr_state;
 
 // tab size: 4
+// these are not correct (values are for 550D)
 struct mvr_config
 {
 	uint16_t		debug_flag;				// 0x00, 67bc, 1 = write debugmsg's
@@ -505,9 +506,9 @@ struct mvr_config
 	uint32_t		x6854_D1;				// 0x98, 6854
 	uint32_t		x6858_D2;				// 0x9c, 6858
 	uint32_t		x685c;					// 0xa0, 685c
-	int32_t 		another_def_q_scale;	// 0xa4, 6860
-	int32_t 		IniQScale;				// 0xa8, 6864
-	int32_t 		actual_qscale_maybe;	// 0xac, 6868
+	int32_t 		xa4;					// 0xa4, 6860
+	int32_t 		xa8;					// 0xa8, 6864
+	int32_t 		xac;					// 0xac, 6868
 	uint32_t		IOptSize;				// 0xb0, 686c
 	uint32_t		POptSize;				// 0xb4, 6870
 	uint32_t		IOptSize2;				// 0xb8, 6874
@@ -525,9 +526,9 @@ struct mvr_config
 	uint32_t		fullhd_gop_opt_4;		// 0xe8, 68a4
 	uint32_t		fullhd_gop_opt_0_copy;	// 0xec, 68a8
 	uint32_t		fullhd_gop_opt_1_copy;	// 0xf0, 68ac
-	uint32_t		fullhd_gop_opt_2_copy;	// 0xf4, 68b0
-	uint32_t		fullhd_gop_opt_3_copy;	// 0xf8, 68b4
-	uint32_t		fullhd_gop_opt_4_copy;	// 0xfc, 68b8
+	int32_t			another_def_q_scale;	// 0xf4, 68b0
+	int32_t			IniQScale;				// 0xf8, 68b4
+	int32_t			actual_qscale_maybe;	// 0xfc, 68b8
 	uint32_t		fullhd_gop_opt_0_cp2;	// 0x100, 68bc
 	uint32_t		fullhd_gop_opt_1_cp2;	// 0x104, 68c0
 	uint32_t		fullhd_gop_opt_2_cp2;	// 0x108, 68c4

@@ -84,11 +84,11 @@ int mem_spy_len = 0x10000/4;    // look at ### int32's; use only when mem_spy_fi
 //~ int mem_spy_len = COUNT(mem_spy_addresses); // use this when mem_spy_fixed_addresses = 1
 
 int mem_spy_count_lo = 5; // how many times is a value allowed to change
-int mem_spy_count_hi = 0; // (limits)
-int mem_spy_freq_lo = 5; 
-int mem_spy_freq_hi = 100;  // or check frequecy between 2 limits (0 = disable)
-int mem_spy_value_lo = 0x40000000;
-int mem_spy_value_hi = 0;  // or look for a specific range of values (0 = disable)
+int mem_spy_count_hi = 50; // (limits)
+int mem_spy_freq_lo = 0; 
+int mem_spy_freq_hi = 0;  // or check frequecy between 2 limits (0 = disable)
+int mem_spy_value_lo = 0;
+int mem_spy_value_hi = 50;  // or look for a specific range of values (0 = disable)
 
 static void
 mem_spy_select( void * priv )
@@ -286,7 +286,7 @@ static void dbg_memspy_update()
 
 		int x = 10 + 8 * 22 * (k % 4);
 		int y = 10 + 12 * (k / 4);
-		bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, freq, newval);
+		bmp_printf(fnt, x, y, "%8x:%2d:%8x", addr, dbg_memchanges[i], newval);
 		k = (k + 1) % 120;
 	}
 
@@ -345,15 +345,16 @@ void display_shortcut_key_hints_lv()
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100 - font_med.width*2, 240 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 - 100 - font_med.height/2, "    ");
 		bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 - font_med.width*2, 240 + 100 - font_med.height/2, "    ");
+
+		if (!should_draw_zoom_overlay())
+			crop_set_dirty(20);
+
 	}
 
 	if (mz) bmp_printf(FONT_MED, 360 + 100, 240 - 150, "Magic Zoom");
 	else bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 360 + 100, 240 - 150, "          ");
 
 	old_mode = mode;
-	
-	if (!should_draw_zoom_overlay())
-		crop_set_dirty(20);
 }
 
 void display_clock()
@@ -419,8 +420,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		//~ if (recording == 2)
 			//~ bmp_printf(FONT_MED, 0, 0, "frame=%d bytes=%8x", MVR_FRAME_NUMBER, MVR_BYTES_WRITTEN);
-		//~ bmp_hexdump(FONT_SMALL, 0, 20, 0x1E774, 32*10);
-		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", *(int*)131030);
+			//~ bmp_hexdump(FONT_SMALL, 0, 20, &mvr_config, 32*10);
+		//~ bmp_printf(FONT_MED, 0, 0, "%x  ", CURRENT_DIALOG_MAYBE);
 		//~ DEBUG("MovRecState: %d", MOV_REC_CURRENT_STATE);
 		
 		if (!lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown() && /*!big_clock &&*/ bmp_getpixel(2,10) != 2) BMP_SEM
@@ -449,8 +450,8 @@ debug_loop_task( void ) // screenshot, draw_prop
 		
 		if (BTN_METERING_PRESSED_IN_LV)
 		{
-			toggle_disp_mode();
 			while (BTN_METERING_PRESSED_IN_LV) msleep(100);
+			toggle_disp_mode();
 		}
 		
 		if (draw_prop)

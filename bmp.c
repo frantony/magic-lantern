@@ -594,7 +594,7 @@ void clrscr()
 void bmp_draw(struct bmp_file_t * bmp, int x0, int y0, uint8_t* const mirror, int clear)
 {
 	if (!bmp) return;
-	if (!bmp_enabled) return;
+	//~ if (!bmp_enabled) return;
 	if (bmp->compression!=0) return; // bmp_draw doesn't support RLE yet
 
 	uint8_t * const bvram = bmp_vram();

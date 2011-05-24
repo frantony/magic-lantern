@@ -125,9 +125,9 @@
 #define MOV_REC_STATEOBJ (*(void**)0x5A40)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-#define MOV_OPT_SIZE_FULLHD 0x5de8
-#define MOV_OPT_SIZE_HD 0x5e24
-#define MOV_OPT_SIZE_VGA 0x5e74
+#define MOV_OPT_SIZE_FULLHD 0x5dfc
+#define MOV_OPT_SIZE_HD 0x5e38
+#define MOV_OPT_SIZE_VGA 0x5e88
 
 #define MOV_GOP_OPT_SIZE_FULLHD 0x5ef8
 #define MOV_GOP_OPT_SIZE_HD 0x5f34
@@ -143,6 +143,9 @@
 #define DLG_METERING 0xC
 #define DLG_AF_POINTS 0xE
 #define DLG_Q_UNAVI 0x1F
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (*(int*)0x3D70 == 0x1c)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (*(int*)0x3D70 == 0x1d)
+
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect

@@ -886,6 +886,7 @@ silent_pic_take_sweep()
 static void
 silent_pic_take_slitscan(int interactive)
 {
+	return;
 	if (recording) return; // vsync fails
 	if (!lv_drawn()) return;
 	gui_stop_menu();
@@ -916,9 +917,9 @@ silent_pic_take_slitscan(int interactive)
 	{
 		int k;
 		for (k = 0; k < silent_pic_slitscan_skipframes; k++)
-			vsync(YUV422_HD_BUFFER_DMA_ADDR);
+			vsync(CLK_25FPS);
 		
-		FIO_WriteFile(f, YUV422_HD_BUFFER_DMA_ADDR + i * vram->pitch, vram->pitch);
+		FIO_WriteFile(f, YUV422_HD_BUFFER + i * vram->pitch, vram->pitch);
 
 		int y = i * 480 / vram->height;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel

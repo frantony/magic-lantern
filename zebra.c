@@ -210,7 +210,7 @@ void set_global_draw(int g)
 struct vram_info * get_yuv422_hd_vram()
 {
 	static struct vram_info _vram_info;
-	_vram_info.vram = YUV422_HD_BUFFER_DMA_ADDR;
+	_vram_info.vram = YUV422_HD_BUFFER;
 	_vram_info.width = recording ? (video_mode_resolution == 0 ? 1720 : 
 									video_mode_resolution == 1 ? 1280 : 
 									video_mode_resolution == 2 ? 640 : 0)
@@ -3108,6 +3108,7 @@ livev_hipriority_task( void )
 		static int dirty = 0;
 		if (should_draw_zoom_overlay())
 		{
+			guess_fastrefresh_direction();
 			if (dirty) { clrscr_mirror(); dirty = 0; }
 			BMP_SEM( draw_zoom_overlay(); )
 		}

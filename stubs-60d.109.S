@@ -208,7 +208,9 @@ NSTUB( 0xff1adec8, mvrSetGopOptSizeVGA )
 NSTUB( 0xff018824, strlen )
 NSTUB( 0xff07fba8, strcmp ) // cmpString
 NSTUB( 0xFF538070, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
-	
+
+NSTUB( 0x5dd0, mvr_config )
+
 #if 0   // not checked yet in 60d 109
  NSTUB( 0xFF0959A4, gui_post_10000085 ) // should be called post 100000a5 no ?
 NSTUB( 0xff0a9dd8, gui_init_event )
