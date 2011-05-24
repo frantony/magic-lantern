@@ -148,7 +148,7 @@ Keyboard shortcuts
 
 These buttons have special meaning with Magic Lantern:
 
-* ISO followed by LV: toggle between photo and movie mode.
+* ISO followed by LV: switch to Movie mode (from photo mode).
 * Metering button in LiveView mode: change current ``display preset`_.
 * ``UNLOCK`` in Play mode: draw the following items from `LiveV`_ menu: zebra, false color, histogram, waveform, spotmeter and cropmarks.
 * ``Zoom In`` and ``Zoom Out`` are faster in Play mode (while zooming on an image), compared to standard firmware.
