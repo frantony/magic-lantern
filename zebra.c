@@ -3312,6 +3312,7 @@ INIT_FUNC(__FILE__, zebra_init_menus);
 
 void make_overlay()
 {
+	bvram_mirror_init();
 	clrscr();
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
@@ -3345,6 +3346,7 @@ void make_overlay()
 
 void show_overlay()
 {
+	bvram_mirror_init();
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
 	int lvpitch = YUV422_LV_PITCH;
