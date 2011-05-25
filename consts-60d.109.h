@@ -125,13 +125,13 @@
 #define MOV_REC_STATEOBJ (*(void**)0x5A40)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
-#define MOV_OPT_SIZE_FULLHD 0x5dfc
-#define MOV_OPT_SIZE_HD 0x5e38
-#define MOV_OPT_SIZE_VGA 0x5e88
+//~ #define MOV_OPT_SIZE_FULLHD 0x5dfc
+//~ #define MOV_OPT_SIZE_HD 0x5e38
+//~ #define MOV_OPT_SIZE_VGA 0x5e88
 
-#define MOV_GOP_OPT_SIZE_FULLHD 0x5ef8
-#define MOV_GOP_OPT_SIZE_HD 0x5f34
-#define MOV_GOP_OPT_SIZE_VGA 0x5f84
+//~ #define MOV_GOP_OPT_SIZE_FULLHD 0x5ef8
+//~ #define MOV_GOP_OPT_SIZE_HD 0x5f34
+//~ #define MOV_GOP_OPT_SIZE_VGA 0x5f84
 
 
 #define AE_VALUE (*(int8_t*)0x24bd9)
