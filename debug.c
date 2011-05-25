@@ -35,7 +35,6 @@ dm_display(
 	int			selected
 )
 {
-	int mode = *(int*) priv;
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -161,9 +160,6 @@ static int vmax(int* x, int n)
 
 void xx_test(void* priv)
 {
-	cbr_init();
-	bitrate_set();
-	while (!get_halfshutter_pressed()) msleep(100);
 }
 
 void toggle_mirror_display()
@@ -490,6 +486,7 @@ spy_print(
 		get_draw_event() ? "EVT" : "evt", 
 		mem_spy ? "MEM" : "mem"
 	);
+	menu_draw_icon(x, y, MNI_BOOL(draw_prop || get_draw_event() || mem_spy), 0);
 }
 
 
@@ -508,6 +505,7 @@ struct menu_entry debug_menus[] = {
 		.help = "Take a screenshot after 10 seconds [SET] or right now [Q]."
 	},
 	{
+		.priv = &dm_enable,
 		.select = dm_toggle, 
 		.select_auto		= (void*) dumpf,
 		.display	= dm_display,
@@ -558,6 +556,7 @@ struct menu_entry debug_menus[] = {
 
 static struct menu_entry cfg_menus[] = {
 	{
+		.priv = &config_autosave,
 		.display	= config_autosave_display,
 		.select		= config_autosave_toggle,
 		.help = "If enabled, ML settings are saved automatically at shutdown."
