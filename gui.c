@@ -30,6 +30,7 @@
 #include "consts-60d.109.h"
 #include "lens.h"
 
+CONFIG_INT("swap.menu", swap_menu, 0);
 
 void gui_unlock( void )
 {
@@ -90,6 +91,8 @@ extern void* gui_main_task_functbl;
 
 //~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
 
+volatile int do_not_mangle_this_event = 0;
+
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
@@ -124,8 +127,27 @@ static int handle_buttons(struct event * event)
 			return 0;
 		}
 	}*/
+	
 
-	// event 0 is button press maybe?
+	if (swap_menu && !do_not_mangle_this_event)
+	{
+		if (event->type == 0 && event->param == BGMT_TRASH)
+		{
+			fake_simple_button(BGMT_MENU);
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_MENU)
+		{
+			fake_simple_button(BGMT_TRASH);
+			return 0;
+		}
+	}
+	
+	if (event->type == 0 && (event->param == BGMT_TRASH || event->param == BGMT_MENU))
+	{
+		do_not_mangle_this_event = 0;
+	}
+	
 	if (event->type == 0 && event->param == BGMT_TRASH)
 	{
 		if (!gui_menu_shown() && gui_state == GUISTATE_IDLE) 
@@ -138,7 +160,7 @@ static int handle_buttons(struct event * event)
 			gui_stop_menu();
 			return 0;
 		}
- 	}
+	}
 
 	if (event->type == 0 && event->param == BGMT_UNLOCK && MENU_MODE)
 	{
@@ -521,6 +543,18 @@ static int handle_buttons(struct event * event)
 
 	return 1;
 }
+
+void fake_simple_button(int bgmt_code)
+{
+	static struct event e;
+	e.type = 0,
+	e.param = bgmt_code, 
+	e.obj = 0,
+	e.arg = 0,
+	do_not_mangle_this_event = 1;
+	msg_queue_post(gui_main_struct.msg_queue_60d, &e, 0, 0);
+}
+
 
 static void gui_main_task_60d()
 {

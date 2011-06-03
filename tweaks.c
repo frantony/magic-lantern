@@ -428,6 +428,23 @@ iso_round_only_display(
 }
 
 
+extern int swap_menu;
+static void
+swap_menu_display(
+        void *                  priv,
+        int                     x,
+        int                     y,
+        int                     selected
+)
+{
+	bmp_printf(
+		selected ? MENU_FONT_SEL : MENU_FONT,
+		x, y,
+		"Swap MENU <-> ERASE : %s", 
+		swap_menu ? "ON" : "OFF"
+	);
+}
+
 extern int cropmark_movieonly;
 
 static void
@@ -496,6 +513,12 @@ struct menu_entry tweak_menus[] = {
 		.display	= iso_round_only_display,
 		.select		= menu_binary_toggle,
 		.help = "You can enable only ISOs which are multiple of 100 and 160."
+	},
+	{
+		.priv = &swap_menu,
+		.display	= swap_menu_display,
+		.select		= menu_binary_toggle,
+		.help = "Swaps MENU and ERASE buttons."
 	},
 /*	{
 		.priv = &lv_metering,
