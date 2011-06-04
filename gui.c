@@ -544,20 +544,26 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
+int handle_buttons_active = 0;
+struct event fake_event;
+struct semaphore * fake_sem;
+
+// if called from handle_buttons, only last fake button will be executed
+// if called from some other task, the function waits until the previous fake button was handled
 void fake_simple_button(int bgmt_code)
 {
-	static struct event e;
-	e.type = 0,
-	e.param = bgmt_code, 
-	e.obj = 0,
-	e.arg = 0,
+	if (!handle_buttons_active) take_semaphore(fake_sem, 0);
+	fake_event.type = 0,
+	fake_event.param = bgmt_code, 
+	fake_event.obj = 0,
+	fake_event.arg = 0,
 	do_not_mangle_this_event = 1;
-	msg_queue_post(gui_main_struct.msg_queue_60d, &e, 0, 0);
+	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
 }
-
 
 static void gui_main_task_60d()
 {
+	fake_sem = create_named_semaphore("fake_sem", 1);
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
@@ -573,11 +579,20 @@ static void gui_main_task_60d()
 			continue;
 		
 		if (!magic_is_off())
-			if (handle_buttons(event) == 0) 
-				continue;
+		{
+			handle_buttons_active = 1;
+			int should_handle = handle_buttons(event);
+			handle_buttons_active = 0;
+			
+			if (should_handle == 0) 
+				goto bottom;
+		}
 		
 		void(*f)(struct event *) = funcs[index];
 		f(event);
+
+bottom:
+		if (event == &fake_event) give_semaphore(fake_sem);
 	}
 } 
 

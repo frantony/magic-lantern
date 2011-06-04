@@ -340,4 +340,6 @@ gui_hide_menu( int redisplay_time );
 // 10: unavi set?
 #define GUISTATE_QMENU 9
 
+void fake_simple_button(int bgmt_code);
+
 #endif
