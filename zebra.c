@@ -2982,10 +2982,9 @@ clearscreen_loop:
 				if (!get_halfshutter_pressed() || dofpreview)
 					goto clearscreen_loop;
 			}
-			bmp_off();
+			BMP_SEM( bmp_off(); )
 			while (get_halfshutter_pressed()) msleep(100);
-			BMP_SEM( clrscr(); )
-			bmp_on();
+			BMP_SEM( bmp_on(); )
 		}
 		else if (clearscreen == 2 || clearscreen == 3)  // always clear overlays, or turn off display
 		{
@@ -3016,6 +3015,7 @@ clearscreen_loop:
 			{
 				display_on();
 				bmp_on();
+				redraw();
 			}
 		}
 		else
@@ -3031,6 +3031,10 @@ TASK_CREATE( "cls_task", clearscreen_task, 0, 0x1e, 0x1000 );
 void redraw()
 {
 	BMP_SEM(
+		/*static int x;
+		msleep(500);
+		bmp_printf(FONT_MED, 50, 50, "redraw %d ", x++);
+		msleep(500);*/
 		RedrawDisplay();
 		crop_set_dirty(20);
 		afframe_set_dirty();

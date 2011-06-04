@@ -1057,7 +1057,7 @@ menu_task( void )
 			fake_simple_button(BGMT_MENU);
 			while (!MENU_MODE) msleep(50);
 		}
-		msleep(200);
+		msleep(100);
 		
 		DebugMsg( DM_MAGIC, 3, "Creating menu task" );
 		menu_damage = 1;
