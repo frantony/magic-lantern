@@ -49,6 +49,8 @@ CONFIG_INT("disp.mode.ccc", disp_mode_c,  0x88090);
 CONFIG_INT("disp.mode.xxx", disp_mode_x, 0x2c5051);
 
 CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
+CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
+CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 CONFIG_INT( "livev.playback", livev_playback, 0);
 CONFIG_INT( "global.draw", 	global_draw, 0 );
 CONFIG_INT( "zebra.draw",	zebra_draw,	0 );
@@ -602,8 +604,10 @@ hist_draw_image(
 	unsigned		y_origin
 )
 {
-	//~ if (!lv_drawn()) return;
-	if (!expsim) return;
+	if (!PLAY_MODE)
+	{
+		if (!expsim) return;
+	}
 	uint8_t * const bvram = bmp_vram();
 
 	// Align the x origin, just in case
@@ -651,8 +655,10 @@ waveform_draw_image(
 	unsigned		y_origin
 )
 {
-    if (!lv_drawn()) return;
-    if (!expsim) return;
+	if (!PLAY_MODE)
+	{
+		if (!expsim) return;
+	}
 	waveform_init();
 	// Ensure that x_origin is quad-word aligned
 	x_origin &= ~3;
@@ -1051,7 +1057,7 @@ static void draw_zebra_and_focus_unified( void )
 	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 
 	uint32_t x,y;
-	int zd = zebra_draw && expsim && (!zebra_nrec || !recording); // when to draw zebras
+	int zd = zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
 	if (focus_peaking || zd) {
   		// clear previously written pixels
   		#define MAX_DIRTY_PIXELS 5000
@@ -1449,7 +1455,7 @@ draw_zebra_and_focus( int Z, int F )
 		thr = COERCE(thr, thr_min, 255);
 	}
 	
-	int zd = Z && zebra_draw && expsim && (!zebra_nrec || !recording); // when to draw zebras
+	int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
 	if (zd)
 	{
 		uint32_t zlh = zebra_level_hi;
@@ -1592,9 +1598,10 @@ draw_false( void )
 void
 draw_false_downsampled( void )
 {
-	if (!global_draw) return;
-	if (!expsim) return;
-	if (should_draw_zoom_overlay()) return;
+	if (!PLAY_MODE)
+	{
+		if (!expsim) return;
+	}
 	bvram_mirror_init();
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
@@ -2015,6 +2022,8 @@ crop_display( void * priv, int x, int y, int selected )
 	int h = font_large.height;
 	int w = h * 720 / 480;
 	bmp_draw_scaled_ex(cropmarks, x + 572, y, w, h, 0, 0);
+	if (cropmark_movieonly && shooting_mode != SHOOTMODE_MOVIE)
+		menu_draw_icon(x, y, MNI_WARNING, 0);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(index), 0);
 }
 
@@ -2196,12 +2205,17 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 
 	if( !vram->vram )
 		return;
-	const uint16_t*		vr = vram->vram;
+	const uint16_t*		vr = YUV422_LV_BUFFER_DMA_ANOTHER_ADDR;
 	const unsigned		width = vram->width;
 	const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
+	draw_line(width/2 - dx, height/2 - dx, width/2 + dx, height/2 - dx, COLOR_WHITE);
+	draw_line(width/2 + dx, height/2 - dx, width/2 + dx, height/2 + dx, COLOR_WHITE);
+	draw_line(width/2 + dx, height/2 + dx, width/2 - dx, height/2 + dx, COLOR_WHITE);
+	draw_line(width/2 - dx, height/2 + dx, width/2 - dx, height/2 - dx, COLOR_WHITE);
+	
 	unsigned sy = 0;
 	int32_t su = 0, sv = 0; // Y is unsigned, U and V are signed
 	// Sum the values around the center
@@ -2223,7 +2237,6 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 	*U = su;
 	*V = sv;
 }
-
 
 int get_spot_focus(int dx)
 {
@@ -2368,7 +2381,7 @@ disp_profiles_0_display(
 	);
 }
 
-
+/*
 static void
 transparent_overlay_display(
 	void *			priv,
@@ -2377,16 +2390,34 @@ transparent_overlay_display(
 	int			selected
 )
 {
-	bmp_printf(
-		selected ? MENU_FONT_SEL : MENU_FONT,
-		x, y,
-		"Ghost Image : %s", 
-		transparent_overlay == 0? "OFF" :
-		transparent_overlay == 1? "Centered" :
-		transparent_overlay == 2? "Left" :
-		transparent_overlay == 3? "Right" : "err"
-	);
+	if (transparent_overlay && (transparent_overlay_offx || transparent_overlay_offy))
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Ghost Image : ON, dx=%d, dy=%d", 
+			transparent_overlay_offx, 
+			transparent_overlay_offy
+		);
+	else
+		bmp_printf(
+			selected ? MENU_FONT_SEL : MENU_FONT,
+			x, y,
+			"Ghost Image : %s", 
+			transparent_overlay ? "ON" : "OFF"
+		);
 	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
+}*/
+
+void transparent_overlay_offset(dx, dy)
+{
+	transparent_overlay_offx = COERCE((int)transparent_overlay_offx + dx, -650, 650);
+	transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
+	BMP_SEM( show_overlay(); )
+}
+
+void transparent_overlay_offset_clear(dx, dy)
+{
+	transparent_overlay_offx = transparent_overlay_offy = 0;
 }
 
 struct menu_entry zebra_menus[] = {
@@ -2426,13 +2457,13 @@ struct menu_entry zebra_menus[] = {
 		.select_reverse		= crop_toggle_reverse,
 		.help = "Cropmarks for framing. Usually shown only in Movie mode."
 	},
-	{
+	/*{
 		.priv = &transparent_overlay, 
 		.display = transparent_overlay_display, 
 		.select = menu_quaternary_toggle,
 		.select_reverse = menu_quaternary_toggle_reverse,
 		.help = "Overlay any image in LV. In PLAY mode, press Unlock+SET."
-	},
+	},*/
 	{
 		.priv			= &spotmeter_draw,
 		.select			= menu_binary_toggle,
@@ -3100,6 +3131,12 @@ void false_color_toggle()
 	if (falsecolor_draw) zoom_overlay_disable();
 }
 
+int transparent_overlay_flag = 0;
+void schedule_transparent_overlay()
+{
+	transparent_overlay_flag = 1;
+}
+
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
@@ -3189,6 +3226,12 @@ livev_lopriority_task( void )
 {
 	while(1)
 	{
+		if (transparent_overlay_flag)
+		{
+			transparent_overlay_from_play();
+			transparent_overlay_flag = 0;
+		}
+		
 		loprio_sleep();
 		if (!zebra_should_run()) continue;
 		/*if (should_draw_zoom_overlay())
@@ -3297,7 +3340,6 @@ void livev_playback_toggle()
 	if (livev_playback)
 	{
 		draw_livev_for_playback();
-		bmp_printf(FONT_MED, 0, 0, "[SET] = Save this image as overlay");
 	}
 	else
 	{
@@ -3328,6 +3370,9 @@ void make_overlay()
 {
 	bvram_mirror_init();
 	clrscr();
+
+	bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
+
 	struct vram_info * vram = get_yuv422_vram();
 	uint8_t * const lvram = vram->vram;
 	int lvpitch = YUV422_LV_PITCH;
@@ -3353,7 +3398,7 @@ void make_overlay()
 	FILE* f = FIO_CreateFile("B:/overlay.dat");
 	FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
 	FIO_CloseFile(f);
-	bmp_printf(FONT_MED, 0, 0, "Overlay saved.");
+	bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
 
 	msleep(1000);
 }
@@ -3381,17 +3426,31 @@ void show_overlay()
 		int k;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
 		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH);   // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + (y - transparent_overlay_offy) * BMPPITCH);   // 1 pixel
 		uint8_t* bp;  // through bmp vram
 		uint8_t* mp;  //through bmp vram mirror
-		int offm = 0;
-		int offb = 0;
-		if (transparent_overlay == 2) offm = 720/2;
-		if (transparent_overlay == 3) offb = 720/2;
-		for (bp = b_row + offb, mp = m_row + offm; mp < m_row + 720 && bp < b_row + 720 ; bp++, mp++)
-			if ((y + (int)bp) % 2)
+		if (y - transparent_overlay_offy < 0 || y - transparent_overlay_offy > 480) continue;
+		//~ int offm = 0;
+		//~ int offb = 0;
+		//~ if (transparent_overlay == 2) offm = 720/2;
+		//~ if (transparent_overlay == 3) offb = 720/2;
+		for (bp = b_row, mp = m_row - transparent_overlay_offx; bp < b_row + 720 ; bp++, mp++)
+			if (((y + (int)bp) % 2) && mp > m_row && mp < m_row + 720)
 				*bp = *mp;
 	}
 	
 	bzero32(bvram_mirror, BVRAM_MIRROR_SIZE);
+}
+
+void transparent_overlay_from_play()
+{
+	if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+	make_overlay();
+	SW1(1,0);
+	SW1(0,0);
+	msleep(500);
+	if (!lv_drawn()) { force_liveview(); msleep(500); }
+	msleep(1000);
+	BMP_SEM( show_overlay(); )
+	transparent_overlay = 1;
 }

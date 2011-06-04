@@ -97,7 +97,7 @@ volatile int do_not_mangle_this_event = 0;
 static int handle_buttons(struct event * event)
 {
 	static int kev = 0;
-
+	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
 	/*
 	if (shooting_mode == SHOOTMODE_MOVIE && gui_state == GUISTATE_IDLE && FLASH_BTN_MOVIE_MODE)
@@ -190,17 +190,17 @@ static int handle_buttons(struct event * event)
 				kev,
 				event->type, 
 				event->param, 
-				event->obj ? *(uint32_t*)(event->obj) : 0,
-				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
-				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
 				event->arg);
-			/*console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
+/*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
 				event->type, 
 				event->param, 
-				event->obj ? *(uint32_t*)(event->obj) : 0,
-				event->obj ? *(uint32_t*)(event->obj + 4) : 0,
-				event->obj ? *(uint32_t*)(event->obj + 8) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
 				event->arg);*/
 			//msleep(250);
 		}
@@ -524,14 +524,6 @@ static int handle_buttons(struct event * event)
 	// enable LiveV stuff in Play mode
 	if (event->type == 0 && PLAY_MODE)
 	{
-		extern int livev_playback;
-		if (event->param == BGMT_PRESS_SET && livev_playback)
-		{
-			make_overlay();
-			livev_playback_reset();
-			return 0;
-		}
-
 		if (event->param == BGMT_UNLOCK)
 		{
 			livev_playback_toggle();
@@ -539,6 +531,49 @@ static int handle_buttons(struct event * event)
 		}
 		else
 			livev_playback_reset();
+	}
+
+	if (event->type == 0 && event->param == BGMT_LV && (gui_state == GUISTATE_QR || PLAY_MODE))
+	{
+		schedule_transparent_overlay();
+		return 0;
+	}
+
+	// move transparent overlay
+	extern int transparent_overlay;
+	if (transparent_overlay && lv_drawn() && gui_state == GUISTATE_IDLE && !gui_menu_shown())
+	{
+		if (event->type == 0 && event->param == BGMT_PRESS_UP)
+		{
+			transparent_overlay_offset(0, -40);
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_DOWN)
+		{
+			transparent_overlay_offset(0, 40);
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_LEFT)
+		{
+			transparent_overlay_offset(-40, 0);
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_RIGHT)
+		{
+			transparent_overlay_offset(40, 0);
+			return 0;
+		}
+		if (event->type == 0 && event->param == BGMT_PRESS_SET)
+		{
+			transparent_overlay_offset_clear();
+			transparent_overlay_offset(0, 0);
+			return 0;
+		}
+	}
+	if (event->type == 0 && event->param == BGMT_PLAY)
+	{
+		extern int transparent_overlay;
+		transparent_overlay = 0;
 	}
 
 	return 1;
