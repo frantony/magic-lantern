@@ -58,6 +58,10 @@ int get_zoom_out_pressed() { return zoom_out_pressed; }
 
 struct semaphore * gui_sem;
 
+int handle_buttons_active = 0;
+struct event fake_event;
+struct semaphore * fake_sem;
+
 
 struct gui_main_struct {
 	void *			obj;		// off_0x00;
@@ -90,8 +94,6 @@ extern struct gui_timer_struct gui_timer_struct;
 extern void* gui_main_task_functbl;
 
 //~ CONFIG_INT("set.on.halfshutter", set_on_halfshutter, 1);
-
-volatile int do_not_mangle_this_event = 0;
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -129,7 +131,7 @@ static int handle_buttons(struct event * event)
 	}*/
 	
 
-	if (swap_menu && !do_not_mangle_this_event)
+	if (swap_menu && event != &fake_event)
 	{
 		if (event->type == 0 && event->param == BGMT_TRASH)
 		{
@@ -141,11 +143,6 @@ static int handle_buttons(struct event * event)
 			fake_simple_button(BGMT_TRASH);
 			return 0;
 		}
-	}
-	
-	if (event->type == 0 && (event->param == BGMT_TRASH || event->param == BGMT_MENU))
-	{
-		do_not_mangle_this_event = 0;
 	}
 	
 	if (event->type == 0 && event->param == BGMT_TRASH)
@@ -579,10 +576,6 @@ static int handle_buttons(struct event * event)
 	return 1;
 }
 
-int handle_buttons_active = 0;
-struct event fake_event;
-struct semaphore * fake_sem;
-
 // if called from handle_buttons, only last fake button will be executed
 // if called from some other task, the function waits until the previous fake button was handled
 void fake_simple_button(int bgmt_code)
@@ -592,7 +585,6 @@ void fake_simple_button(int bgmt_code)
 	fake_event.param = bgmt_code, 
 	fake_event.obj = 0,
 	fake_event.arg = 0,
-	do_not_mangle_this_event = 1;
 	msg_queue_post(gui_main_struct.msg_queue_60d, &fake_event, 0, 0);
 }
 
@@ -627,7 +619,10 @@ static void gui_main_task_60d()
 		f(event);
 
 bottom:
-		if (event == &fake_event) give_semaphore(fake_sem);
+		if (event == &fake_event) 
+		{
+			give_semaphore(fake_sem);
+		}
 	}
 } 
 
