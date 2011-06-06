@@ -2939,8 +2939,9 @@ void zebra_sleep_when_tired()
 	static int prev_recording = 0;
 	if (prev_recording != recording)
 	{
-		msleep(2000);
+		msleep(3000);
 		redraw();
+		prev_recording = recording;
 	}
 }
 
