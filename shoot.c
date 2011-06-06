@@ -2504,6 +2504,9 @@ void remote_shot()
 		else
 			lens_take_picture(64); // hdr_shot messes with the self timer mode
 	}
+	msleep(200);
+	if (get_mlu() && lens_info.job_state < 10) return;
+	
 	while (lens_info.job_state >= 10) msleep(500);
 	
 	msleep(1000);
