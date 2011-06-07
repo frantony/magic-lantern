@@ -574,7 +574,7 @@ struct mvr_config
 	uint32_t		vga_50fps_gop_opt_2;	// 0x1a8, 6914
 	uint32_t		vga_50fps_gop_opt_3;	// 0x1ac, 6918
 	uint32_t		vga_50fps_gop_opt_4;	// 0x1b0, 691c
-};
+}__attribute__((aligned,packed));
 
 //~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
 
