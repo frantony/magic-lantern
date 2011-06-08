@@ -172,7 +172,7 @@ static int vmax(int* x, int n)
 
 void xx_test(void* priv)
 {
-	ChangeHDMIOutputSizeToVGA();
+	ChangeHDMIOutputSizeToFULLHD();
 }
 
 void toggle_mirror_display()
