@@ -32,6 +32,12 @@
 #include "lens.h"
 #include "gui.h"
 
+void move_lv_afframe(int dx, int dy);
+void movie_start();
+void movie_end();
+void display_trap_focus_info();
+void display_lcd_remote_icon(int x0, int y0);
+
 CONFIG_INT( "interval.timer.index", interval_timer_index, 2 );
 CONFIG_INT( "focus.trap", trap_focus, 0);
 CONFIG_INT( "focus.trap.delay", trap_focus_delay, 1000); // min. delay between two shots in trap focus
@@ -174,7 +180,7 @@ lcd_release_display( void * priv, int x, int y, int selected )
 		"LCD Remote Shot : %s",
 		v == 1 ? "Near" : v == 2 ? (mlu_mode ? "Away/MLU" : "Away") : v == 3 ? "Wave" : "OFF"
 	);
-	if (v) display_lcd_remote_info(x-25, y+5);
+	if (v) display_lcd_remote_icon(x-25, y+5);
 	menu_draw_icon(x, y, v ? -1 : MNI_OFF, 0);
 }
 
@@ -360,7 +366,7 @@ static void silent_pic_toggle_forward(void* priv)
 static void silent_pic_toggle_reverse(void* priv)
 { silent_pic_toggle(-1); }
 
-uint32_t afframe[26];
+int afframe[26];
 PROP_HANDLER( PROP_LV_AFFRAME ) {
 	memcpy(afframe, buf, 0x68);
 	return prop_cleanup( token, property );
@@ -372,7 +378,7 @@ void get_afframe_pos(int W, int H, int* x, int* y)
 	*y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
-face_zoom_request = 0;
+int face_zoom_request = 0;
 
 int hs = 0;
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
@@ -713,7 +719,7 @@ static char* silent_pic_get_name()
 	
 	if (intervalometer_running)
 	{
-		int timelapse_number;
+		//~ int timelapse_number;
 		for ( ; silent_number < 100000000; silent_number++)
 		{
 			snprintf(imgname, sizeof(imgname), "B:/DCIM/%03dCANON/%08d.422", folder_number, silent_number);
@@ -1461,7 +1467,7 @@ int crit_kelvin(int k)
 	menu_show_only_selected();
 
 	int R = Y + 1437 * V / 1024;
-	int G = Y -  352 * U / 1024 - 731 * V / 1024;
+	//~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
 	int B = Y + 1812 * U / 1024;
 
 	return B - R;
@@ -1769,7 +1775,7 @@ int get_htp()
 	return 0;
 }
 
-int set_htp(int enable)
+void set_htp(int enable)
 {
 	if (enable) cfn2[0] |= 0x1000000;
 	else cfn2[0] &= ~0x1000000;
@@ -1994,7 +2000,7 @@ bulb_display( void * priv, int x, int y, int selected )
 static void
 mlu_display( void * priv, int x, int y, int selected )
 {
-	int d = timer_values[bulb_duration_index];
+	//~ int d = timer_values[bulb_duration_index];
 	bmp_printf(
 		selected ? MENU_FONT_SEL : MENU_FONT,
 		x, y,
@@ -2391,7 +2397,7 @@ void movie_end()
 }
 
 static void
-hdr_take_mov(steps, step_size)
+hdr_take_mov(int steps, int step_size)
 {
 	int g = get_global_draw();
 	set_global_draw(0);
@@ -2459,7 +2465,7 @@ void schedule_remote_shot() { remote_shot_flag = 1; }
 
 int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
-void is_movie_start_scheduled() { return movie_start_flag; }
+int is_movie_start_scheduled() { return movie_start_flag; }
 
 int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
@@ -2699,7 +2705,7 @@ void display_lcd_remote_info()
 	
 	if (gui_menu_shown()) return;
 	
-	static int prev_lr = 0;
+	static unsigned int prev_lr = 0;
 	if (prev_lr != lcd_release_running) bmp_fill(bg, x0 - 20, y0, 40, 20);
 	prev_lr = lcd_release_running;
 }*/
@@ -2732,7 +2738,7 @@ void wait_till_next_second()
 int sw1_pressed = 0;
 
 static void
-shoot_task( void )
+shoot_task( void* unused )
 {
 	int i = 0;
 	menu_add( "Shoot", shoot_menus, COUNT(shoot_menus) );
@@ -2919,7 +2925,7 @@ shoot_task( void )
 			set_flash_firing(strobo_firing);
 		}*/
 
-		static int sw1_countdown = 0;
+		//~ static int sw1_countdown = 0;
 		
 		// trap focus (outside LV) and all the preconditions
 		int tfx = trap_focus && (af_mode & 0xF) == 3 && gui_state == GUISTATE_IDLE && !gui_menu_shown() && !intervalometer_running;
@@ -2974,7 +2980,7 @@ shoot_task( void )
 				get_spot_yuv(100, &y, &u, &v);
 				aev = y / 2;
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Average exposure: %3d    New exposure: %3d   ", old_ae_avg/100, aev);
-				if (K > 50 && ABS(old_ae_avg/100 - aev) >= motion_detect_level)
+				if (K > 50 && ABS(old_ae_avg/100 - aev) >= (int)motion_detect_level)
 				{
 					remote_shot();
 					msleep(trap_focus_delay);
@@ -2986,7 +2992,7 @@ shoot_task( void )
 			{
 				int d = get_spot_motion(100, get_global_draw());
 				if (K > 50) bmp_printf(FONT_MED, 0, 50, "Motion level: %d   ", d);
-				if (K > 50 && d >= motion_detect_level)
+				if (K > 50 && d >= (int)motion_detect_level)
 				{
 					remote_shot();
 					msleep(trap_focus_delay);
@@ -3063,7 +3069,7 @@ shoot_task( void )
 
 				extern struct audio_level audio_levels[];
 				bmp_printf(FONT_MED, 20, lv_drawn() ? 40 : 3, "Audio release ON (%d / %d)   ", audio_levels[0].peak / audio_levels[0].avg, audio_release_level);
-				if (audio_levels[0].peak > audio_levels[0].avg * audio_release_level) 
+				if (audio_levels[0].peak > audio_levels[0].avg * (int)audio_release_level) 
 				{
 					remote_shot();
 					while (lens_info.job_state) msleep(100);

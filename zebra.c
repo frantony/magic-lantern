@@ -32,7 +32,13 @@
 #include "gui.h"
 #include "lens.h"
 
-static struct bmp_file_t * cropmarks_array[3] = {0};
+void waveform_init();
+void histo_init();
+void do_disp_mode_change();
+void show_overlay();
+void transparent_overlay_from_play();
+
+//~ static struct bmp_file_t * cropmarks_array[3] = {0};
 static struct bmp_file_t * cropmarks = 0;
 
 #define hist_height			64
@@ -292,7 +298,7 @@ struct vram_info * get_yuv422_vram()
 {
 	static struct vram_info _vram_info;
 	_vram_info.vram = get_fastrefresh_422_buf();
-	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = YUV422_LV_BUFFER_DMA_ADDR;
+	if (gui_state == GUISTATE_PLAYMENU) _vram_info.vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
 	if(ext_monitor_hdmi && !recording) {
 		_vram_info.pitch=YUV422_LV_PITCH_HDMI;
@@ -978,8 +984,9 @@ int get_focus_color(int thr, int d)
 									 9 /*light blue*/) : 1;
 }
 
-static void little_cleanup(uint8_t* bp, uint8_t* mp)
+static void little_cleanup(void* BP, void* MP)
 {
+	uint8_t* bp = BP; uint8_t* mp = MP;
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
 	bp++; mp++;
 	if (*bp != 0 && *bp == *mp) *mp = *bp = 0;
@@ -1056,7 +1063,7 @@ static void draw_zebra_and_focus_unified( void )
 	if (!bvram_mirror) return;
 	if (lv_dispsize != 1) return; // zoom not handled, better ignore it
 
-	uint32_t x,y;
+	int x,y;
 	int zd = zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
 	if (focus_peaking || zd) {
   		// clear previously written pixels
@@ -1072,7 +1079,7 @@ static void draw_zebra_and_focus_unified( void )
 		} else {
 			_vram=get_yuv422_vram();
 		}
-		if (gui_state == GUISTATE_PLAYMENU) _vram->vram = YUV422_LV_BUFFER_DMA_ADDR;
+		if (gui_state == GUISTATE_PLAYMENU) _vram->vram = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 
   		uint8_t * const vram = /*UNCACHEABLE*/(_vram->vram);
 		int vr_width  = _vram->width<<1;
@@ -1254,7 +1261,7 @@ static void draw_zebra_and_focus_unified( void )
 		int yy=250 * n_over / (os.bmp_ex_x * (os.bmp_ex_y - (bm_lv_y<<1)));
 		//~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
 //		bmp_printf(FONT_LARGE, 10, 50, "%d %d %d>%d ", thr, n_over, yy, focus_peaking_pthr);
-		if ( yy > focus_peaking_pthr) {
+		if ( yy > (int)focus_peaking_pthr) {
 			thr++;
 		} else {
 			thr--;
@@ -1300,7 +1307,7 @@ draw_zebra_and_focus( int Z, int F )
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 	//~ int BMPPITCH = bmp_pitch();
-	uint32_t x,y;
+	int y;
 
 	if (F && focus_peaking)
 	{
@@ -1448,7 +1455,7 @@ draw_zebra_and_focus( int Z, int F )
 			}
 		}
 		//~ bmp_printf(FONT_LARGE, 10, 50, "%d ", thr);
-		if (1000 * n_over / n_total > focus_peaking_pthr) thr++;
+		if (1000 * n_over / n_total > (int)focus_peaking_pthr) thr++;
 		else thr--;
 		
 		int thr_min = (lens_info.iso > 1600 ? 15 : 10);
@@ -1458,8 +1465,8 @@ draw_zebra_and_focus( int Z, int F )
 	int zd = Z && zebra_draw && (expsim || PLAY_MODE) && (!zebra_nrec || !recording); // when to draw zebras
 	if (zd)
 	{
-		uint32_t zlh = zebra_level_hi;
-		uint32_t zll = zebra_level_lo;
+		int zlh = zebra_level_hi;
+		int zll = zebra_level_lo;
 
 		uint8_t * const lvram = get_yuv422_vram()->vram;
 		int lvpitch = YUV422_LV_PITCH;
@@ -1506,7 +1513,7 @@ draw_zebra_and_focus( int Z, int F )
 				}
 				else
 				{
-					uint32_t p0 = (*lvp) >> 8 & 0xFF;
+					int p0 = (*lvp) >> 8 & 0xFF;
 					if (p0 > zlh)
 					{
 						BP = MP = color_over;
@@ -1540,7 +1547,7 @@ clrscr_mirror( void )
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 
-	uint32_t x,y;
+	int y;
 	for( y = 0; y < 480; y++ )
 	{
 		uint32_t * const b_row = (uint32_t*)( bvram + y * BMPPITCH);
@@ -1607,7 +1614,7 @@ draw_false_downsampled( void )
 	if (!bvram) return;
 	if (!bvram_mirror) return;
 
-	uint32_t x,y;
+	int y;
 	uint8_t * const lvram = get_yuv422_vram()->vram;
 	int lvpitch = YUV422_LV_PITCH;
 	for( y = 40; y < 440; y++ )
@@ -2008,7 +2015,7 @@ static void focus_peaking_adjust_color(void* priv)
 static void
 crop_display( void * priv, int x, int y, int selected )
 {
-	extern int retry_count;
+	//~ extern int retry_count;
 	int index = crop_draw;
 	index = COERCE(index, 0, num_cropmarks);
 	bmp_printf(
@@ -2205,9 +2212,9 @@ void get_spot_yuv(int dx, int* Y, int* U, int* V)
 
 	if( !vram->vram )
 		return;
-	const uint16_t*		vr = YUV422_LV_BUFFER_DMA_ADDR;
+	const uint16_t*		vr = (void*) YUV422_LV_BUFFER_DMA_ADDR;
 	const unsigned		width = vram->width;
-	const unsigned		pitch = vram->pitch;
+	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
@@ -2243,12 +2250,12 @@ int get_spot_motion(int dx, int draw)
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
-		return;
-	const uint16_t*		vr1 = YUV422_LV_BUFFER_DMA_ADDR;
+		return 0;
+	const uint16_t*		vr1 = (void*)YUV422_LV_BUFFER_DMA_ADDR;
 	const uint16_t*		vr2 = get_fastrefresh_422_buf();
 	uint8_t * const		bm = bmp_vram();
 	const unsigned		width = vram->width;
-	const unsigned		pitch = vram->pitch;
+	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 
@@ -2280,10 +2287,10 @@ int get_spot_focus(int dx)
 	struct vram_info *	vram = get_yuv422_vram();
 
 	if( !vram->vram )
-		return;
-	const uint32_t*		vr = vram->vram; // 2px
+		return 0;
+	const uint32_t*		vr = (uint32_t*) vram->vram; // 2px
 	const unsigned		width = vram->width;
-	const unsigned		pitch = vram->pitch;
+	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	unsigned		x, y;
 	
@@ -2314,9 +2321,9 @@ void spotmeter_step()
 	if( !vram->vram )
 		return;
 	
-	const uint16_t*		vr = vram->vram;
+	const uint16_t*		vr = (uint16_t*) vram->vram;
 	const unsigned		width = vram->width;
-	const unsigned		pitch = vram->pitch;
+	//~ const unsigned		pitch = vram->pitch;
 	const unsigned		height = vram->height;
 	const unsigned		dx = spotmeter_size;
 	unsigned		sum = 0;
@@ -2445,14 +2452,14 @@ transparent_overlay_display(
 	menu_draw_icon(x, y, MNI_BOOL_GDR(transparent_overlay), 0);
 }*/
 
-void transparent_overlay_offset(dx, dy)
+void transparent_overlay_offset(int dx, int dy)
 {
 	transparent_overlay_offx = COERCE((int)transparent_overlay_offx + dx, -650, 650);
 	transparent_overlay_offy = COERCE((int)transparent_overlay_offy + dy, -400, 400);
 	BMP_SEM( show_overlay(); )
 }
 
-void transparent_overlay_offset_clear(dx, dy)
+void transparent_overlay_offset_clear(int dx, int dy)
 {
 	transparent_overlay_offx = transparent_overlay_offy = 0;
 }
@@ -2748,8 +2755,8 @@ void zoom_overlay_set_countdown(int x)
 
 void yuvcpy_x2(uint32_t* dst, uint32_t* src, int num_pix)
 {
-	dst = (unsigned int)dst & 0xFFFFFFFC;
-	src = (unsigned int)src & 0xFFFFFFFC;
+	dst = (void*)((unsigned int)dst & 0xFFFFFFFC);
+	src = (void*)((unsigned int)src & 0xFFFFFFFC);
 	uint32_t* last_s = src + (num_pix>>1);
 	for (; src < last_s; src++, dst += 2)
 	{
@@ -2774,8 +2781,8 @@ void draw_zoom_overlay()
 	if( !lv->vram )	return;
 	if( !hd->vram )	return;
 
-	uint16_t*		lvr = lv->vram;
-	uint16_t*		hdr = hd->vram;
+	uint16_t*		lvr = (uint16_t*) lv->vram;
+	uint16_t*		hdr = (uint16_t*) hd->vram;
 	
 	if (!lvr) return;
 
@@ -2832,6 +2839,8 @@ void draw_zoom_overlay()
 			x0 = W/2 + 50;
 			y0 = 480 - H/2 - 50;
 			break;
+		default:
+			return;
 	}
 
 	if (zoom_overlay_pos)
@@ -2850,7 +2859,7 @@ void draw_zoom_overlay()
 	}
 
 	//~ draw_circle(x0,y0,45,COLOR_WHITE);
-	int x,y;
+	int y;
 	int x0c = COERCE(x0 - (W>>1), 0, 720-W);
 	int y0c = COERCE(y0 - (H>>1), 0, 480-H);
 
@@ -2872,7 +2881,7 @@ void draw_zoom_overlay()
 		{
 			int off = zoom_overlay_split ? (y < H/2 ? rawoff : -rawoff) : 0;
 			if (rev) off = -off;
-			yuvcpy_x2(d, s + off, W>>1);
+			yuvcpy_x2((uint32_t*)d, (uint32_t*)(s + off), W>>1);
 			d += lv->width;
 			if (y & 1) s += hd->width;
 		}
@@ -3029,7 +3038,7 @@ void clearscreen_wakeup()
 }
 
 static void
-clearscreen_task( void )
+clearscreen_task( void* unused )
 {
 	int k = 0;
 	for (;;k++)
@@ -3052,7 +3061,7 @@ clearscreen_loop:
 		{
 			BMP_SEM( clrscr_mirror(); )
 			int i;
-			for (i = 0; i < clearscreen_delay/10; i++)
+			for (i = 0; i < (int)clearscreen_delay/10; i++)
 			{
 				msleep(10);
 				if (!get_halfshutter_pressed() || dofpreview)
@@ -3144,7 +3153,7 @@ void test_fps(int* x)
 {
 	int x0 = 0;
 	int F = 0;
-	int f = 0;
+	//~ int f = 0;
 	bmp_printf(FONT_SMALL, 10, 100, "testing %x...", x);
 	while(F < 500)
 	{
@@ -3185,7 +3194,7 @@ void schedule_transparent_overlay()
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
  static void
-livev_hipriority_task( void )
+livev_hipriority_task( void* unused )
 {
 	msleep(1000);
 	find_cropmarks();
@@ -3266,7 +3275,7 @@ void loprio_sleep()
 // Items which do not need a high FPS, but are CPU intensive
 // histogram, waveform...
 static void
-livev_lopriority_task( void )
+livev_lopriority_task( void* unused )
 {
 	while(1)
 	{
@@ -3307,7 +3316,7 @@ TASK_CREATE( "livev_hiprio_task", livev_hipriority_task, 0, 0x1a, 0x1000 );
 TASK_CREATE( "livev_loprio_task", livev_lopriority_task, 0, 0x1f, 0x1000 );
 
 int unused = 0;
-int* disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
+unsigned int * disp_mode_params[] = {&crop_draw, &zebra_draw, &hist_draw, &waveform_draw, &falsecolor_draw, &spotmeter_draw, &clearscreen, &focus_peaking, &zoom_overlay_split, &global_draw, &zoom_overlay_mode, &transparent_overlay};
 int disp_mode_bits[] =    {4,          2,           2,          2,              2,                2,               2,             2,             1,                   1,            2,                   2};
 
 void update_disp_mode_bits_from_params()
@@ -3427,7 +3436,7 @@ void make_overlay()
 	int y;
 	for (y = 0; y < vram->height; y++)
 	{
-		int k;
+		//~ int k;
 		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
 		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
 		uint8_t * const m_row = (uint8_t*)( bvram_mirror + y * BMPPITCH);   // 1 pixel
@@ -3451,8 +3460,8 @@ void show_overlay()
 {
 	bvram_mirror_init();
 	struct vram_info * vram = get_yuv422_vram();
-	uint8_t * const lvram = vram->vram;
-	int lvpitch = YUV422_LV_PITCH;
+	//~ uint8_t * const lvram = vram->vram;
+	//~ int lvpitch = YUV422_LV_PITCH;
 	uint8_t * const bvram = bmp_vram();
 	if (!bvram) return;
 	#define BMPPITCH 960
@@ -3467,18 +3476,18 @@ void show_overlay()
 	int y;
 	for (y = 0; y < vram->height; y++)
 	{
-		int k;
-		uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
+		//~ int k;
+		//~ uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
 		uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-		uint8_t * const m_row = (uint8_t*)( bvram_mirror + (y - transparent_overlay_offy) * BMPPITCH);   // 1 pixel
+		uint8_t * const m_row = (uint8_t*)( bvram_mirror + (y - (int)transparent_overlay_offy) * BMPPITCH);   // 1 pixel
 		uint8_t* bp;  // through bmp vram
 		uint8_t* mp;  //through bmp vram mirror
-		if (y - transparent_overlay_offy < 0 || y - transparent_overlay_offy > 480) continue;
+		if (y - (int)transparent_overlay_offy < 0 || y - (int)transparent_overlay_offy > 480) continue;
 		//~ int offm = 0;
 		//~ int offb = 0;
 		//~ if (transparent_overlay == 2) offm = 720/2;
 		//~ if (transparent_overlay == 3) offb = 720/2;
-		for (bp = b_row, mp = m_row - transparent_overlay_offx; bp < b_row + 720 ; bp++, mp++)
+		for (bp = b_row, mp = m_row - (int)transparent_overlay_offx; bp < b_row + 720 ; bp++, mp++)
 			if (((y + (int)bp) % 2) && mp > m_row && mp < m_row + 720)
 				*bp = *mp;
 	}

@@ -187,9 +187,9 @@ static int handle_buttons(struct event * event)
 				kev,
 				event->type, 
 				event->param, 
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 4)) : 0,
-				event->obj ? ((int)event->obj & 0xf0000000 ? event->obj : *(uint32_t*)(event->obj + 8)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
+				event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
 				event->arg);
 /*			console_printf("Ev%d[%d]: p=%8x *o=%8x/%8x/%8x a=%8x\ns", 
 				kev,
@@ -594,7 +594,7 @@ static void gui_main_task_60d()
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
-	memcpy(funcs, GMT_FUNCTABLE, 4*GMT_NFUNCS);
+	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
 	gui_init_end();
 	while(1)
 	{

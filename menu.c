@@ -578,7 +578,7 @@ menu_redraw_if_damaged()
 	}
 }
 
-int menu_send_event(int event)
+void menu_send_event(int event)
 {
 	ctrlman_dispatch_event(gui_menu_task, event, 0, 0);
 }
@@ -745,16 +745,13 @@ menu_handler(
 		break;
 #endif
 
-	case 1:          // Synthetic redraw event
+	case EVENT_1:          // Synthetic redraw event
 		break;
 
 	//~ case 0x10000097: // canon code might have drawn over menu
 	case 0x100000e8: // when you press Q on ISO
 		menu_damage = 1;
 		break;
-
-	case 0x10000086:
-		// Who knows?  Fall through
 
 	default:
 		DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
@@ -833,7 +830,7 @@ gui_stop_menu( void )
 	if( !gui_menu_task )
 		return;
 	
-	while (gui_menu_task == 1) msleep(100);
+	//~ while (gui_menu_task == 1) msleep(100);
 
 	gui_task_destroy( gui_menu_task );
 	gui_menu_task = NULL;
@@ -997,9 +994,9 @@ static struct menu_entry about_menu[] = {
 };
 
 static void
-menu_task( void )
+menu_task( void* unused )
 {
-	int x, y;
+	//~ int x, y;
 	DebugMsg( DM_MAGIC, 3, "%s: Starting up\n", __func__ );
 
 	// Add the draw_prop menu
