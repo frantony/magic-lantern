@@ -115,7 +115,7 @@ void card_led_blink(int times, int delay_on, int delay_off)
 
 int config_ok = 0;
 
-static void
+void
 save_config( void * priv )
 {
 	config_save_file( "B:/magic.cfg" );
@@ -899,12 +899,11 @@ movie_start( void )
 //~ TASK_CREATE( "movie_start", movie_start, 0, 0x1f, 0x1000 );
 
 
-PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
+/*PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 {
 	//bmp_printf(FONT_MED, 0, 0, "SHUT REQ %d ", buf[0]);
-	if (config_autosave && buf[0] == 0 && config_ok) save_config(0);
 	return prop_cleanup(token, property);
-}
+}*/
 
 /*
 PROP_HANDLER(PROP_APERTURE)

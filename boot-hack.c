@@ -277,11 +277,6 @@ void hold_your_horses(int showlogo)
 	while (_hold_your_horses)
 	{
 		msleep( 500 );
-		if (showlogo)
-		{
-			show_logo();
-			display_clock();
-		}
 	}
 }
 
@@ -353,10 +348,12 @@ my_init_task(void)
 
 	msleep( 1000 );
 
+	show_logo();
+	display_clock();
+
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
-
 
 /*	bmp_printf( FONT_MED, 0, 40,
 		"Magic Lantern v.%s (%s)\n"
