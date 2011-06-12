@@ -267,6 +267,8 @@ int _hold_your_horses = 1;
 // only after this task finished, the others are started
 void init_task_read_config()
 {
+	show_logo();
+	display_clock();
 	config_parse_file( "B:/magic.cfg" );
 	debug_init_stuff();
 	_hold_your_horses = 0;
@@ -348,9 +350,6 @@ my_init_task(void)
 
 	msleep( 1000 );
 
-	show_logo();
-	display_clock();
-
 	menu_init();
 	debug_init();
 	call_init_funcs( 0 );
@@ -364,6 +363,8 @@ my_init_task(void)
 		build_user
 	);*/
 
+	BMP_SEM ( // block redraw events
+	
 	// this is better in a separate task (not sure why, but causes instability if called right from here)
 	// let's try not to open files from here
 	task_create("config_init", 0x1e, 0x1000, init_task_read_config, 0 );
@@ -398,8 +399,10 @@ my_init_task(void)
 		//~ "Magic Lantern is up and running... %d tasks started.",
 		//~ ml_tasks
 	//~ );
-
 	msleep(500);
+	
+	) // end BMP_SEM
+	
 	redraw();
 
 	//~ DebugMsg( DM_MAGIC, 3, "magic lantern init done" );

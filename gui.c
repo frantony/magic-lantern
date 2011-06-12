@@ -591,6 +591,7 @@ void fake_simple_button(int bgmt_code)
 static void gui_main_task_60d()
 {
 	fake_sem = create_named_semaphore("fake_sem", 1);
+	bmp_sem_init();
 	struct event * event = NULL;
 	int index = 0;
 	void* funcs[GMT_NFUNCS];
@@ -618,8 +619,10 @@ static void gui_main_task_60d()
 				goto bottom;
 		}
 		
-		void(*f)(struct event *) = funcs[index];
-		f(event);
+		BMP_SEM(
+			void(*f)(struct event *) = funcs[index];
+			f(event);
+		)
 
 bottom:
 		if (event == &fake_event) 
