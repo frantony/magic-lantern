@@ -221,3 +221,6 @@ NSTUB( 0xff0a962c, gui_change_shoot_type_post )
 NSTUB( 0xff1d69f4, gui_timer_something )
 
 #endif
+
+NSTUB(0xff3701c8, ChangeHDMIOutputSizeToVGA)
+NSTUB(0xff36ff44, ChangeHDMIOutputSizeToFULLHD)

@@ -151,15 +151,6 @@ config_autosave_display(
 	);
 }
 
-void
-config_autosave_toggle(void* priv)
-{
-	config_flag_file_setting_save(CONFIG_AUTOSAVE_FLAG_FILE, !!config_autosave);
-	msleep(50);
-	config_autosave = !config_flag_file_setting_load(CONFIG_AUTOSAVE_FLAG_FILE);
-}
-
-
 static int vmax(int* x, int n)
 {
 	int i; 

@@ -125,6 +125,11 @@
 #define MOV_REC_STATEOBJ (*(void**)0x5A40)
 #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
+#define MOV_RES_AND_FPS_COMBINATIONS 7
+#define MOV_OPT_NUM_PARAMS 2
+#define MOV_GOP_OPT_NUM_PARAMS 5
+#define MOV_OPT_STEP 5
+
 //~ #define MOV_OPT_SIZE_FULLHD 0x5dfc
 //~ #define MOV_OPT_SIZE_HD 0x5e38
 //~ #define MOV_OPT_SIZE_VGA 0x5e88
