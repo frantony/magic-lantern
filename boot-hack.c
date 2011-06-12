@@ -348,6 +348,7 @@ my_init_task(void)
 		return;
 	}
 
+	BMP_SEM ( // block redraw events
 	msleep( 1000 );
 
 	menu_init();
@@ -362,8 +363,6 @@ my_init_task(void)
 		build_date,
 		build_user
 	);*/
-
-	BMP_SEM ( // block redraw events
 	
 	// this is better in a separate task (not sure why, but causes instability if called right from here)
 	// let's try not to open files from here
