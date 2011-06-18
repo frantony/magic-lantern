@@ -98,6 +98,12 @@ extern void* gui_main_task_functbl;
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
 {
+
+	if (event->type == 0 && event->param != 0x56)
+ 	{
+		idle_wakeup_reset_counters();
+ 	}
+
 	static int kev = 0;
 	
 	// volume adjust (FLASH + UP/DOWN) and ISO adjust (FLASH + LEFT/RIGHT)
@@ -171,11 +177,6 @@ static int handle_buttons(struct event * event)
 			gui_stop_menu();
 			return 0;
 		}
-	}
-
-	if (event->type == 0 && event->param != 0x5a)
-	{
-		clearscreen_wakeup();
 	}
 	
 	if (get_draw_event())
