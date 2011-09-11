@@ -32,7 +32,7 @@ To go back to Canon firmware, you may:
 * Disable the bootflag (this will uninstall ML from the camera; to do this, run ``Firmware Upgrade`` and follow the instructions).
 
 How do I erase all of the images without removing ML?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Canon menu (Play) -> Erase images -> All images on card.
 
@@ -175,8 +175,8 @@ Misc shortcuts
 ~~~~~~~~~~~~~~
 
 * Half-shutter press at startup: loads vanilla firmware (does not load Magic Lantern). You may have to be in one of these modes: P, Tv, Av or M.
-* ``ISO`` then ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
-* ``ISO`` then ``DISP`` (550D) / Metering (60D): change current `display preset`_.
+* ``ISO`` -> ``LV``: switch to Movie mode (from photo mode). To switch back to photo mode, you need to turn the mode dial back and forth one notch.
+* ``ISO`` -> ``DISP`` (550D) / ``ISO`` -> ``INFO`` (600D) / Metering (60D): change current `display preset`_.
 * ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
 * Half-shutter / ``*``: see `Display`_, `Trap Focus`_, `Silent Picture`_, `Bulb timer`_, `Movie REC key`_.
 * ``MENU`` while recording will clear the screen and force a redraw of ML elements.
@@ -787,6 +787,8 @@ Functions for stills shooting (some of them work for movies, too).
   * When not in LiveView, press ``DISP`` or ``INFO`` to turn the display off.
   * In LiveView, ML will go to PLAY mode and turn the display off for you during idle times.
   * While the intervalometer is running, the card led will blink once per second to let you know it's alive and kicking.
+
+.. _bulb-ramping:
 
 **Auto BulbRamping / AutoExpo for Timelapse: ON/OFF, percentile=20...99\%** 
 
