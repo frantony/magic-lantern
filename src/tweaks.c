@@ -470,6 +470,10 @@ void afframe_set_dirty()
 {
 	afframe_countdown = 20;
 }
+void afframe_clr_dirty()
+{
+	afframe_countdown = 0;
+}
 
 void clear_lv_afframe()
 {
@@ -483,6 +487,7 @@ void clear_lv_afframe()
 	//~ bmp_printf(FONT_LARGE, 200, 200, "af %d %d ", xaf, yaf);
 	bmp_fill(0, COERCE(xaf,100, 860) - 100, COERCE(yaf,100, 440) - 100, 200, 200 );
 	crop_set_dirty(5);
+	afframe_countdown = 0;
 }
 
 CONFIG_INT("play.quick.zoom", quickzoom, 1);
@@ -1024,6 +1029,7 @@ void set_display_gain(int display_gain)
 	msleep(100);
 	prop_request_change(PROP_LV_DISPSIZE, &zoom2, 4);
 	prop_request_change(PROP_LV_DISPSIZE, &zoom, 4);
+	if (!gui_menu_shown()) msleep(1000);
 	#endif
 }
 void display_gain_toggle(int dir)

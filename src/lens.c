@@ -209,10 +209,11 @@ void draw_ml_bottombar()
 		return;
 #endif
 		
+	static int K;
 	if (lv_disp_mode == 0 && LV_BOTTOM_BAR_DISPLAYED && !ISO_ADJUSTMENT_ACTIVE)
 	{
+		msleep(300);
 		fake_simple_button(MLEV_HIDE_CANON_BOTTOM_BAR);
-		return;
 	}
 	
 	struct lens_info *	info = &lens_info;
@@ -223,25 +224,29 @@ void draw_ml_bottombar()
 	//~ unsigned font_err	= FONT( FONT_MED, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	//~ unsigned height	= fontspec_height( font );
-	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 	
 	unsigned bottom = 480;
-	if (ext_monitor_rca) bottom = 420;
-	if (hdmi_code == 2) bottom = 405;
-	if (hdmi_code == 5) bottom = 525;
-	unsigned x = 420;
+	extern int screen_layout;
+	if (screen_layout == SCREENLAYOUT_3_2) bottom = os.y_max;
+	else if (screen_layout == SCREENLAYOUT_16_9) bottom = os.y_max - os.off_169;
+	else if (screen_layout == SCREENLAYOUT_16_10) bottom = os.y_max - os.off_1610;
+	else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) bottom = 480;
+
+	if (screen_layout == SCREENLAYOUT_16_9)
+		bg = bmp_getpixel(os.x0 + 123, bottom-36);
+	//unsigned x = 420;
 	//~ unsigned y = 480 - height - 10;
 	//~ if (ext_monitor_hdmi) y += recording ? -100 : 200;
 	
-     unsigned int x_origin = 50;
-     unsigned int y_origin = bottom - 30;
+    unsigned int x_origin = os.x0 + os.x_ex/2 - 360 + 50;
+    unsigned int y_origin = bottom - 30;
+	unsigned text_font = FONT(FONT_LARGE, COLOR_WHITE, bg);
 
-	if (hdmi_code == 5) x_origin = 150;
-
+	 bmp_fill(bg, x_origin-50, bottom-35, 720, 35);
 		// MODE
 		
 			bmp_printf( text_font, x_origin - 50, y_origin,
-				"%s         ",
+				"%s",
 				is_movie_mode() ? "Mv" : 
 				shooting_mode == SHOOTMODE_P ? "P " :
 				shooting_mode == SHOOTMODE_M ? "M " :
@@ -430,20 +435,19 @@ void draw_ml_bottombar()
 				 "unk"))))))))
 			);
 		
-		x += font_large.width * 6;
 		int gm = lens_info.wbs_gm;
 		int ba = lens_info.wbs_ba;
 		if (gm) 
 			bmp_printf(
 				FONT(ba ? FONT_MED : FONT_LARGE, COLOR_WHITE, gm > 0 ? COLOR_GREEN2 : 14 /* magenta */),
-				x, y_origin + (ba ? -3 : 0), 
+				x_origin + 350 + font_large.width * 6, y_origin + (ba ? -3 : 0), 
 				"%d", ABS(gm)
 			);
 
 		if (ba) 
 			bmp_printf(
 				FONT(gm ? FONT_MED : FONT_LARGE, COLOR_WHITE, ba > 0 ? 12 : COLOR_BLUE), 
-				x, y_origin + (gm ? 14 : 0), 
+				x_origin + 350 + font_large.width * 6, y_origin + (gm ? 14 : 0), 
 				"%d", ABS(ba));
 
 
@@ -565,8 +569,11 @@ void draw_ml_bottombar()
 					mod(ABS(AE_VALUE) * 10 / 8, 10)
 				  );
 
-	if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
-	if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+	//~ if (hdmi_code == 2) shave_color_bar(40,370,640,16,bg);
+	//~ if (hdmi_code == 5) shave_color_bar(75,480,810,22,bg);
+	int y169 = os.y_max - os.off_169;
+	int ytop = bottom - 35;
+	shave_color_bar(os.x0, ytop, os.x_ex, y169 - ytop + 1, bg);
 
 	extern int display_gain;
 	if (display_gain)
@@ -588,7 +595,8 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 	int i,j;
 	for (i = y0; i < y0 + h; i++)
 	{
-		int new_color = bmp_getpixel(x0+1,i);
+		int new_color = bmp_getpixel(os.x0 + 123, y0-1);
+		//~ int new_color = 0;
 		for (j = x0; j < x0+w; j++)
 			if (bmp_getpixel(j,i) == shaved_color)
 				bmp_putpixel(j,i,new_color);
@@ -599,31 +607,43 @@ void shave_color_bar(int x0, int y0, int w, int h, int shaved_color)
 void draw_ml_topbar()
 {
 	int bg = TOPBAR_BGCOLOR;
-	unsigned f = audio_meters_are_drawn() && !get_halfshutter_pressed() ? FONT_SMALL : FONT_MED;
-	unsigned font	= FONT(f, COLOR_WHITE, bg);
+	unsigned font	= FONT(FONT_MED, COLOR_WHITE, bg);
 	//~ unsigned font_err	= FONT( f, COLOR_RED, bg);
 	//~ unsigned Font	= FONT(FONT_LARGE, COLOR_WHITE, bg);
 	//~ unsigned height	= fontspec_height( font );
 	
 	unsigned x = 80;
 	unsigned y = 0;
-	if (ext_monitor_rca) y = 10;
-	if (hdmi_code == 2) y = 15;
 
-	if (hdmi_code == 5)
+	extern int screen_layout;
+
+	if (gui_menu_shown())
 	{
-		if (gui_menu_shown())
-		{
-			x = 120;
-			y = 45;
-		}
-		else
-		{
-			x = 100;
-			y = 30;
-			if (f == FONT_SMALL) return;
-		}
+		x = os.x0 + os.x_ex/2 - 360;
+		y = os.y0 + os.y_ex/2 - 240;
 	}
+	else
+	{
+		x = os.x0 + os.x_ex/2 - 360;
+		if (screen_layout == SCREENLAYOUT_3_2) y = os.y0; // just above the 16:9 frame
+		else if (screen_layout == SCREENLAYOUT_16_9) y = os.y0 + os.off_169; // meters just below 16:9 border
+		else if (screen_layout == SCREENLAYOUT_16_10) y = os.y0 + os.off_1610; // meters just below 16:9 border
+		else if (screen_layout == SCREENLAYOUT_4_3_BOTTOMBAR) y = 480*8/9;
+	}
+	
+	extern int bitrate_indic_x, bitrate_indic_y; // for bitrate indicators
+	bitrate_indic_x = os.x_max - 160;
+	bitrate_indic_y = y;
+	if (bitrate_indic_x < 720-160 && audio_meters_are_drawn())
+		bitrate_indic_y += font_med.height; // otherwise will overlap audio meters
+
+	if (audio_meters_are_drawn() && !get_halfshutter_pressed()) return;
+
+	struct tm now;
+	LoadCalendarFromRTC( &now );
+	bmp_printf(font, x, y, "%02d:%02d", now.tm_hour, now.tm_min);
+
+	x += 80;
 
 	bmp_printf( font, x, y,
 		"DISP %d", get_disp_mode()
