@@ -29,22 +29,18 @@ HOST_CFLAGS=-g -O3 -W -Wall
 # Release builds:
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
-BUILDVER=$(shell whoami).$(shell hg id --debug -i -r .)
-VERSION:=$(shell LC_TIME=EN date +'%Y%m%d-%H%M%S').$(MODEL)$(FW_VERSION).$(BUILDVER)
+BUILDVER=$(shell whoami)
+VERSION:=$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION).$(BUILDVER)
 
 CONFIG_PYMITE		= n
 CONFIG_RELOC		= n
 CONFIG_TIMECODE		= n
-CONFIG_PTP = n
-CONFIG_PTP_CHDK = n
-CONFIG_PTP_ML = n
-CONFIG_PLUGINS = n
-CONFIG_CONSOLE		= n
-CONFIG_DEBUGMSG = 0
-
-#MacOS
-#UMOUNT=hdiutil unmount
-#CF_CARD="/Volumes/EOS_DIGITAL"
+CONFIG_PTP 			= n
+CONFIG_PTP_CHDK 	= n
+CONFIG_PTP_ML 		= n
+CONFIG_PLUGINS 		= y
+CONFIG_CONSOLE		= y
+CONFIG_DEBUGMSG 	= 0
 
 UNAME:=$(shell uname)
 
@@ -74,21 +70,17 @@ PYMITE_CFLAGS		= \
 #
 all: autoexec.bin
 
-menuindexentries.h:
-	cd $(DOC_DIR); python menuindex.py
-
-menuindex.o: menuindexentries.h
-
 install: autoexec.bin
 	cp $^ $(CF_CARD)
 
-	mkdir $(CF_CARD)/cropmks || echo "no problem"
-	cp $(CROP_DIR)/*.bmp $(CF_CARD)/cropmks/
-	mkdir $(CF_CARD)/scripts || echo "no problem"
-	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/scripts/
-	mkdir $(CF_CARD)/plugins || echo "no problem"
-	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/plugins/
-	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/
+	mkdir $(CF_CARD)/ML || echo "no problem"
+	mkdir $(CF_CARD)/ML/cropmks || echo "no problem"
+	cp $(CROP_DIR)/*.bmp $(CF_CARD)/ML/cropmks/
+	mkdir $(CF_CARD)/ML/scripts || echo "no problem"
+	cp $(SCRIPT_DIR)/*.lua $(CF_CARD)/ML/scripts/
+	mkdir $(CF_CARD)/ML/plugins || echo "no problem"
+	cp $(PLUGINS_DIR)/*/*.bin $(CF_CARD)/ML/plugins/
+	cp $(SRC_DIR)/FONTS.DAT $(CF_CARD)/ML/
 
 	$(UMOUNT) $(CF_CARD)
 
@@ -99,57 +91,47 @@ ptpinstall: autoexec.bin
 	diff autoexec.bin autoexec.test
 
 prepare_zip:
-	rm -r zip || echo "ok"
-	mkdir zip
-	cp $(SRC_DIR)/zip.txt zip
-	cp $(TOP_DIR)/README zip
-	cp $(DOC_DIR)/INSTALL.pdf zip
-	cp $(DOC_DIR)/UserGuide.pdf zip
-	mkdir zip/cropmks || echo "ok"
-	cp $(CROP_DIR)/*.bmp zip/cropmks/
-	mkdir zip/scripts || echo "ok"
-	cp $(SCRIPT_DIR)/*.lua zip/scripts/
-	mkdir zip/plugins || echo "ok"
-	cp $(PLUGINS_DIR)/*/*.bin zip/plugins/
-	mkdir zip/doc || echo "ok"
-	cp $(DOC_DIR)/cam/* zip/doc/
+	mkdir ML || echo "ok"
+	cp $(SRC_DIR)/zip.txt .
+	cp $(TOP_DIR)/README ML/.
+	cp $(DOC_DIR)/INSTALL.pdf ML/.
+	cp $(DOC_DIR)/UserGuide.pdf ML/.
+	mkdir ML/cropmks || echo "ok"
+	cp $(CROP_DIR)/*.bmp ML/cropmks/
+	mkdir ML/scripts || echo "ok"
+	cp $(SCRIPT_DIR)/*.lua ML/scripts/
+	mkdir ML/plugins || echo "ok"
+	cp $(PLUGINS_DIR)/*/*.bin ML/plugins/
+	mkdir ML/doc || echo "ok"
+	cp $(DOC_DIR)/cam/* ML/doc/
 	make x
-	cp ../../installer/550D.109/*.fir zip || echo "no FIR"
-	cp ../../installer/60D.110/*.fir zip || echo "no FIR"
-	cp ../../installer/600D.101/*.fir zip || echo "no FIR"
-	cp ../../installer/50D.108/*.fir zip || echo "no FIR" 
-	cp ../../installer/500D.111/*.fir zip || echo "no FIR"
-	cp ../../vram/rectilin.lut zip
-	cp $(SRC_DIR)/FONTS.DAT zip
-	cp $(SRC_DIR)/logo.bmp zip
+#	cp ../../installer/550D.109/*.fir .
+#	cp ../../installer/60D.110/*.fir .
+#	cp ../../installer/600D.101/*.fir .
+#	cp ../../installer/50D.108/*.fir .
+#	cp ../../installer/500D.111/*.fir .
+	cp ../../vram/rectilin.lut ML/.
+	cp $(SRC_DIR)/FONTS.DAT ML/.
+	cp $(SRC_DIR)/logo.bmp ML/.
 
 # zip.txt must be the first item on the list!
 magiclantern-$(VERSION).zip: \
-	zip/zip.txt \
-	zip/README \
-	zip/INSTALL.pdf \
-	zip/UserGuide.pdf \
-	zip/FONTS.DAT \
-	zip/rectilin.lut \
-	zip/logo.bmp \
+	zip.txt \
+	ML/README \
+	ML/INSTALL.pdf \
+	ML/UserGuide.pdf \
+	ML/cropmks/* \
+	ML/scripts/* \
+	ML/plugins/* \
+	ML/doc/* \
+	ML/FONTS.DAT \
+	ML/rectilin.lut \
+	ML/logo.bmp \
+#	*.fir \
 
 	-rm $@
-	cp autoexec.bin zip
-	chmod -x zip/autoexec.bin
-	cd zip; zip -z ../$@ < \
-		zip.txt \
-		README \
-		INSTALL.pdf \
-		UserGuide.pdf \
-		cropmks/* \
-		scripts/* \
-		plugins/* \
-		doc/* \
-		*.fir \
-		FONTS.DAT \
-		rectilin.lut \
-		logo.bmp \
-		autoexec.bin
+	chmod -x autoexec.bin
+	zip -z $@ < $^ autoexec.bin
 
 CFLAGS=\
 	$(FLAGS) \
@@ -166,7 +148,7 @@ CFLAGS=\
 	-D__ARM__ \
 	-I$(PLATFORM_INC) \
 	-I$(SRC_DIR) \
-	-mlong-calls \
+	-mlong-calls 
 
 ifeq ($(CONFIG_PYMITE),y)
 CFLAGS += $(PYMITE_CFLAGS)
@@ -559,8 +541,8 @@ docq:
 	cd $(DOC_DIR) && python mkdoc-cam.py quick
 
 installdoc:
-	mkdir $(CF_CARD)/doc || echo "no problem"
-	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/doc/
+	mkdir $(CF_CARD)/ML/doc || echo "no problem"
+	cp -v $(DOC_DIR)/cam/* $(CF_CARD)/ML/doc/
 
 clean:
 	$(call build,CLEAN,$(RM) -f \
@@ -578,6 +560,4 @@ clean:
 		cropmks/* \
 		scripts/* \
 		doc/* \
-		$(SRC_DIR)/*.o \
-		)
-	$(call build,CLEAN,$(RM) -rf zip)
+		$(SRC_DIR)/*.o)
