@@ -63,5 +63,6 @@ doc/Cropmarks550D.png
 platform/all/zip
 plugins/loader.c
 
+loader.c
 syntax: regexp
 ^plugins/(.*)/\1$
