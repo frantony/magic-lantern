@@ -49,11 +49,15 @@
 #endif
 
 #ifdef CONFIG_5D3
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
 #define EVF_STATE (*(struct state_object **)0x2600c)
 #define MOVREC_STATE (*(struct state_object **)0x27850)
 #endif
 
 #ifdef CONFIG_1100D
+#define DISPLAY_STATE DISPLAY_STATEOBJ
+#define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 20
 #define EVF_STATE (*(struct state_object **)0x4C34)
 #define MOVREC_STATE (*(struct state_object **)0x5720)
 #endif
@@ -121,13 +125,10 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
     #endif
 
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
     #endif
     
-    #ifdef CONFIG_5D3
-    #endif
-
         vsync_func();
 
     return ans;
