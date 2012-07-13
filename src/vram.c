@@ -49,6 +49,28 @@ ________________________________________________________________________________
 
 */
 
+// cached LUTs for BM2LV-like macros
+
+int bm2lv_x_cache[BMP_W_PLUS - BMP_W_MINUS];
+int bm2n_x_cache [BMP_W_PLUS - BMP_W_MINUS];
+int bm2hd_r_cache[BMP_H_PLUS - BMP_H_MINUS];
+int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
+
+void vram_update_luts()
+{
+    for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++) 
+    {
+        bm2lv_x_cache[x - BMP_W_MINUS] = BM2LV_Xu(x);
+        bm2n_x_cache[x - BMP_W_MINUS] = BM2N_Xu(x);
+    }
+
+    for (int y = BMP_H_MINUS; y < BMP_H_PLUS; y++) 
+    {
+        bm2hd_r_cache[y - BMP_H_MINUS] = BM2HD_Ru(y);
+        y_times_BMPPITCH_cache[y - BMP_H_MINUS] = y * BMPPITCH;
+    }
+}
+
 struct vram_info vram_lv = {
     .pitch = 720 * 2,
     .width = 720,
@@ -284,7 +306,7 @@ void update_vram_params()
         vram_hd.height = vram_lv.height;
     }
 
-    //~ update_vram_params_calc();
+    vram_update_luts();
 }
 
 
@@ -403,10 +425,9 @@ void* get_fastrefresh_422_buf()
 // That buffer is not updated by DMA (and should contain a silent picture without horizontal cut)
 void* get_422_hd_idle_buf()
 {
-    
 #ifdef CONFIG_550D
-    if (is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
-        return (void*)YUV422_HD_BUFFER_1;
+    if (lv && is_movie_mode() && !recording && video_mode_resolution > 0) // 720p exception
+        return (void*)UNCACHEABLE(shamem_read(0xc0f04008)); // RAM address not updated properly, read it from the DIGIC
 #endif
 
 // single-buffered HD buffer
