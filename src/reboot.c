@@ -106,7 +106,9 @@ cstart( void )
 
     select_normal_vectors();
 #endif
-
+#ifdef CONFIG_1100D
+    *(int*)0xC0220134 = 0x46;  // SD card LED on
+#endif
     // Copy the copy-and-restart blob somewhere
     // there is a bug in that we are 0x120 bytes off from
     // where we should be, so we must offset the blob start.
