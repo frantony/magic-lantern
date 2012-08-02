@@ -409,8 +409,12 @@ compute_audio_levels(
 
 int audio_meters_are_drawn()
 {
-        if (!SOUND_RECORDING_ENABLED)
+#ifdef CONFIG_600D
+// works without audio being enable in canon menu
+#else
+    if (!SOUND_RECORDING_ENABLED)
                 return 0;
+#endif
 
         return
       (
@@ -1355,6 +1359,9 @@ static void
 
 static void check_sound_recording_warning(int x, int y)
 {
+#ifdef CONFIG_600D
+    // works without audio being enable in canon menu
+#else
     if (!SOUND_RECORDING_ENABLED) 
     {
         if (was_sound_recording_disabled_by_fps_override())
@@ -1362,6 +1369,7 @@ static void check_sound_recording_warning(int x, int y)
         else
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Sound recording is disabled. Enable it from Canon menu.");
     }
+#endif
 }
 
 
@@ -1504,7 +1512,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-  #ifndef CONFIG_600D /* ifNdef*/
+  #ifndef CONFIG_600D /* ifNdef ?*/
             menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
   #endif
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
@@ -2131,6 +2139,7 @@ enable_recording(
             // Movie recording stopped;  (fallthrough)
 #ifdef CONFIG_600D
             //audio_configure(0); //crashed when finish recording......need change
+            override_audio_setting(1);
 #endif
         case 2:
             // Movie recording started
