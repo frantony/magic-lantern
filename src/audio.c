@@ -719,7 +719,7 @@ static uint16_t audio_regs[] = {
     ML_MIC_BOOST_VOL2-0x100,
     ML_AMP_VOLFUNC_ENA-0x100,
     ML_AMP_VOL_FADE-0x100,
-    ML_HP_AMP_OUT_CTL-0x100,
+    ML_HP_AMP_OUT-0x100,
     ML_MIC_IF_CTL-0x100,
     ML_RCH_MIXER_INPUT-0x100,
     ML_LCH_MIXER_INPUT-0x100,
@@ -745,10 +745,10 @@ static uint16_t audio_regs[] = {
     ML_ALC_ZERO_TIMOUT-0x100,
     ML_PL_ATTACKTIME-0x100,
     ML_PL_DECAYTIME-0x100,
-    ML_PL_TARGETTIME-0x100,
+    ML_PL_TARGET_LEVEL-0x100,
     ML_PL_MAXMIN_GAIN-0x100,
     ML_PLYBAK_BOST_VOL-0x100,
-    ML_PL_0CROSS_TIMOUT-0x100,
+    ML_PL_0CROSS_TIMEOUT-0x100,
 };
 
 static const char * audio_reg_names[] = {
@@ -765,7 +765,7 @@ static const char * audio_reg_names[] = {
     "ML_MIC_BOOST_VOL2",
     "ML_AMP_VOLFUNC_ENA",
     "ML_AMP_VOL_FADE",
-    "ML_HP_AMP_OUT_CTL",
+    "ML_HP_AMP_OUT",
     "ML_MIC_IF_CTL",
     "ML_RCH_MIXER_INPUT",
     "ML_LCH_MIXER_INPUT",
@@ -791,10 +791,10 @@ static const char * audio_reg_names[] = {
     "ML_ALC_ZERO_TIMOUT",
     "ML_PL_ATTACKTIME",
     "ML_PL_DECAYTIME",
-    "ML_PL_TARGETTIME",
+    "ML_PL_TARGET_LEVEL",
     "ML_PL_MAXMIN_GAIN",
     "ML_PLYBAK_BOST_VOL",
-    "ML_PL_0CROSS_TIMOUT",
+    "ML_PL_0CROSS_TIMEOUT",
 };
 
 #else
@@ -867,18 +867,18 @@ audio_reg_dump( int force )
     }
     
     FILE* f = FIO_CreateFileEx(log_filename);
-    //    uint16_t last_regs[ COUNT(audio_regs) ];
-    //    memset(last_regs,0,COUNT(audio_regs));
+    uint16_t last_regs[ COUNT(audio_regs) ];
+    memset(last_regs,0,COUNT(audio_regs));
 
 	unsigned i;
 	for( i=0 ; i<COUNT(audio_regs) ; i++ )
 	{
 		const uint16_t reg = audio_ic_read( audio_regs[i] );
-        //		if( reg != last_regs[i] )
-        //		{
-        my_fprintf(f, "%s %02x\n", audio_reg_names[i], reg);
-        //		}
-        //		last_regs[i] = reg;
+		if( reg != last_regs[i] )
+		{
+			my_fprintf(f, "%s %02x\n", audio_reg_names[i], reg);
+		}
+		last_regs[i] = reg;
 	}
     
     FIO_CloseFile(f);
@@ -1092,9 +1092,9 @@ audio_ic_set_agc(){
 
 static void
 audio_ic_off(){
-    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x00);
-    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00);
-    audio_ic_write(ML_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
+    audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
@@ -1106,8 +1106,19 @@ audio_ic_off(){
 
 static void
 audio_ic_on(){
+//    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x01);
+//    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x03); // max boost1
+//    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00); // boos2 combo
+//    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8); // max vol
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
-    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_REC);
+    
+    audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_RECPLAY);
+//    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_8);
+//    audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200);
+//    audio_ic_write(ML_AMP_VOLFUNC_ENA | 0x03); avmute and fade on?
+//    audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
+//    audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_RCH_USE_LR);
+//    audio_ic_write(ML_REC_LR_BAL_VOL | 0x00);
 }
 
 static void
@@ -1116,46 +1127,22 @@ audio_ic_set_lineout_vol(){
     audio_ic_write(ML_HP_AMP_VOL | vol);
 }
 
-
 static void
 audio_ic_set_lineout_onoff(){
     //PDF p38
     if(audio_monitoring){
+        audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY | ML_MIXER_VOL_CTL_RCH_USE_R_ONLY);
+                
+        masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN,0x01,0x01);  //Play limiter on
+        audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x01); //power on
 
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
-
-        audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
-        audio_ic_write(ML_PW_IN_PW_MNG |0x0a); //adc pga on
-        audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
-        audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
-        audio_ic_write(ML_MIC_IN_VOL |0x3f); //<<<<<<<<<<<guess we can delete . need testing 
-        audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
-        audio_ic_write(ML_FILTER_EN | 0x03);
-
-
-
-        audio_ic_write(ML_MIC_BOOST_VOL1 |0x20);
-        audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
-        audio_ic_write(ML_RECORD_PATH | 0x06);
-        audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2c);
-        audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
-        audio_ic_write(ML_HPF2_CUTOFF | 0x04);
-
-        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x10);
-
+        audio_ic_write(ML_PLAY_DIG_VOL | 0xff); //set vol , actually it's gain. max = 0 min = -71.5. setMAX
+        masked_audio_ic_write(ML_DVOL_CTL_FUNC_EN ,ML_DVOL_CTL_FUNC_EN_MUTE,0x0); //mute off
         audio_ic_set_lineout_vol();
+        audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_AVMUTE);
 
     }else{
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_STOP); //directory change prohibited p55
-        audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_AUTO_ON | ML_RECPLAY_STATE_REC);
     }
-}
-
-void
-call_audio_ic_set_lineout_onoff(){
-    audio_ic_set_input();
-    audio_ic_set_lineout_onoff();
 }
 
 static void
@@ -1247,7 +1234,7 @@ audio_configure( int force )
     audio_ic_set_RecLRbalance();
     audio_ic_set_filters();
     audio_ic_set_agc();
-    audio_ic_set_lineout_onoff();
+    audio_ic_set_lineout_vol();
 
 
 #else /* ^^^^^^^CONFIG_600D^^^^^^^ vvvvv except 600D vvvvvvvv*/
@@ -1365,14 +1352,14 @@ static void
 static void
 audio_lovl_toggle( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, 1, 0, 49);
+    menu_numeric_toggle(priv, 1, 0, 50);
     audio_ic_set_lineout_vol();
 }
 
 static void
 audio_lovl_toggle_reverse( void * priv, int delta )
 {
-    menu_numeric_toggle(priv, -1, 0, 49);
+    menu_numeric_toggle(priv, -1, 0, 50);
     audio_ic_set_lineout_vol();
 }
 #endif
@@ -1572,9 +1559,7 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-  #ifndef CONFIG_600D /* ifNdef ?*/
-            menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
-  #endif
+//            menu_draw_icon(x, y, MNI_PERCENT, (get_lovl_val()) * 100 / 50);
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
 #else
@@ -2491,7 +2476,6 @@ PROP_HANDLER( PROP_PLAYMODE_LAUNCH_600D )
 }
 PROP_HANDLER( PROP_PLAYMODE_VOL_CHANGE_600D )
 {
-    audio_reg_dump(1);
 }
 
 #endif
