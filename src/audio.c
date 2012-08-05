@@ -719,7 +719,7 @@ static uint16_t audio_regs[] = {
     ML_MIC_BOOST_VOL2-0x100,
     ML_AMP_VOLFUNC_ENA-0x100,
     ML_AMP_VOL_FADE-0x100,
-    ML_HP_AMP_OUT_CTL-0x100,
+    ML_HP_AMP_OUT-0x100,
     ML_MIC_IF_CTL-0x100,
     ML_RCH_MIXER_INPUT-0x100,
     ML_LCH_MIXER_INPUT-0x100,
@@ -745,10 +745,10 @@ static uint16_t audio_regs[] = {
     ML_ALC_ZERO_TIMOUT-0x100,
     ML_PL_ATTACKTIME-0x100,
     ML_PL_DECAYTIME-0x100,
-    ML_PL_TARGETTIME-0x100,
+    ML_PL_TARGET_LEVEL-0x100,
     ML_PL_MAXMIN_GAIN-0x100,
     ML_PLYBAK_BOST_VOL-0x100,
-    ML_PL_0CROSS_TIMOUT-0x100,
+    ML_PL_0CROSS_TIMEOUT-0x100,
 };
 
 static const char * audio_reg_names[] = {
@@ -765,7 +765,7 @@ static const char * audio_reg_names[] = {
     "ML_MIC_BOOST_VOL2",
     "ML_AMP_VOLFUNC_ENA",
     "ML_AMP_VOL_FADE",
-    "ML_HP_AMP_OUT_CTL",
+    "ML_HP_AMP_OUT",
     "ML_MIC_IF_CTL",
     "ML_RCH_MIXER_INPUT",
     "ML_LCH_MIXER_INPUT",
@@ -791,10 +791,10 @@ static const char * audio_reg_names[] = {
     "ML_ALC_ZERO_TIMOUT",
     "ML_PL_ATTACKTIME",
     "ML_PL_DECAYTIME",
-    "ML_PL_TARGETTIME",
+    "ML_PL_TARGET_LEVEL",
     "ML_PL_MAXMIN_GAIN",
     "ML_PLYBAK_BOST_VOL",
-    "ML_PL_0CROSS_TIMOUT",
+    "ML_PL_0CROSS_TIMEOUT",
 };
 
 #else
@@ -1089,9 +1089,9 @@ audio_ic_set_agc(){
 
 static void
 audio_ic_off(){
-    audio_ic_write(ML_MIC_BOOST_VOL1 | 0x00);
-    audio_ic_write(ML_MIC_BOOST_VOL2 | 0x00);
-    audio_ic_write(ML_MIC_IN_VOL | 0x10);
+    audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_OFF);
+    audio_ic_write(ML_MIC_BOOST_VOL2 | ML_MIC_BOOST_VOL2_OFF);
+    audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_5);
     audio_ic_write(ML_PW_ZCCMP_PW_MNG | 0x00); //power off
     
     audio_ic_write(ML_RECPLAY_STATE | 0x00);
@@ -1123,24 +1123,24 @@ audio_ic_set_lineout_onoff(){
         audio_ic_write(ML_RECPLAY_STATE | ML_RECPLAY_STATE_MON); // monitor mode
 
         audio_ic_write(ML_PW_REF_PW_MNG | 0x26); //HeadPhone amp-std voltage(HPCAP pin voltage) gen circuit power on.
-        audio_ic_write(ML_PW_IN_PW_MNG |0x0a); //adc pga on
+        audio_ic_write(ML_PW_IN_PW_MNG | ML_PW_IN_PW_MNG_BOTH ); //adc pga on
         audio_ic_write(ML_PW_DAC_PW_MNG | ML_PW_DAC_PW_MNG_PWRON); //DAC power on
         audio_ic_write(ML_PW_SPAMP_PW_MNG | 0xFF);
-        audio_ic_write(ML_MIC_IN_VOL |0x3f); //<<<<<<<<<<<guess we can delete . need testing 
+        audio_ic_write(ML_MIC_IN_VOL | ML_MIC_IN_VOL_7 ); //<<<<<<<<<<<guess we can delete . need testing 
         audio_ic_write(ML_HP_AMP_OUT_CTL | ML_HP_AMP_OUT_CTL_ALL_ON);
-        audio_ic_write(ML_FILTER_EN | 0x03);
+        audio_ic_write(ML_FILTER_EN | ML_FILTER_EN_HPF_BOTH);
+      
+      
 
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL1_2 );
+        audio_ic_write(ML_MIC_BOOST_VOL1 | ML_MIC_BOOST_VOL2_ON );
+        audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON );
+        audio_ic_write(ML_RECORD_PATH | ML_RECORD_PATH_MICR2LCH_MICR2RCH );
+        audio_ic_write(ML_DVOL_CTL_FUNC_EN | ML_DVOL_CTL_FUNC_EN_ALC_FADE );
+        audio_ic_write(ML_MIXER_VOL_CTL | ML_MIXER_VOL_CTL_LCH_USE_L_ONLY );
+        audio_ic_write(ML_HPF2_CUTOFF | ML_HPF2_CUTOFF_FREQ200 );
 
-
-        audio_ic_write(ML_MIC_BOOST_VOL1 |0x20);
-        audio_ic_write(ML_AMP_VOLFUNC_ENA | ML_AMP_VOLFUNC_ENA_FADE_ON);
-        audio_ic_write(ML_RECORD_PATH | 0x06);
-        audio_ic_write(ML_DVOL_CTL_FUNC_EN | 0x2c);
-        audio_ic_write(ML_MIXER_VOL_CTL | 0x00);
-        audio_ic_write(ML_HPF2_CUTOFF | 0x04);
-
-        audio_ic_write(ML_PLYBAK_BOST_VOL | 0x10);
-
+        audio_ic_write(ML_PLYBAK_BOST_VOL | ML_PLYBAK_BOST_VOL_DEF );
         audio_ic_set_lineout_vol();
 
     }else{
@@ -1569,9 +1569,9 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-  #ifndef CONFIG_600D /* ifNdef ?*/
+#ifndef CONFIG_600D /* ifNdef ?*/
             menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
-  #endif
+#endif
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
 }
 #else
