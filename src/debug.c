@@ -532,7 +532,6 @@ void iso_movie_test()
 
 void run_test()
 {
-    msleep(2000);
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
@@ -1814,7 +1813,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        //~ bmp_printf(FONT_LARGE, 50, 50, "%x  ", FRAME_ISO);
         if (get_global_draw())
         {
             #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
@@ -1873,12 +1871,15 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                     if (!rca_warned && !gui_menu_shown())
                     {
                         msleep(2000);
-                        bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
-                            "SD monitors NOT fully supported!\n"
-                            "RGB tools and MZoom won't work. ");
-                        msleep(4000);
-                        redraw();
-                        rca_warned = 1;
+                        if (ext_monitor_rca) // check again
+                        {
+                            bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
+                                "SD monitors NOT fully supported!\n"
+                                "RGB tools and MZoom won't work. ");
+                            msleep(4000);
+                            redraw();
+                            rca_warned = 1;
+                        }
                     }
                 }
             }
