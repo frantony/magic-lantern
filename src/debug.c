@@ -14,6 +14,12 @@
 #include "version.h"
 //#include "lua.h"
 
+#ifdef CONFIG_AUDIO_600D_DEBUG
+#ifdef CONFIG_600D
+void audio_reg_dump_once();
+#endif
+#endif
+
 #define CONFIG_STRESS_TEST
 //~ #define CONFIG_HEXDUMP
 #undef CONFIG_ISO_TESTS
@@ -532,6 +538,13 @@ void iso_movie_test()
 
 void run_test()
 {
+    msleep(2000);
+#ifdef CONFIG_AUDIO_600D_DEBUG
+    #ifdef CONFIG_600D
+    audio_reg_dump_once();
+    #endif
+#endif
+
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)
