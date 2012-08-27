@@ -1,7 +1,7 @@
 #generic makefile
 
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM-ABI=elf
-ARM_ABI=none-eabi
+ARM_ABI=elf
 
 ARM_PATH=~/arm-toolchain462
 ARM_BINPATH=$(ARM_PATH)/bin
