@@ -1142,6 +1142,7 @@ static void
 tweak_task( void* unused)
 {
     //~ do_movie_mode_remap();
+    movtweak_task_init();
     
     TASK_LOOP
     {
@@ -1152,6 +1153,8 @@ tweak_task( void* unused)
         else if (display_countdown) display_countdown--;
         
         msleep(display_countdown || recording || halfshutter_sticky || dofpreview_sticky ? 50 : 1000);
+        
+        movtweak_step();
 
         if (halfshutter_sticky)
             fake_halfshutter_step();
@@ -2088,7 +2091,7 @@ void preview_contrast_n_saturation_step()
     int desired_saturation = saturation_values[preview_saturation];
 
     extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled())
+    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
@@ -2715,16 +2718,24 @@ void display_filter_get_buffers(void** src_buf, void** dst_buf)
     //~ int buf_size = 720*480*2;
     //~ void* src = (void*)vram->vram;
     //~ void* dst = src_buf + buf_size;
-    *src_buf = YUV422_LV_BUFFER_1;
-    *dst_buf = YUV422_LV_BUFFER_2;
+#ifdef CONFIG_5D2
+    *src_buf = CACHEABLE(YUV422_LV_BUFFER_1);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_2);
+#elif CONFIG_5D3
+    *src_buf = shamem_read(REG_EDMAC_WRITE_LV_ADDR);
+    *dst_buf = CACHEABLE(YUV422_LV_BUFFER_1 + 720*480*2);
+#endif
 }
 
+// type 1 filters: compute histogram on filtered image
+// type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
     if (!lv) return 0;
-    if (!(defish_preview || anamorphic_preview)) return 0;
+    int fp = focus_peaking_as_display_filter();
+    if (!(defish_preview || anamorphic_preview || fp)) return 0;
     if (!zebra_should_run()) return 0;
-    return 1;
+    return fp ? 2 : 1;
 }
 
 void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
@@ -2743,6 +2754,8 @@ void display_filter_lv_vsync(int old_state, int x, int input, int z, int t)
             EnableImagePhysicalScreenParameter();
         }
     }
+#elif defined(CONFIG_5D3)
+    YUV422_LV_BUFFER_DMA_ADDR = YUV422_LV_BUFFER_1 + 720*480*2;
 #endif
 }
 
@@ -2761,8 +2774,14 @@ void display_filter_step(int k)
     
     else if (anamorphic_preview)
     {
-        if (k % 2 == 0)
+        if (k % 1 == 0)
             BMP_LOCK( if (lv) anamorphic_squeeze(); )
+    }
+    
+    else if (focus_peaking_as_display_filter())
+    {
+        if (k % 1 == 0)
+            BMP_LOCK( if (lv) peak_disp_filter(); )
     }
 }
 

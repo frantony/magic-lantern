@@ -1752,39 +1752,33 @@ void save_crash_log()
 
 }
 
-// don't do anything else here, to avoid lockups
-void crash_log_task()
+void crash_log_step()
 {
-    int dmlog_saved = 0;
-    TASK_LOOP
+    static int dmlog_saved = 0;
+    if (crash_log_requested)
     {
-        if (crash_log_requested)
-        {
-            //~ beep();
-            save_crash_log();
-            crash_log_requested = 0;
-            msleep(2000);
-        }
-        
-        //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
-        extern thunk ErrForCamera_handler;
-        if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
-        {
-            if (!dmlog_saved) 
-            { 
-                beep();
-                NotifyBox(10000, "Saving debug log...");
-                call("dumpf"); 
-            }
-            dmlog_saved = 1;
-        }
-        else dmlog_saved = 0;
-        
-        msleep(200);
+        //~ beep();
+        save_crash_log();
+        crash_log_requested = 0;
+        msleep(2000);
     }
+        
+    //~ bmp_printf(FONT_MED, 100, 100, "%x ", get_current_dialog_handler());
+    extern thunk ErrForCamera_handler;
+    if (get_current_dialog_handler() == (intptr_t)&ErrForCamera_handler)
+    {
+        if (!dmlog_saved) 
+        { 
+            beep();
+            NotifyBox(10000, "Saving debug log...");
+            call("dumpf"); 
+        }
+        dmlog_saved = 1;
+    }
+    else dmlog_saved = 0;
 }
 
-TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
+//~ TASK_CREATE( "crash_log_task", crash_log_task, 0, 0x1e, 0x2000);
 
 
 int x = 0;
@@ -1814,77 +1808,6 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             bmp_hexdump(FONT_SMALL, 0, 480-120, hexdump_addr, 32*10);
 #endif
 
-        if (get_global_draw())
-        {
-            #if !defined(CONFIG_50D) && !defined(CONFIG_5D3) && !defined(CONFIG_1100D)
-            extern thunk ShootOlcApp_handler;
-            if (!lv && gui_state == GUISTATE_IDLE && !gui_menu_shown()
-                && (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler)
-            BMP_LOCK
-            (
-                display_clock();
-                display_shooting_info();
-                free_space_show_photomode();
-            )
-            #endif
-        
-            if (lv && !gui_menu_shown())
-            {
-                BMP_LOCK (
-                    display_shooting_info_lv();
-                    display_shortcut_key_hints_lv();
-                )
-                #if !defined(CONFIG_50D) && !defined(CONFIG_500D) && !defined(CONFIG_5D2) && !defined(CONFIG_5D3)
-                if (is_movie_mode() && !ae_mode_movie && lv_dispsize == 1) 
-                {
-                    static int ae_warned = 0;
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Set 'Movie Exposure -> Manual' from Canon menu");
-                        msleep(2000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                #elif defined(CONFIG_5D2)
-                static int ae_warned = 0;
-                if (is_movie_mode() && !lens_info.raw_shutter && recording && MVR_FRAME_NUMBER < 10)
-                {
-                    if (!ae_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        bmp_printf(SHADOW_FONT(FONT_MED), 50, 50, 
-                            "!!! Auto exposure !!!\n"
-                            "Use M mode and set 'LV display: Movie' from Expo menu");
-                        msleep(4000);
-                        redraw();
-                        ae_warned = 1;
-                    }
-                }
-                else ae_warned = 0;
-                #endif
-                
-                if (ext_monitor_rca) 
-                {
-                    static int rca_warned = 0;
-                    if (!rca_warned && !gui_menu_shown())
-                    {
-                        msleep(2000);
-                        if (ext_monitor_rca) // check again
-                        {
-                            bmp_printf(SHADOW_FONT(FONT_LARGE), 50, 50, 
-                                "SD monitors NOT fully supported!\n"
-                                "RGB tools and MZoom won't work. ");
-                            msleep(4000);
-                            redraw();
-                            rca_warned = 1;
-                        }
-                    }
-                }
-            }
-        }
         
         if (screenshot_sec)
         {
@@ -1913,6 +1836,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
             continue;
         }
         #endif
+        
+        crash_log_step();
         
         msleep(200);
     }
