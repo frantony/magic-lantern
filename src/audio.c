@@ -28,10 +28,6 @@
 #include "menu.h"
 #include "gui.h"
 
-#if defined(CONFIG_5D3_MINIMAL)
-#include "disable-this-module.h"
-#endif
-
 #if defined(CONFIG_50D)
 #include "disable-this-module.h"
 #endif
@@ -448,7 +444,7 @@ static void
 meter_task( void* unused )
 {
 
-#ifdef CONFIG_AUDIO_600D_DEBUG
+/*#ifdef CONFIG_AUDIO_600D_DEBUG
 //will delete this when we finish debugging
     NotifyBox(3000, "    ML2.3 TEST release:    \n      600D audio 0.11      ");
     msleep(4000);
@@ -469,7 +465,7 @@ meter_task( void* unused )
     NotifyBox(4000, "   If you find problems    \n   please report them to   \n    www.magiclantern.fm    ");
     msleep(5000);
     NotifyBox(4000, "and use the stable release.\n Last Stable release: 2.3  ");
-#endif
+#endif*/
 
 #ifdef CONFIG_600D
         //initialize audio config for 600D
@@ -1785,7 +1781,9 @@ audio_lovl_display( void * priv, int x, int y, int selected )
                );
         check_sound_recording_warning(x, y);
         if (audio_monitoring){
-#ifndef CONFIG_600D /* ifNdef ?*/
+#ifdef CONFIG_600D 
+            menu_draw_icon(x, y, MNI_PERCENT, (100 * *(unsigned*) priv) / 38);
+#else
             menu_draw_icon(x, y, MNI_PERCENT, (2 * *(unsigned*) priv) * 100 / 6);
 #endif
         }else menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Headphone monitoring is disabled");
@@ -1813,7 +1811,11 @@ audio_meter_display( void * priv, int x, int y, int selected )
         bmp_printf(
                selected ? MENU_FONT_SEL : MENU_FONT,
                x, y,
+               #ifdef CONFIG_5D3_MINIMAL
+               "Audio Meters: %s",
+               #else
                "Audio Meters  : %s",
+               #endif
                v ? "ON" : "OFF"
                );
         check_sound_recording_warning(x, y);
@@ -2806,7 +2808,9 @@ void input_toggle()
 
 static void audio_menus_init()
 {
-    #ifndef CONFIG_5D3_MINIMAL
+    #ifdef CONFIG_5D3_MINIMAL
+    menu_add( "Overlay", audio_menus, COUNT(audio_menus) );
+    #else
     menu_add( "Audio", audio_menus, COUNT(audio_menus) );
     #endif
 }
