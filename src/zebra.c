@@ -86,14 +86,45 @@ static int yuv2rgb_GU[256];
 static int yuv2rgb_GV[256];
 static int yuv2rgb_BU[256];
 
+/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
+ * BT 601:
+ * R'= Y' + 0.000*U' + 1.403*V'
+ * G'= Y' - 0.344*U' - 0.714*V'
+ * B'= Y' + 1.773*U' + 0.000*V'
+ * 
+ * BT 709:
+ * R'= Y' + 0.0000*Cb + 1.5701*Cr
+ * G'= Y' - 0.1870*Cb - 0.4664*Cr
+ * B'= Y' - 1.8556*Cb + 0.0000*Cr
+ */
+
 static void precompute_yuv2rgb()
 {
+#ifdef CONFIG_5D3 // REC 709
+    /*
+    *R = *Y + 1608 * V / 1024;
+    *G = *Y -  191 * U / 1024 - 478 * V / 1024;
+    *B = *Y + 1900 * U / 1024;
+    */
+    for (int u = 0; u < 256; u++)
+    {
+        int8_t U = u;
+        yuv2rgb_GU[u] = -191 * U / 1024;
+        yuv2rgb_BU[u] = 1900 * U / 1024;
+    }
+
+    for (int v = 0; v < 256; v++)
+    {
+        int8_t V = v;
+        yuv2rgb_RV[v] = 1608 * V / 1024;
+        yuv2rgb_GV[v] = -478 * V / 1024;
+    }
+#else // REC 601
     /*
     *R = *Y + 1437 * V / 1024;
     *G = *Y -  352 * U / 1024 - 731 * V / 1024;
     *B = *Y + 1812 * U / 1024;
     */
-
     for (int u = 0; u < 256; u++)
     {
         int8_t U = u;
@@ -107,6 +138,7 @@ static void precompute_yuv2rgb()
         yuv2rgb_RV[v] = 1437 * V / 1024;
         yuv2rgb_GV[v] = -731 * V / 1024;
     }
+#endif
 }
 
 /*inline void uyvy2yrgb(uint32_t uyvy, int* Y, int* R, int* G, int* B)
@@ -711,9 +743,10 @@ hist_build()
                 uint32_t R_level = R * HIST_WIDTH / 256;
                 uint32_t G_level = G * HIST_WIDTH / 256;
                 uint32_t B_level = B * HIST_WIDTH / 256;
-                hist_r[R_level]++;
-                hist_g[G_level]++;
-                hist_b[B_level]++;
+                
+                hist_r[R_level & 0x7F]++;
+                hist_g[G_level & 0x7F]++;
+                hist_b[B_level & 0x7F]++;
             }
             else // luma
             {
@@ -726,7 +759,7 @@ hist_build()
             uint32_t hist_level = Y * HIST_WIDTH / 256;
 
             // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (hist[ hist_level ]);
+            unsigned count = ++ (hist[ hist_level & 0x7F]);
             if( hist_level && count > hist_max )
                 hist_max = count;
 
@@ -2880,9 +2913,9 @@ static void spotmeter_step()
     }
     else
     {
-        int R = COERCE(sy + 1437 * sv / 1024, 0, 255);
-        int G = COERCE(sy -  352 * su / 1024 - 731 * sv / 1024, 0, 255);
-        int B = COERCE(sy + 1812 * su / 1024, 0, 255);
+        int uyvy = su | (sy << 8) | (sv << 16) | (sy << 24);
+        int R,G,B,Y;
+        COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
         xcb -= font_med.width * 3/2;
         bmp_printf(
             fnt,
@@ -5088,6 +5121,7 @@ BMP_LOCK (
     crop_set_dirty(cropmark_cache_is_valid() ? 2 : 10);
     
     menu_set_dirty();
+    lens_display_set_dirty();
     zoom_overlay_dirty = 1;
 }
 
