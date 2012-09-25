@@ -10,10 +10,6 @@
 #include "state-object.h"
 #include "property.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
 #ifdef CONFIG_550D
 #define DISPLAY_STATE DISPLAY_STATEOBJ
 #define INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER 19
@@ -128,6 +124,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     {
         hdr_kill_flicker();
         display_filter_lv_vsync(old_state, x, input, z, t);
+        digic_zoom_overlay_step();
     }
     #endif
     

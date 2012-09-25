@@ -81,9 +81,13 @@ struct menu_entry
         const char * help;
         const char * name; // used for context help and sometimes for display
         struct menu_entry * children;
-        int16_t submenu_width; // not required for entry item, but makes it easier to declare in existing menu structures
-        int16_t submenu_height;
         uint32_t id; // unique ID
+    // not required for entry item, but makes it easier to declare in existing menu structures
+        int16_t submenu_width; 
+        int16_t submenu_height;
+        int16_t pos;
+        int16_t childnum;
+        int16_t childnummax; 
 };
 
 #define MENU_ENTRY_NOT_HIDDEN 0
@@ -154,6 +158,7 @@ struct menu
         int16_t pos;
         int16_t childnum;
         int16_t childnummax;
+        int16_t delnum;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)

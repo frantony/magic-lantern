@@ -14,11 +14,6 @@
 #include "lens.h"
 #include "math.h"
 
-#ifdef CONFIG_5D3_MINIMAL
-#include "disable-this-module.h"
-#endif
-
-
 void clear_lv_affframe();
 void lcd_adjust_position_step();
 void arrow_key_step();
@@ -2158,6 +2153,17 @@ CONFIG_INT("lcd.adjust.position", lcd_adjust_position, 0);
 
 CONFIG_INT("uniwb.correction", uniwb_correction, 7);
 
+static int focus_peaking_grayscale_running()
+{
+    extern int focus_peaking_grayscale;
+    return 
+        focus_peaking_grayscale && 
+        is_focus_peaking_enabled() && 
+        !focus_peaking_as_display_filter() &&
+        zebra_should_run()
+        ;
+}
+
 void preview_contrast_n_saturation_step()
 {
     if (ml_shutdown_requested) return;
@@ -2170,8 +2176,7 @@ void preview_contrast_n_saturation_step()
     static int saturation_values[] = {0,0x80,0xC0,0xFF};
     int desired_saturation = saturation_values[preview_saturation];
 
-    extern int focus_peaking_grayscale;
-    if (focus_peaking_grayscale && is_focus_peaking_enabled() && !focus_peaking_as_display_filter())
+    if (focus_peaking_grayscale_running())
         desired_saturation = 0;
 
     if (current_saturation != desired_saturation)
@@ -2230,7 +2235,7 @@ static void uniwb_correction_step()
     int display_wb_register = 0xC0F14174;
     int desired_wb = 0;
     int current_wb = shamem_read(display_wb_register);
-    if (uniwb_correction && uniwb_is_active())
+    if (uniwb_correction && uniwb_is_active() && preview_saturation && !focus_peaking_grayscale_running())
     {
         int w = (uniwb_correction << 4) & 0xFF;
         w = (w << 8) | w;
@@ -2807,7 +2812,7 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
 // type 2 filters: compute histogram on original image
 int display_filter_enabled()
 {
-    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5DC) // not working on these cameras
+    #if defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_5DC) || defined(CONFIG_5D3_MINIMAL) // not working on these cameras
     return 0;
     #endif
 
@@ -2955,6 +2960,7 @@ static struct menu_entry display_menus[] = {
         .max = 1,
         .help = "Emphasizes camera shake on LiveView display.",
     },*/
+    #ifndef CONFIG_5D3_MINIMAL
     {
         .name = "Defishing",
         .priv = &defish_preview, 
@@ -2997,6 +3003,7 @@ static struct menu_entry display_menus[] = {
             MENU_EOL
         },
     },
+    #endif
 #ifdef CONFIG_KILL_FLICKER
     {
         .name       = "Kill Canon GUI",
@@ -3078,7 +3085,7 @@ static struct menu_entry display_menus[] = {
                     .icon_type = IT_DISABLE_SOME_FEATURE,
                     //.essential = FOR_LIVEVIEW,
                 },
-            #ifndef CONFIG_5DC
+            #if !defined(CONFIG_5DC) && !defined(CONFIG_5D3)
                 {
                     .name = "Force HDMI-VGA",
                     .priv = &hdmi_force_vga, 
@@ -3201,8 +3208,10 @@ static void tweak_init()
     menu_add( "Prefs", play_menus, COUNT(play_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Prefs", tweak_menus_shoot, 1 );
+    #ifndef CONFIG_5D3_MINIMAL
     menu_add( "Prefs", key_menus, COUNT(key_menus) );
     #endif
+#endif
     menu_add( "Prefs", tweak_menus, COUNT(tweak_menus) );
 #ifndef CONFIG_5DC
     menu_add( "Display", display_menus, COUNT(display_menus) );

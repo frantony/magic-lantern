@@ -2067,11 +2067,9 @@ static int crit_kelvin(int k)
 
     int Y, U, V;
     get_spot_yuv(100, &Y, &U, &V);
-    //~ BMP_LOCK( draw_ml_bottombar(0,0); )
 
-    int R = Y + 1437 * V / 1024;
-    //~ int G = Y -  352 * U / 1024 - 731 * V / 1024;
-    int B = Y + 1812 * U / 1024;
+    int R,G,B;
+    yuv2rgb(Y,U,V,&R,&G,&B);
     
     NotifyBox(5000, "Adjusting white balance...");
 
@@ -2089,9 +2087,8 @@ static int crit_wbs_gm(int k)
     int Y, U, V;
     get_spot_yuv(100, &Y, &U, &V);
 
-    int R = Y + 1437 * V / 1024;
-    int G = Y -  352 * U / 1024 - 731 * V / 1024;
-    int B = Y + 1812 * U / 1024;
+    int R,G,B;
+    yuv2rgb(Y,U,V,&R,&G,&B);
 
     NotifyBox(5000, "Adjusting white balance shift...");
 
@@ -4495,6 +4492,7 @@ struct menu_entry tweak_menus_shoot[] = {
         .icon_type = IT_SUBMENU,
         .help = "Disable x5 or x10, boost contrast/sharpness...",
         .children =  (struct menu_entry[]) {
+            #ifndef CONFIG_5D3_MINIMAL
             {
                 .name = "Zoom x5",
                 .priv = &zoom_disable_x5, 
@@ -4549,6 +4547,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .choices = (const char *[]) {"OFF", "MF", "AF+MF"},
                 .help = "Zoom when you turn the focus ring (only some Canon lenses)."
             },
+            #endif
             #ifdef CONFIG_5D3
             {
                 .name = "Zoom w. old btn / M-Fn",

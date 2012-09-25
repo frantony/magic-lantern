@@ -37,6 +37,18 @@
 #define MENU_HELP_Y_POS 453
 #define MENU_WARNING_Y_POS (menu_lv_transparent_mode ? 425 : 453)
 
+//for vscroll
+#define MENU_LEN_DEFAULT 11
+#define MENU_LEN_AUDIO 10 // at len=11, audio meters would overwrite menu entries on 600D
+//~ #define MENU_LEN_FOCUS 8
+
+int get_menu_len(struct menu * menu)
+{
+    if (menu->icon == ICON_MIC) // that's the Audio menu
+        return MENU_LEN_AUDIO;
+    return MENU_LEN_DEFAULT;
+}
+
 /*
 int sem_line = 0;
 
@@ -76,9 +88,6 @@ static int redraw_in_progress = 0;
 #define MENU_REDRAW_QUICK 2
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
-
-static uint32_t gMenuid_audio = 0;
-static uint32_t gMenuid_focus = 0;
 
 void menu_close_post_delete_dialog_box();
 void menu_close_gmt();
@@ -512,8 +521,9 @@ menu_find_by_name(
     new_menu->children  = NULL;
     new_menu->submenu_width = 0;
     new_menu->submenu_height = 0;
-    new_menu->pos       = 0;
-    new_menu->childnum = 0;
+    new_menu->pos       = 1;
+    new_menu->childnum  = 1;
+    new_menu->childnummax = 1;
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
@@ -590,9 +600,9 @@ menu_add(
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->selected = 1;
-        menu->pos = 0;
-        menu->childnum = 1;
-        menu->childnummax = 1;
+         menu->pos           = 1;
+         menu->childnum      = 1; 
+         menu->childnummax   = 1;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry++;
         count--;
@@ -605,24 +615,23 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         if (new_entry->id == 0) new_entry->id = menu_id_increment++;
+
+        if(IS_VISIBLE(new_entry)) menu->childnum++;
+        menu->childnummax++;
+
         new_entry->selected = 0;
         //~ if (IS_SUBMENU(menu)) new_entry->essential = FOR_SUBMENU;
         new_entry->next     = head->next;
         new_entry->prev     = head;
         head->next      = new_entry;
-
         head            = new_entry;
         new_entry++;
-        if(IS_VISIBLE(new_entry)){
-            menu->childnum++;
-            menu->childnummax++;
-        }
     }
     give_semaphore( menu_sem );
 
 
     // create submenus
-    
+
     struct menu_entry * entry = head;
     for (int i = 0; i < count0; i++)
     {
@@ -984,22 +993,20 @@ menu_display(
 )
 {
     struct menu_entry *menu = parentmenu->children;
-
     //hide upper menu for vscroll
-    int cutoffval = 9;
-    if(gMenuid_audio == parentmenu->id || gMenuid_focus == parentmenu->id){
-        cutoffval=8;
-    }
-    if(parentmenu->pos > cutoffval){
-        int delnum = parentmenu->pos - cutoffval - 1;
-        if(gMenuid_focus == parentmenu->id) delnum++;
-        for(int i=0;i<delnum;i++){
-            if(advanced_hidden_edit_mode){
+    int menu_len = get_menu_len(parentmenu); 
+
+    int delnum = parentmenu->delnum; // how many menu entries to skip
+    delnum = MAX(delnum, parentmenu->pos - menu_len);
+    delnum = MIN(delnum, parentmenu->pos - 1);
+    parentmenu->delnum = delnum;
+    
+    for(int i=0;i<delnum;i++){
+        if(advanced_hidden_edit_mode){
             menu = menu->next;
-            }else{                
-                while(!IS_VISIBLE(menu)) menu = menu->next;
-                menu = menu->next;
-            }
+        }else{                
+            while(!IS_VISIBLE(menu)) menu = menu->next;
+            menu = menu->next;
         }
     }
     //<== vscroll
@@ -1007,14 +1014,6 @@ menu_display(
     int menu_entry_num = 0;
     while( menu )
     {
-
-        //Display lens info
-        if(gMenuid_focus == parentmenu->id){
-            if(menu_entry_num > cutoffval){
-                while(menu->next) menu = menu->next;
-            }
-        }
-
 
         if (advanced_hidden_edit_mode || IS_VISIBLE(menu))
         {
@@ -1215,17 +1214,10 @@ menu_display(
         }
                                          
         //hide buttom menu for vscroll
-        if(menu_entry_num > cutoffval){
-            break;
-        }else{
-            if(advanced_hidden_edit_mode){
-                menu_entry_num++;
-            }else{
-                if(IS_VISIBLE(menu)){
-                    menu_entry_num++;
-                }
-            }
-        }
+        if(advanced_hidden_edit_mode) menu_entry_num++;
+        else                          if(IS_VISIBLE(menu)) menu_entry_num++;
+
+        if(menu_entry_num >= menu_len) break;
         //<== vscroll
 
         menu = menu->next;
@@ -1288,19 +1280,17 @@ show_hidden_items(struct menu * menu, int force_clear)
 
 static void
 show_vscroll(struct menu* parent){
-    int16_t pos = parent->pos;
-    int16_t num;
+    int16_t pos = parent->pos; // from 1 to max
+    int16_t max;
 
-    if(advanced_hidden_edit_mode) num = parent->childnummax;
-    else                          num = parent->childnum;
+    if(advanced_hidden_edit_mode) max = parent->childnummax;
+    else                          max = parent->childnum;
 
-    int cutoffval = 11;
-    if(gMenuid_audio == parent->id) cutoffval=9;
-    else if(gMenuid_focus == parent->id) cutoffval=9;
-
-    if(num>cutoffval){
+    int menu_len = get_menu_len(parent);
+    
+    if(max > menu_len){
         bmp_draw_rect(COLOR_GRAY70, 715, 42, 4, 350);
-        int16_t posx = 42 + (300 / num * pos);
+        int16_t posx = 42 + (300 * (pos-1) / (max-1));
         bmp_fill(COLOR_GRAY70, 717, posx, 4, 50);
     }
 }
@@ -1618,10 +1608,10 @@ menu_entry_move(
     int selectedpos= 0;
     for( ; entry ; entry = entry->next )
     {
-        if( entry->selected )
-            break;
         if(advanced_hidden_edit_mode) selectedpos++;
         else                          if(IS_VISIBLE(entry)) selectedpos++;
+
+        if( entry->selected ) break;
     }
 
 
@@ -1654,7 +1644,7 @@ menu_entry_move(
         }else {
             // Go to the first one
             while( entry->prev ) entry = entry->prev;
-            menu->pos = 0;
+            menu->pos = 1;
         }
     }
 
@@ -2225,10 +2215,8 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    struct menu *tmpmenu;
 #if defined(CONFIG_550D) || defined(CONFIG_60D) || defined(CONFIG_5D2) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
-    tmpmenu = menu_find_by_name( "Audio", ICON_MIC);
-    gMenuid_audio = tmpmenu->id;
+    menu_find_by_name( "Audio", ICON_MIC);
 #endif
     menu_find_by_name( "Expo", ICON_AE);
 #ifndef CONFIG_5DC
@@ -2242,8 +2230,7 @@ menu_init( void )
 #endif
     menu_find_by_name( "Shoot", ICON_PHOTOCAM );
     //~ menu_find_by_name( "Brack" );
-    tmpmenu = menu_find_by_name( "Focus", ICON_SHARPNESS );
-    gMenuid_focus = tmpmenu->id;
+    menu_find_by_name( "Focus", ICON_SHARPNESS );
     //~ menu_find_by_name( "LUA" );
     //menu_find_by_name( "Games" );
 #ifndef CONFIG_5DC
