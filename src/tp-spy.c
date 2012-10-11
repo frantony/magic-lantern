@@ -43,16 +43,48 @@ static uintptr_t reloc_buf2 = 0;
 static int (*new_TryPostEvent)(int taskclass, int obj, int event, int arg1, int arg2) = 0;
 static int (*new_TryPostStageEvent)(int taskclass, int obj, int event, int arg1, int arg2) = 0;
 
-int my_TryPostEvent(int taskclass, int obj, int event, int arg1, int arg2)
+static char callstack[100];
+
+char* get_call_stack()
 {
-    DryosDebugMsg(0,0,"*** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", taskclass, obj, MEM(obj), event, arg1, MEM(arg1), MEM(arg1+4), MEM(arg1+8), MEM(arg1+12), arg2 );
-    return new_TryPostEvent(taskclass, obj, event, arg1, arg2);
+    uintptr_t sp = 0;
+    asm __volatile__ (
+        "mov %0, %%sp"
+        : "=&r"(sp)
+    );
+    
+    callstack[0] = 0;
+    for (int i = 0; i < 100; i++)
+    {
+        if ((MEM(sp+i*4) & 0xFF000000) == 0xFF000000)
+        {
+            STR_APPEND(callstack, "%x ", MEM(sp+i*4));
+        }
+    }
+    return callstack;
 }
 
-int my_TryPostStageEvent(int taskclass, int obj, int event, int arg1, int arg2)
+int my_TryPostEvent(int taskclass, int obj, int event, int arg3, int arg4)
 {
-    DryosDebugMsg(0,0,"*** TryPostStageEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", taskclass, obj, MEM(obj), event, arg1, MEM(arg1), MEM(arg1+4), MEM(arg1+8), MEM(arg1+12), arg2 );
-    return new_TryPostStageEvent(taskclass, obj, event, arg1, arg2);
+    DryosDebugMsg(0,0,"[%d] *** TryPostEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)\n   call stack: %s", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4, get_call_stack());
+    if (streq(MEM(obj), "PropMgr"))
+    {
+        if (event == 3)
+        {
+            DryosDebugMsg(0,0,"   prop_deliver(&0x%x, 0x%x, 0x%x)", MEM(MEM(arg3)), MEM(arg3+4), arg4);
+        }
+        else if (event == 7)
+        {
+            DryosDebugMsg(0,0,"   prop_request_change(0x%x, &0x%x, 0x%x)", MEM(arg3), MEM(MEM(arg3+4)), arg4);
+        }
+    }
+    return new_TryPostEvent(taskclass, obj, event, arg3, arg4);
+}
+
+int my_TryPostStageEvent(int taskclass, int obj, int event, int arg3, int arg4)
+{
+    DryosDebugMsg(0,0,"[%d] *** TryPostStageEvent(%x, %x %s, %x, %x [%x %x %x %x], %x)", get_ms_clock_value(), taskclass, obj, MEM(obj), event, arg3, MEM(arg3), MEM(arg3+4), MEM(arg3+8), MEM(arg3+12), arg4 );
+    return new_TryPostStageEvent(taskclass, obj, event, arg3, arg4);
 }
 
 // call this from "don't click me"
