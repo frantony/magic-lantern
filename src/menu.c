@@ -31,6 +31,7 @@
 #include "font.h"
 #include "menu.h"
 
+
 #define DOUBLE_BUFFERING 1
 
 #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
@@ -1902,6 +1903,7 @@ menu_redraw_task()
         //~ else redraw();
     }
 }
+
 TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x2000 );
 
 void
@@ -2555,6 +2557,8 @@ menu_task_minimal( void* unused )
 }
 
 TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x2000 );
+
+//~ TASK_CREATE( "menu_task_minimal", menu_task_minimal, 0, 0x1a, 0x2000 );
 
 int is_menu_selected(char* name)
 {
