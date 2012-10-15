@@ -110,7 +110,7 @@ NSTUB(0xffd4228c, gui_timer_something)
     NSTUB(0xdeadbeef, init_task)
 NSTUB(0xffd5b3e8, malloc) // not good, points to AllocateMemory
 NSTUB(0xFFD7D798, memcpy)
-    NSTUB(0xff205e5c, msg_queue_post)
+NSTUB(0xffd432b8, msg_queue_post)
 NSTUB(0xffd42bd4, msg_queue_receive)
 NSTUB(0xffd44300, msleep)
     //NSTUB(0xff1e0e04, mvrFixQScale)
@@ -197,3 +197,30 @@ NSTUB(0xFFD4D2F0, vsnprintf)
 
 NSTUB( 0xffd44858, DeleteTask )
 NSTUB( 0xffd45224, QueryTaskByName)
+
+NSTUB(0x1E458, LCD_Palette)
+NSTUB(0x1E498, RGB_Palette)
+NSTUB(0x1E388, PB_Palette)
+
+NSTUB(0xFFCB0B6C, SetRGBPaletteToDisplayDevice)
+NSTUB(0xFF867AA8, ChangeColorPalette)
+NSTUB(0xFFCAFA0C, SetParameterToBitmapDisplayDevice)
+
+NSTUB(0xFFCB7EBC, EnableBitmapVBufferForPlayBackAndWaiting)
+
+NSTUB(0xFFCB9078, BmpDDev_give_semaphore);
+NSTUB(0xFFCB9028, BmpDDev_take_semaphore);
+
+NSTUB(0xFF8156F8, bindGUISwitchCBR)
+
+
+NSTUB(0xFFD4F338, TryPostEvent)
+NSTUB(0xFFD4F398, TryPostEvent_end)
+
+NSTUB(0xFFD56470, TryPostStageEvent)
+NSTUB(0xFFD564FC, TryPostStageEvent_end) // PendStageEvent
+
+NSTUB(0xFFD6A1C8, get_current_task) // 0x22E00
+NSTUB(0xFFD69F8C, get_task_info)
+NSTUB(0xFFD6B8B0, get_active_task_list)
+
