@@ -37,6 +37,11 @@
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
 
+// those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
+#define MZ_WHITE 0xFA12FA34 
+#define MZ_BLACK 0x00120034
+#define MZ_GREEN 0x80808080
+
 //~ #if 1
 //~ #define CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 #if defined(CONFIG_50D)// || defined(CONFIG_60D)
@@ -82,6 +87,14 @@ void update_disp_mode_bits_from_params();
 int toggle_disp_mode();
 void toggle_disp_mode_menu(void *priv, int delta);
 
+// in movie mode: skip the 16:9 bar when computing overlays
+// in photo mode: compute the overlays on full-screen image
+int get_y_skip_offset_for_overlays()
+{
+    if (lv) return is_movie_mode() ? os.off_169 : 0;
+    if (is_pure_play_photo_mode()) return 0;
+    return os.off_169;
+}
 
 
 // precompute some parts of YUV to RGB computations
@@ -258,7 +271,11 @@ static CONFIG_INT( "zoom.overlay", zoom_overlay_enabled, 0);
 static CONFIG_INT( "zoom.overlay.trig", zoom_overlay_trigger_mode, MZ_TAKEOVER_ZOOM_IN_BTN);
 static CONFIG_INT( "zoom.overlay.size", zoom_overlay_size, 1);
 static CONFIG_INT( "zoom.overlay.x", zoom_overlay_x, 1);
+#ifdef CONFIG_5D3
+static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 4); // less flicker when MZ is at the bottom
+#else
 static CONFIG_INT( "zoom.overlay.pos", zoom_overlay_pos, 1);
+#endif
 static CONFIG_INT( "zoom.overlay.split", zoom_overlay_split, 0);
 //~ static CONFIG_INT( "zoom.overlay.lut", zoom_overlay_lut, 0);
 
@@ -746,12 +763,19 @@ hist_build()
         vectorscope_init();
         vectorscope_clear();
     }
-
-    for( y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+    
+    int mz = nondigic_zoom_overlay_enabled();
+    int off = get_y_skip_offset_for_overlays();
+    for( y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         for( x = os.x0 ; x < os.x_max ; x += 2 )
         {
             uint32_t pixel = buf[BM2LV(x,y)/4];
+            
+            // ignore magic zoom borders
+            if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
+                continue;
+            
             int Y;
             if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
             {
@@ -987,8 +1011,7 @@ hist_draw_image(
                 *col = y > size ? COLOR_BG : (falsecolor_draw ? false_colour[falsecolor_palette][(i * 256 / HIST_WIDTH) & 0xFF]: COLOR_WHITE);
         }
         
-        if (hist_warn && i == HIST_WIDTH - 1
-            && !nondigic_zoom_overlay_enabled()) // magic zoom borders will be "overexposed" => will cause warning
+        if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = hist_total_px / (
                 hist_warn == 1 ? 100000 : // 0.001%
@@ -1389,7 +1412,8 @@ void draw_zebras( int Z )
 
         // draw zebra in 16:9 frame
         // y is in BM coords
-        for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+        int off = get_y_skip_offset_for_overlays();
+        for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
         {
             #define color_over           zebra_color_word_row(COLOR_RED,  y)
             #define color_under          zebra_color_word_row(COLOR_BLUE, y)
@@ -1751,7 +1775,9 @@ static void focus_found_pixel(int x, int y, int e, int thr, uint8_t * const bvra
 {    
     int color = get_focus_color(thr, e);
     //~ int color = COLOR_RED;
-    color = (color << 8) | color;   
+    color = (color << 8) | color;
+    
+    y = anamorphic_squeeze_bmp_y(y);
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
     uint16_t * const m_row = (uint16_t*)( bvram_mirror + BM_R(y) );   // 2 pixels
@@ -1840,8 +1866,9 @@ draw_zebra_and_focus( int Z, int F )
         struct vram_info *hd_vram = get_yuv422_hd_vram();
         uint32_t hdvram = (uint32_t)hd_vram->vram;
         
-        int yStart = os.y0 + os.off_169 + 8;
-        int yEnd = os.y_max - os.off_169 - 8;
+        int off = get_y_skip_offset_for_overlays();
+        int yStart = os.y0 + off + 8;
+        int yEnd = os.y_max - off - 8;
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
@@ -2049,7 +2076,8 @@ draw_false_downsampled( void )
     uint8_t * const lvram = get_yuv422_vram()->vram;
     uint8_t* fc = false_colour[falsecolor_palette];
 
-    for(int y = os.y0 + os.off_169; y < os.y_max - os.off_169; y += 2 )
+    int off = get_y_skip_offset_for_overlays();
+    for(int y = os.y0 + off; y < os.y_max - off; y += 2 )
     {
         uint32_t * const v_row = (uint32_t*)( lvram        + BM2LV_R(y)    );  // 2 pixels
         uint16_t * const b_row = (uint16_t*)( bvram        + BM_R(y)       );  // 2 pixels
@@ -4469,13 +4497,10 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
-        if (video_mode_fps <= 30 || !is_movie_mode())
-        {
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, 0,    w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, 0xFF, w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, 0xFF, w<<1);
-            memset(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, 0,    w<<1);
-        }
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv - (h>>1) - 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 1, 0, lv->height) * lv->width, MZ_WHITE, w<<1);
+        memset32(lvr + COERCE(aff_x0_lv - (w>>1), 0, 720-w) + COERCE(aff_y0_lv + (h>>1) + 2, 0, lv->height) * lv->width, MZ_BLACK, w<<1);
     }
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
@@ -4512,21 +4537,17 @@ static void draw_zoom_overlay(int dirty)
         if (y%X==0) s += hd->width;
     }
 
-    #if !(defined(CONFIG_5D3) || defined(CONFIG_1100D))
-    if (video_mode_fps <= 30 || !is_movie_mode())
+    #ifdef CONFIG_1100D
+    H /= 2; //LCD res fix (half height)
     #endif
-    {
-        #ifdef CONFIG_1100D
-        H /= 2; //LCD res fix (half height)
-        #endif
-        memset(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? 0xFF : 0x80, W<<1);
-        memset(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? 0    : 0x80, W<<1);
-        #ifdef CONFIG_1100D
-        H *= 2; // Undo it
-        #endif
-    }
+    memset32(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(H-1 + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
+    memset32(lvr + x0c + COERCE(H   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
+    #ifdef CONFIG_1100D
+    H *= 2; // Undo it
+    #endif
+
     if (dirty) bmp_fill(0, LV2BM_X(x0c), LV2BM_Y(y0c), LV2BM_DX(W), LV2BM_DY(H));
     //~ bmp_fill(rawoff ? COLOR_BLACK : COLOR_GREEN1, x0c, y0c, W, 1);
     //~ bmp_fill(rawoff ? COLOR_WHITE : COLOR_GREEN2, x0c+1, y0c, W, 1);
@@ -4667,7 +4688,7 @@ void draw_histogram_and_waveform(int allow_play)
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play)) return;
     if (is_zoom_mode_so_no_zebras()) return;
 
-//    int screen_layout = get_screen_layout();
+    int screen_layout = get_screen_layout();
 
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
@@ -4678,6 +4699,8 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
+        else if (screen_layout == SCREENLAYOUT_3_2)
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - hist_height - 1, -1); )
         else
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
     }
@@ -4698,6 +4721,13 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
         if (should_draw_bottom_graphs() && WAVEFORM_FACTOR == 1)
             BMP_LOCK( waveform_draw_image( os.x0 + 250,  480 - 54, 54); )
+        else if (screen_layout == SCREENLAYOUT_3_2)
+        {
+            if (WAVEFORM_FACTOR == 1)
+                BMP_LOCK( waveform_draw_image( os.x0 + 4, os.y_max - (lv ? os.off_169 : 0) - 54, 54); )
+            else
+                BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y0 + 100, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); );
+        }
         else
             BMP_LOCK( waveform_draw_image( os.x_max - WAVEFORM_WIDTH*WAVEFORM_FACTOR - (WAVEFORM_FULLSCREEN ? 0 : 4), os.y_max - WAVEFORM_HEIGHT*WAVEFORM_FACTOR - WAVEFORM_OFFSET, WAVEFORM_HEIGHT*WAVEFORM_FACTOR ); )
     }
@@ -5413,13 +5443,15 @@ livev_hipriority_task( void* unused )
         struct vram_info * hd = get_yuv422_hd_vram();
         bmp_printf(FONT_MED, 100, 100, "ext:%d%d%d \nlv:%x %dx%d \nhd:%x %dx%d ", EXT_MONITOR_RCA, ext_monitor_hdmi, hdmi_code, lv->vram, lv->width, lv->height, hd->vram, hd->width, hd->height);
         #endif
+        
+        int mz = should_draw_zoom_overlay();
 
-        lv_vsync();
+        lv_vsync(mz);
         guess_fastrefresh_direction();
 
         display_filter_step(k);
         
-        if (should_draw_zoom_overlay())
+        if (mz)
         {
             //~ msleep(k % 50 == 0 ? MIN_MSLEEP : 10);
             if (zoom_overlay_dirty) BMP_LOCK( clrscr_mirror(); )
@@ -5428,6 +5460,7 @@ livev_hipriority_task( void* unused )
             zoom_overlay_dirty = 0;
             //~ crop_set_dirty(10); // don't draw cropmarks while magic zoom is active
             // but redraw them after MZ is turned off
+            continue;
         }
         else
         {

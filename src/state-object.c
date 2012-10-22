@@ -88,15 +88,15 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-static volatile int lv_should_pause_updating = 0;
-void lv_request_pause_updating(int value)
+static void* hd_buf_dst = 0;
+static void* hd_buf_size = 0;
+static int hd_buf_memcpy_flag = 0;
+void sync_hd_buf_memcpy(void* dst, int size)
 {
-    lv_should_pause_updating = value;
-}
-
-void lv_wait_for_pause_updating_to_finish()
-{
-    while (lv_should_pause_updating) msleep(10);
+    hd_buf_dst = dst;
+    hd_buf_size = size;
+    hd_buf_memcpy_flag = 1;
+    while (hd_buf_memcpy_flag) msleep(20);
 }
 
 static void vsync_func() // called once per frame.. in theory :)
@@ -107,11 +107,11 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
-
-    if (lv_should_pause_updating)
+    
+    if (hd_buf_memcpy_flag)
     {
-        msleep(lv_should_pause_updating);
-        lv_should_pause_updating = 0;
+        memcpy(hd_buf_dst, CACHEABLE(YUV422_HD_BUFFER_DMA_ADDR), hd_buf_size);
+        hd_buf_memcpy_flag = 0;
     }
     
     //~ display_shake_step();
@@ -138,8 +138,10 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
-    if (self == LV_STATE && old_state == 3 && input < 5)
-        lv_vsync_signal();
+    if (self == LV_STATE)//&& old_state == 4)
+    {
+        //~ lv_vsync_signal();
+    }
 #elif defined(CONFIG_60D)
     if (self == DISPLAY_STATE && input >= 19)
         lv_vsync_signal();
