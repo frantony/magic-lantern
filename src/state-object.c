@@ -88,8 +88,6 @@ static void stateobj_install_hook(struct state_object * stateobj, int input, int
 }
 */
 
-struct semaphore * lv_pause_sem = 0;
-
 static void vsync_func() // called once per frame.. in theory :)
 {
     #if !defined(CONFIG_60D) && !defined(CONFIG_600D) && !defined(CONFIG_1100D) && !defined(CONFIG_5D3) // for those cameras, it's called from a different spot of the evf state object
@@ -98,9 +96,7 @@ static void vsync_func() // called once per frame.. in theory :)
     
     digic_iso_step();
     image_effects_step();
-    
-    take_semaphore(lv_pause_sem, 0);
-    give_semaphore(lv_pause_sem);
+
 }
 
 #ifdef CONFIG_550D
@@ -137,9 +133,12 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     #ifdef DISPLAY_STATE
     if (self == DISPLAY_STATE && input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER)
     {
-        hdr_kill_flicker();
-        display_filter_lv_vsync(old_state, x, input, z, t);
-        digic_zoom_overlay_step();
+        if (!silent_pic_preview())
+        {
+            hdr_kill_flicker();
+            display_filter_lv_vsync(old_state, x, input, z, t);
+            digic_zoom_overlay_step();
+        }
     }
     #endif
     
@@ -162,19 +161,14 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
 
     #if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D)
     if (self == LV_STATE && input==4 && old_state==4) // AJ_ResetPSave_n_WB_n_LVREC_MVR_EV_EXPOSURESTARTED => perfect sync for digic on 5D2 :)
-    #endif
-
-    #ifdef CONFIG_550D
+    #elif defined(CONFIG_550D)
     if (self == LV_STATE && input==5 && old_state == 5) // SYNC_GetEngineResource => perfect sync for digic :)
-    #endif
-
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt => perfect sync for digic :)
+    #else
+    if (0)
     #endif
-    
-#ifndef CONFIG_5DC
         vsync_func();
-#endif
 
     #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_5D3) // exception for overriding ISO
     if (self == EVF_STATE && input == 4 && old_state == 5) // evfSetParamInterrupt
@@ -185,7 +179,7 @@ static int stateobj_spy(struct state_object * self, int x, int input, int z, int
     if (z == 0x0) { fake_simple_button(BGMT_PRESS_HALFSHUTTER); }
     if (z == 0xB) { fake_simple_button(BGMT_UNPRESS_HALFSHUTTER); }
 #endif
-    
+
     return ans;
 }
 
@@ -198,8 +192,6 @@ static int stateobj_start_spy(struct state_object * stateobj)
 
 static void state_init(void* unused)
 {
-    lv_pause_sem = create_named_semaphore(0,1);
-
     #ifdef DISPLAY_STATE
         stateobj_start_spy(DISPLAY_STATE);
     #endif
