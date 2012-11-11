@@ -8,10 +8,6 @@
 
 #define DRYOS_ASSERT_HANDLER 0xEF78 // dec TH_assert or assert_0
 
-// Critical. Look for a call to prop_request_change(0x80050007, something, len).
-//~ #define AFFRAME_PROP_LEN 100 // 404
-//~ #define CUSTOM_WB_PROP_LEN 52 // 404
-
 // not known, use HD ones meanwhile
 #define YUV422_LV_BUFFER_1 0x1dcefc64
 #define YUV422_LV_BUFFER_2 0x1de43c64
@@ -138,7 +134,7 @@
     #define BFNT_BITMAP_DATA   0xff22b400
     */
     
-    #define DLG_SIGNATURE 0x414944
+    #define DLG_SIGNATURE 0x4c414944
 
 // from CFn
     #define AF_BTN_HALFSHUTTER 0
@@ -189,3 +185,7 @@
 //~ #define MALLOC_STRUCT 0x249e4
 //~ #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 #define MALLOC_FREE_MEMORY 0
+
+	#define SENSOR_RES_X 3888
+	#define SENSOR_RES_Y 2592
+	
