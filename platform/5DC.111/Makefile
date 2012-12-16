@@ -19,7 +19,7 @@ PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 # menu.o and debug.o must come before the modules
 ML_OBJS-y = \
 	magiclantern.lds \
-	entry.o \
+	$(SRC_DIR)/entry.o \
 	init.o \
 	stubs.o \
 	dummy.o \
@@ -64,14 +64,14 @@ ML_OBJS-y = \
 #TOP_DIR defined in upper Makefile
 include ../../Makefile.inc
 
-CFLAGS += -DCONFIG_STATIC_FONTS=1
+CFLAGS += -DCONFIG_STATIC_FONTS=1 -Wno-unused-variable
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF810000
 RESTARTSTART    = 0x00980000
-AUTOEXEC_BASE   = 0x40800000
-FIR_BASE        = 0x40800120
+AUTOEXEC_BASE   = 0x10800000
+FIR_BASE        = 0x10800120
 
 all: autoexec.bin
