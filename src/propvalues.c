@@ -66,7 +66,7 @@ bool is_movie_mode()
             && expsim == 2  // movie enabled, but photo display is considered photo mode
             #endif
         ;
-    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #elif defined(CONFIG_5D3) || defined(CONFIG_7D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     return lv_movie_select == LVMS_ENABLE_MOVIE;
     #else
     return shooting_mode == SHOOTMODE_MOVIE;
@@ -145,7 +145,7 @@ int lv_disp_mode;
 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_5D3) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];
@@ -162,3 +162,17 @@ int auto_iso_range = 0x4868; // no auto ISO in Canon menus; considering it fixed
 #else
 volatile PROP_INT(PROP_AUTO_ISO_RANGE, auto_iso_range);
 #endif
+
+char artist_name[63]="                                                               ";
+PROP_HANDLER( PROP_ARTIST_STRING )
+{
+    if( len > sizeof(artist_name) ) len = sizeof(artist_name);
+    memcpy( artist_name, buf, len );
+}
+
+char copyright_info[63]="                                                               ";
+PROP_HANDLER( PROP_COPYRIGHT_STRING )
+{
+    if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
+    memcpy( copyright_info, buf, len );
+}

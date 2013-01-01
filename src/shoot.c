@@ -1942,7 +1942,7 @@ int is_native_iso(int iso)
         case 800:
         case 1600:
         case 3200:
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
         case 6400: // on digic 4, those are digital gains applied to 3200 ISO
         case 12800:
         case 25600:
@@ -1961,7 +1961,7 @@ int is_lowgain_iso(int iso)
         case 640:  // ISO 800 - 1/3EV
         case 1250: // ISO 1600 - 1/3EV
         case 2500: // ISO 3200 - 1/3EV
-        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+        #if defined(CONFIG_5D3) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
         case 5000:
         case 10000:
         #endif
@@ -3243,11 +3243,43 @@ void hdr_display_status(int fnt)
     #ifdef FEATURE_HDR_BRACKETING
     #ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
     if (HDR_ENABLED)
+    {
+    #ifdef CONFIG_7D
+        /* in CA mode this field is used */
+        if(shooting_mode != SHOOTMODE_CA)
+        {
+            int bg = bmp_getpixel(1,1);
+            bmp_draw_rect(bg,617,24,5,86);
+            bmp_draw_rect(bg,618,25,3,84);
+            bmp_draw_rect(bg,619,26,1,82);
+            draw_line(623,25,623,109,bmp_getpixel(600,24));
+            bg = bmp_getpixel(HDR_STATUS_POS_X,HDR_STATUS_POS_Y);
+            fnt = FONT(FONT_LARGE, COLOR_YELLOW, bg);
+            
+            if (get_htp())
+            {
+                bmp_fill(bg,HDR_STATUS_POS_X-2,HDR_STATUS_POS_Y,63,76);
+                bmp_printf(FONT(FONT_MED, COLOR_YELLOW, bg), 474, 25, "HTP on");
+            }
+            
+            bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, "HDR");
+            bmp_printf(FONT(FONT_LARGE, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X+10 , HDR_STATUS_POS_Y+27,
+                "%Xx",
+                hdr_steps == 1 ? 10 : hdr_steps); // trick: when steps=1 (auto) it will display A :)
+            bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, bg), HDR_STATUS_POS_X-2 , HDR_STATUS_POS_Y+57,
+                "%s%d%sEV",
+                ((hdr_stepsize/4) % 2) ? "" : " ",
+                hdr_stepsize / 8,
+                ((hdr_stepsize/4) % 2) ? ".5" : "");
+        }
+    #else
         bmp_printf(fnt, HDR_STATUS_POS_X , HDR_STATUS_POS_Y, 
             "HDR %Xx%d%sEV",
             hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
             hdr_stepsize / 8,
             ((hdr_stepsize/4) % 2) ? ".5" : "");
+    #endif
+    }
     #endif
     #endif
 }
@@ -6768,9 +6800,26 @@ static void misc_shooting_info()
     }
 }
 
+struct msg_queue * shoot_task_mqueue = NULL;
+
+/* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
+void shoot_task_redraw()
+{
+    if(shoot_task_mqueue)
+    {
+        msg_queue_post(shoot_task_mqueue, 1);
+    }
+}
+
 static void
 shoot_task( void* unused )
 {
+    /* this is used to determine if a feature is active that requires high task rate */
+    int priority_feature_enabled = 0;
+    
+    /* creating a message queue primarily for interrupting sleep to repaint immediately */
+    shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
+     
     #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
@@ -6789,11 +6838,28 @@ shoot_task( void* unused )
     mlu_selftimer_update();
     #endif
     
+    int loops = 0;
+    int loops_abort = 0;
     TASK_LOOP
     {
-        msleep(MIN_MSLEEP);
+        int msg;
+        int delay = 50;
         
-        if (k%10 == 0) misc_shooting_info();
+        /* specify the maximum wait time */
+        if(!DISPLAY_IS_ON)
+        {
+            delay = 200;
+        }
+        if(priority_feature_enabled)
+        {
+            delay = MIN_MSLEEP;
+        }
+        
+        int err = msg_queue_receive(shoot_task_mqueue, (struct event**)&msg, delay);        
+        priority_feature_enabled = 0;
+        
+        /* when we received a message, redraw immediately */
+        if (k%5 == 0 || !err) misc_shooting_info();
         
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
@@ -7078,6 +7144,7 @@ shoot_task( void* unused )
                 
             case 2:
                 info_led_off();
+                priority_feature_enabled = 1;
                 /* some abort situation happened? */
                 if(gui_menu_shown() || !display_idle() || !HALFSHUTTER_PRESSED || !tfx || trap_focus != 2)
                 {
@@ -7096,6 +7163,7 @@ shoot_task( void* unused )
             case 3:
                 /* re-enable after pic was taken */
                 trap_focus_continuous_state = 2;
+                priority_feature_enabled = 1;
                 SW1(1,50);
                 break;        
         }
@@ -7109,14 +7177,12 @@ shoot_task( void* unused )
         #else
         int mdx = 0;
         #endif
-        
-        if (!tfx && !mdx)  // no need to react very fast, can powersave a bit
-            msleep(DISPLAY_IS_ON ? 50 : 200);
 
         #ifdef FEATURE_TRAP_FOCUS
         if (tfx) // MF
         {
             static int info_led_turned_on = 0;
+            
             if (HALFSHUTTER_PRESSED)
             {
                 info_led_on();
@@ -7161,6 +7227,7 @@ shoot_task( void* unused )
         
         if (mdx)
         {
+            priority_feature_enabled = 1;
             K = COERCE(K+1, 0, 1000);
             //~ bmp_printf(FONT_MED, 0, 50, "K= %d   ", K);
             int xcb = os.x0 + os.x_ex/2;
@@ -7257,6 +7324,7 @@ shoot_task( void* unused )
         static int lv_forced_by_md = 0;
         if (!mdx && motion_detect && motion_detect_trigger == 2 && !lv && display_idle() && get_halfshutter_pressed())
         {
+            priority_feature_enabled = 1;
             for (int i = 0; i < 10; i++)
             {
                 if (!get_halfshutter_pressed()) break;
@@ -7287,7 +7355,6 @@ shoot_task( void* unused )
             msleep(500);
             lv_forced_by_md = 0;
         }
-        
         #endif // motion detect
         
         #ifdef FEATURE_SILENT_PIC
@@ -7511,7 +7578,11 @@ shoot_task( void* unused )
     
                 if (countdown == 0)
                 {
+#if defined(CONFIG_7D)
+                    bmp_printf(FONT(FONT_MED, COLOR_FG_NONLV, (lv ? COLOR_BG : bmp_getpixel(28, 3))), (lv ? 2 : 28),  (lv ? 30 : 3), "Audio release ON (%2d / %2d)", current_pulse_level, audio_release_level);
+#else
                     bmp_printf(FONT_MED, 20,  (lv ? 40 : 3), "Audio release ON (%d / %d)   ", current_pulse_level, audio_release_level);
+#endif
                     if (current_pulse_level > (int)audio_release_level) 
                     {
                         remote_shot(1);

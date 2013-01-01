@@ -137,15 +137,28 @@
 // outside LiveView, Canon menu is a good choice
 
 // position for displaying clock outside LV
-#define DISPLAY_CLOCK_POS_X 167
-#define DISPLAY_CLOCK_POS_Y 422
+#define DISPLAY_CLOCK_POS_X 34
+#define DISPLAY_CLOCK_POS_Y 250
 
     #define MENU_DISP_ISO_POS_X 500
-    #define MENU_DISP_ISO_POS_Y 27
+#define MENU_DISP_ISO_POS_Y 37
+
+// for displaying battery
+#define DISPLAY_BATTERY_POS_X 300
+#define DISPLAY_BATTERY_POS_Y 390
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
+
+// for header footer info
+#define DISPLAY_HEADER_FOOTER_INFO
+
+// for MLU status
+#define MLU_STATUS_POS_X 550
+#define MLU_STATUS_POS_Y 303
 
 // for HDR status
-#define HDR_STATUS_POS_X 167
-#define HDR_STATUS_POS_Y 460
+#define HDR_STATUS_POS_X 634
+#define HDR_STATUS_POS_Y 29
 
     // for displaying TRAP FOCUS msg outside LV
     
@@ -225,6 +238,7 @@
 #define ARROW_MODE_TOGGLE_KEY "PicStyle"
 
 #define DISPLAY_IS_ON MEM(0x21B0) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+#define SOUNDDEV_STARTED MEM(0x1F60)
 
 #define LV_STRUCT_PTR 0x1D34
 #define FRAME_ISO *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x74) // smooth ISO is +0x60

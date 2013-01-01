@@ -124,7 +124,7 @@ NSTUB(   0x74ACC, task_dispatch_hook )
 NSTUB(0xFFCD1F34 - RAM_OFFSET, task_trampoline)
 NSTUB(0xFFCFB678 - RAM_OFFSET, vsnprintf)
 NSTUB(   0xB99DC, vram_info)
-    NSTUB(0xFF6FB53C, LiveViewShutterApp_handler)
+NSTUB(0xFF713760, LiveViewShutterApp_handler)
 
 NSTUB(0xFF52C7FC, LiveViewApp_handler)
 //    NSTUB(0xff4b09e4, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
@@ -161,7 +161,7 @@ NSTUB(0xFFCD02BC - RAM_OFFSET, msg_queue_create)
 NSTUB(0xFF10ACAC, PD_RemoteRelease) //~ string: "COM_RemoteRelease:%lx, %lx"
 
 	// for task information
-NSTUB(0x75F0C, task_max)
+NSTUB(0x75F08, task_max)
 NSTUB(0xFFD0EF90 - RAM_OFFSET, is_taskid_valid) // AJ_task_trampoline_related_p10
 NSTUB(0xFFCD4DC8 - RAM_OFFSET, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
 

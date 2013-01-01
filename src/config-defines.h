@@ -15,7 +15,6 @@
     /** Load fonts and print Hello World (disable CONFIG_EARLY_PORT); will not start any other ML tasks, handlers etc. */
     //~ #define CONFIG_HELLO_WORLD
 
-
 /**
  * Some common stuff - you can override them in platform files
  */

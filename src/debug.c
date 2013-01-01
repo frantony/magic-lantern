@@ -1721,8 +1721,16 @@ void display_clock()
     LoadCalendarFromRTC( &now );
     if (!lv)
     {
+#ifdef CONFIG_7D
+        char msg[5];
+        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
+        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
+        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
+       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
+#else
         uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
         bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
+#endif
     }
 
     static int prev_min = 0;
@@ -3184,22 +3192,21 @@ void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-#ifdef CONFIG_50D
-#define FORMAT_BTN "[FUNC]"
-#define STR_LOC 6
+#if defined(CONFIG_50D)
+    #define FORMAT_BTN "[FUNC]"
+    #define STR_LOC 6
+#elif defined(CONFIG_500D)
+    #define FORMAT_BTN "[LV]"
+    #define STR_LOC 12      //~ by the others' pattern, should this be 10 not 12?
+#elif defined(CONFIG_5D2)
+    #define FORMAT_BTN "[PicSty]"
+    #define STR_LOC 6
+#elif defined(CONFIG_EOSM)
+    #define FORMAT_BTN "[1-F. Tap]"
+    #define STR_LOC 4
 #else
- #ifdef CONFIG_500D
-  #define FORMAT_BTN "[LV]"
-  #define STR_LOC 12
- #else
-  #ifdef CONFIG_5D2
-   #define FORMAT_BTN "[PicSty]"
-   #define STR_LOC 6
-  #else
-   #define FORMAT_BTN "[Q]"
-   #define STR_LOC 11
-  #endif
- #endif
+    #define FORMAT_BTN "[Q]"
+    #define STR_LOC 11
 #endif
 
     if (keep_ml_after_format)
@@ -3379,6 +3386,31 @@ void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_UpdateSizeDisplay(0);
 }
 
+// check if autoexec.bin is present on the card
+int check_autoexec()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
+
+    
+// check if magic.fir is present on the card
+int check_fir()
+{
+    FILE * f = FIO_Open(CARD_DRIVE "MAGIC.FIR", 0);
+    if (f != (void*) -1)
+    {
+        FIO_CloseFile(f);
+        return 1;
+    }
+    return 0;
+}
+
 void CopyMLFilesBack_AfterFormat()
 {
     int i;
@@ -3404,25 +3436,16 @@ void CopyMLFilesBack_AfterFormat()
         }
     }
     
-    HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
-    bootflag_write_bootblock();
+    /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
+    if(check_autoexec())
+    {
+        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        bootflag_write_bootblock();
+    }
 
     HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
     HijackCurrentDialogBox(STR_LOC, "Format");
-    //~ NotifyBox(2000, "Magic Lantern restored :)   ");
-}
-
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_Open(CARD_DRIVE "AUTOEXEC.BIN", 0);
-    if (f != (void*) -1)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
 }
 
 void HijackFormatDialogBox_main()
@@ -3432,7 +3455,7 @@ void HijackFormatDialogBox_main()
     // at this point, Format dialog box is active
 
     // make sure we have something to restore :)
-    if (!check_autoexec()) return;
+    if (!check_autoexec() && !check_fir()) return;
 
     if (!TmpMem_Init()) return;
     
