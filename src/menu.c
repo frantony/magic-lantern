@@ -78,6 +78,7 @@ static int menu_hidden_dirty = 0;
 static int menu_zebras_mirror_dirty = 0; // to clear zebras from mirror (avoids display artifacts if, for example, you enable false colors in menu, then you disable them, and preview LV)
 static char* warning_msg = 0;
 int menu_help_active = 0;
+int page_number_active = 0;
 int submenu_mode = 0;
 int g_submenu_width = 0;
 static int menu_id_increment = 1;
@@ -306,6 +307,10 @@ static void entry_draw_icon(
 
         case IT_DICE:
             menu_draw_icon(x, y, MNI_DICE, MEM(entry->priv) | ((entry->max+1) << 16));
+            break;
+        
+        case IT_DICE_OFF:
+            menu_draw_icon(x, y, MNI_DICE_OFF, MEM(entry->priv) | ((entry->max+1) << 16));
             break;
         
         case IT_PERCENT:
@@ -849,8 +854,8 @@ void dice_icon(int x, int y, int current, int nmax)
     switch (nmax)
     {
         case 2:
-            dot(x - 6, y + 6, C(0)+2);
-            dot(x + 6, y - 6, C(1)+2);
+            dot(x - 5, y + 5, C(0)+1);
+            dot(x + 5, y - 5, C(1)+1);
             break;
         case 3:
             dot(x    , y - 7, C(0));
@@ -906,7 +911,81 @@ void dice_icon(int x, int y, int current, int nmax)
             dot(x + 10, y     , C(5));
             dot(x - 10, y + 10, C(6));
             dot(x     , y + 10, C(7));
-            dot(x + 10, y + 10, C(10));
+            dot(x + 10, y + 10, C(8));
+            break;
+        default:
+            size_icon(x, y, current, nmax);
+            break;
+    }
+    #undef C
+}
+
+void dice_off_icon(int x, int y, int current, int nmax)
+{
+    #define C(i) (current == (i) ? COLOR_GREEN1 : current ? COLOR_GRAY50 : COLOR_GRAY40), (current == (i) ? 6 : 4)
+    //~ x -= 40;
+    //~ x += 16; y += 16;
+    switch (nmax-1)
+    {
+        case 2:
+            dot(x - 5, y + 5, C(1)+1);
+            dot(x + 5, y - 5, C(2)+1);
+            break;
+        case 3:
+            dot(x    , y - 7, C(1));
+            dot(x - 7, y + 3, C(2));
+            dot(x + 7, y + 3, C(3));
+            break;
+        case 4:
+            dot(x - 6, y - 6, C(1));
+            dot(x + 6, y - 6, C(2));
+            dot(x - 6, y + 6, C(3));
+            dot(x + 6, y + 6, C(4));
+            break;
+        case 5:
+            dot(x,     y,     C(1));
+            dot(x - 8, y - 8, C(2));
+            dot(x + 8, y - 8, C(3));
+            dot(x + 8, y + 8, C(4));
+            dot(x - 8, y + 8, C(5));
+            break;
+        case 6:
+            dot(x - 10, y - 8, C(1));
+            dot(x     , y - 8, C(2));
+            dot(x + 10, y - 8, C(3));
+            dot(x - 10, y + 8, C(4));
+            dot(x     , y + 8, C(5));
+            dot(x + 10, y + 8, C(6));
+            break;
+        case 7:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y + 10, C(4));
+            dot(x     , y + 10, C(5));
+            dot(x + 10, y + 10, C(6));
+            dot(x     , y     , C(7));
+            break;
+        case 8:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y + 10, C(4));
+            dot(x     , y + 10, C(5));
+            dot(x + 10, y + 10, C(6));
+            dot(x -  5, y     , C(7));
+            dot(x +  5, y     , C(8));
+            break;
+        case 9:
+            dot(x - 10, y - 10, C(1));
+            dot(x     , y - 10, C(2));
+            dot(x + 10, y - 10, C(3));
+            dot(x - 10, y     , C(4));
+            dot(x     , y     , C(5));
+            dot(x + 10, y     , C(6));
+            dot(x - 10, y + 10, C(7));
+            dot(x     , y + 10, C(8));
+            dot(x + 10, y + 10, C(9));
             break;
         default:
             size_icon(x, y, current, nmax);
@@ -981,6 +1060,7 @@ void menu_draw_icon(int x, int y, int type, intptr_t arg)
         case MNI_PERCENT: percent(x, y, arg); return;
         case MNI_ACTION: playicon(x, y); return;
         case MNI_DICE: dice_icon(x, y, arg & 0xFFFF, arg >> 16); return;
+        case MNI_DICE_OFF: dice_off_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_SIZE: size_icon(x, y, arg & 0xFFFF, arg >> 16); return;
         case MNI_NAMED_COLOR: color_icon(x, y, (char *)arg); return;
         case MNI_SUBMENU: submenu_only_icon(x, y, arg); return;
@@ -2162,7 +2242,12 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:
-        if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
+            if (menu_help_active) { 
+			page_number_active = 1-page_number_active;
+			menu_help_redraw();
+//			menu_help_active = 0; /* menu_damage = 1; */ 
+			break; 
+		}
         else
         {
             menu_entry_select( menu, 3 ); // "SET" select
@@ -2207,7 +2292,7 @@ handle_ml_menu_keys(struct event * event)
 //~ #ifdef BGMT_JOY_CENTER
     //~ case BGMT_JOY_CENTER:
 //~ #endif
-#ifdef CONFIG_5D2
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
     case BGMT_PICSTYLE:
 #endif
 #ifdef CONFIG_50D
