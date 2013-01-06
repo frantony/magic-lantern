@@ -493,15 +493,21 @@ void free_space_show_photomode()
 	int w = bfnt_puts(msg, x, y, COLOR_CYAN, bmp_getpixel(x,y));
 	bmp_printf(FONT(SHADOW_FONT(FONT_MED), COLOR_CYAN, bmp_getpixel(x,y)), x+w+4, y+18, "GB" );
 #else
+
+#if defined DISPLAY_CLOCK_POS_X
+    int x = DISPLAY_CLOCK_POS_X - 135;
+    int y = DISPLAY_CLOCK_POS_Y;
+#else
     int x = time_indic_x + 2 * font_med.width;
     int y =  452;
+#endif
     bmp_printf(
-        FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
-        x, y,
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
+               FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bmp_getpixel(x-10,y+10)),
+               x, y,
+               "%d.%dGB",
+               fsg,
+               fsgf
+               );
 #endif
 }
 
