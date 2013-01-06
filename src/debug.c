@@ -752,8 +752,10 @@ static void stub_test_task(void* arg)
         TEST_TRY_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
         TEST_TRY_FUNC_CHECK(strcmp(a, b), > 0);
 
-        // vsnprintf
-        // variable arguments, not sure how to test
+        // vsnprintf (called by snprintf)
+        char buf[4];
+        TEST_TRY_FUNC_CHECK(snprintf(buf, 3, "%d", 1234), == 2);
+        TEST_TRY_FUNC_CHECK_STR(buf, "12");
 
         // memcpy, memset, bzero32
         char foo[] __attribute__((aligned(32))) = "qwertyuiop";
@@ -1711,34 +1713,6 @@ static void dbg_memspy_update()
     }
 }
 #endif
-
-void display_clock()
-{
-#ifdef CONFIG_PHOTO_MODE_INFO_DISPLAY
-    int bg = bmp_getpixel(15, 430);
-
-    struct tm now;
-    LoadCalendarFromRTC( &now );
-    if (!lv)
-    {
-#ifdef CONFIG_7D
-        char msg[5];
-        snprintf(msg, sizeof(msg), "%02d:%02d", now.tm_hour, now.tm_min);
-        bg = bmp_getpixel(DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y);
-        int w = bfnt_puts(msg, DISPLAY_CLOCK_POS_X , DISPLAY_CLOCK_POS_Y, COLOR_CYAN, bg);
-       	bmp_printf(FONT(FONT_MED, COLOR_CYAN, bg), DISPLAY_CLOCK_POS_X+w+2, DISPLAY_CLOCK_POS_Y+18, "%02d", now.tm_sec);
-#else
-        bg = bmp_getpixel( DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y );
-        uint32_t fnt = FONT(SHADOW_FONT(FONT_LARGE), COLOR_FG_NONLV, bg);
-        bmp_printf(fnt, DISPLAY_CLOCK_POS_X, DISPLAY_CLOCK_POS_Y, "%02d:%02d", now.tm_hour, now.tm_min);
-#endif
-    }
-
-    static int prev_min = 0;
-    if (prev_min != now.tm_min) redraw();
-    prev_min = now.tm_min;
-#endif
-}
 
 
 #if CONFIG_DEBUGMSG
