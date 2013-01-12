@@ -281,7 +281,7 @@ static void dump_logs(void* priv)
 }
 
 // http://www.iro.umontreal.ca/~simardr/rng/lfsr113.c
-unsigned int rand (void)
+int rand (void)
 {
    static unsigned int z1 = 12345, z2 = 12345, z3 = 12345, z4 = 12345;
    unsigned int b;
@@ -293,7 +293,8 @@ unsigned int rand (void)
    z3 = ((z3 & 4294967280U) << 7) ^ b;
    b  = ((z4 << 3) ^ z4) >> 12;
    z4 = ((z4 & 4294967168U) << 13) ^ b;
-   return (z1 ^ z2 ^ z3 ^ z4);
+   int ans = (z1 ^ z2 ^ z3 ^ z4);
+   return ABS(ans);
 }
 
 volatile int aff[26];
@@ -584,9 +585,10 @@ void guimode_test()
 
 void run_test()
 {
-#ifdef CONFIG_40D	
-	debug_intercept();
-#endif
+    #ifdef CONFIG_PICOC
+    msleep(3000);
+    picoc_test();
+    #endif
 }
 
 void run_in_separate_task(void (*priv)(void), int delta)

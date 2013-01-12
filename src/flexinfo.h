@@ -31,10 +31,11 @@ typedef struct
     uint32_t anchor_flags;
     uint32_t anchor;
     uint32_t anchor_flags_self;
-    int32_t abs_x;
-    int32_t abs_y;
     int32_t w;
     int32_t h;
+    uint32_t user_disable;
+    int32_t abs_x;
+    int32_t abs_y;
     uint32_t shown;
 } info_elem_pos_t;
 
@@ -90,10 +91,9 @@ typedef struct
 #define INFO_STRING_CARD_MODEL_B    33
 #define INFO_STRING_BATTERY_PCT     34
 #define INFO_STRING_BATTERY_ID      35
-#define INFO_STRING_PICTURES_3      36
-#define INFO_STRING_PICTURES_4      37
-#define INFO_STRING_PICTURES_5      38
-#define INFO_STRING_MLU             39
+#define INFO_STRING_PICTURES        36
+#define INFO_STRING_MLU             37
+#define INFO_STRING_HDR             38
 
 #define INFO_FONT_SMALL         0
 #define INFO_FONT_MEDIUM        1

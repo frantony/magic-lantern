@@ -145,9 +145,7 @@
 
 // for displaying battery
 #define DISPLAY_BATTERY_POS_X 300
-#define DISPLAY_BATTERY_POS_Y 390
-#define DISPLAY_BATTERY_LEVEL_1 60 //%
-#define DISPLAY_BATTERY_LEVEL_2 20 //%
+#define DISPLAY_BATTERY_POS_Y 403
 
 // for header footer info
 #define DISPLAY_HEADER_FOOTER_INFO
@@ -169,8 +167,8 @@
 
 // white balance shift values M2B1 in yellow
 #define WBS_POS_X 177
-#define WBS_POS_Y 426
-#define WBS_FONT FONT_LARGE
+#define WBS_POS_Y 438
+//~ #define WBS_FONT FONT_MED // not used?
 
 // Audio remote shot position info photo mode
 #define AUDIO_REM_SHOT_POS_X 28

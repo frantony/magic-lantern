@@ -9,7 +9,16 @@
 #include <version.h>
 #include <flexinfo.h>
 
+/* the menu is not so useful for end users, but makes it easy to tweak item positions for developers.
+   actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
+*/
+#define FLEXINFO_DEVELOPER_MENU
+
 #define BUF_SIZE 128
+
+// those are not camera-specific LP-E6
+#define DISPLAY_BATTERY_LEVEL_1 60 //%
+#define DISPLAY_BATTERY_LEVEL_2 20 //%
 
 /* 
    this is the definition of the info screen elements.
@@ -25,16 +34,16 @@ info_elem_t info_config[64] =
 #if defined(CONFIG_7D)
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
-    
-    /* entry 2, WB strings referenced as anchor */
-    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
-    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X - 10, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 60, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
     
     /* entry 4, battery_icon referenced as anchor */
     { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
-    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { -14, 0, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, 0, 12, 12 } },
-    { .string = { { INFO_TYPE_STRING, { 0, 2, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
-    { .string = { { INFO_TYPE_STRING, { 0, 0, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 100, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 8, 3, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { -20, 2, 2, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_LARGE } },
 
     /* entry 8, MLU string */
     { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
@@ -43,7 +52,56 @@ info_elem_t info_config[64] =
     { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
     
     /* entry 10, pictures */
-    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES_4, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+    { .fill = { { INFO_TYPE_FILL, { 540, 390, 1, 0, 0, 0, 150, 60 }}, INFO_COL_FIELD } },
+    { .string = { { INFO_TYPE_STRING, { 550, 402, 2 }}, INFO_STRING_PICTURES, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_CANON } },
+#endif
+
+#if defined(CONFIG_5D3)
+    /* print ISO range */
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, battery_icon referenced as anchor */
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 86, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 8, 0, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 4, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_LARGE } },
+
+    /* entry 8, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 9, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 10, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
+
+#if defined(CONFIG_60D)
+    /* print ISO range */
+    { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2 }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2 }}, INFO_STRING_WBS_GM, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X + 24, WBS_POS_Y, 2 }}, INFO_STRING_WBS_BA, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, battery_icon referenced as anchor */
+    { .battery_icon = { { INFO_TYPE_BATTERY_ICON, { DISPLAY_BATTERY_POS_X, DISPLAY_BATTERY_POS_Y, 2 }}, DISPLAY_BATTERY_LEVEL_2, DISPLAY_BATTERY_LEVEL_1 } },
+    { .battery_perf = { { INFO_TYPE_BATTERY_PERF, { 86, 2, 3, INFO_ANCHOR_LEFT | INFO_ANCHOR_TOP, 4 }}, /* 0=vert,1=horizontal */ 0, /* x size */ 8, /* y size */ 8 } },
+    { .string = { { INFO_TYPE_STRING, { 8, 0, 2, INFO_ANCHOR_HCENTER | INFO_ANCHOR_BOTTOM, 4, INFO_ANCHOR_HCENTER | INFO_ANCHOR_TOP }}, INFO_STRING_BATTERY_PCT, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { 4, 2, 2, INFO_ANCHOR_RIGHT | INFO_ANCHOR_TOP, 4 }}, INFO_STRING_BATTERY_ID, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_LARGE } },
+
+    /* entry 8, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2 }}, INFO_STRING_MLU, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 9, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2 }}, INFO_STRING_KELVIN, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+
+    /* entry 10, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2 }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
 
     { .type = INFO_TYPE_END },
@@ -220,6 +278,7 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%s", build_version);
             break;
         }
+#ifdef CONFIG_BATTERY_INFO
         case INFO_STRING_BATTERY_PCT:
         {
             snprintf(buffer, maxsize, "%d%%%%", GetBatteryLevel());
@@ -234,6 +293,15 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "%d", GetBatteryHist());
             break;
         }
+#else
+        case INFO_STRING_BATTERY_PCT:
+        case INFO_STRING_BATTERY_ID:
+        {
+            /* feature not enabled/available */
+            return 1;
+            break;
+        }
+#endif
         case INFO_STRING_CARD_LABEL_A:
         case INFO_STRING_CARD_LABEL_B:
         case INFO_STRING_CARD_SPACE_A:
@@ -244,22 +312,12 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
         case INFO_STRING_CARD_MAKER_B:
         case INFO_STRING_CARD_MODEL_A:
         case INFO_STRING_CARD_MODEL_B:
-            snprintf(buffer, maxsize, "(card info)");
+            snprintf(buffer, maxsize, "(n/a)");
             break;
             
-        case INFO_STRING_PICTURES_3:
+        case INFO_STRING_PICTURES:
         {
-            snprintf(buffer, maxsize, "[%3d%]", avail_shot);
-            break;
-        }
-        case INFO_STRING_PICTURES_4:
-        {
-            snprintf(buffer, maxsize, "[%4d%]", avail_shot);
-            break;
-        }
-        case INFO_STRING_PICTURES_5:
-        {
-            snprintf(buffer, maxsize, "[%5d%]", avail_shot);
+            snprintf(buffer, maxsize, "[%d]", avail_shot);
             break;
         }
         case INFO_STRING_MLU:
@@ -271,6 +329,28 @@ uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
             snprintf(buffer, maxsize, "MLU");
             break;
         }
+        case INFO_STRING_HDR:
+#ifdef FEATURE_HDR_BRACKETING
+        {
+            extern int hdr_enabled, hdr_steps, hdr_stepsize;
+            if (!hdr_enabled)
+            {
+                return 1;
+            }
+            snprintf(buffer, maxsize,
+                "HDR %Xx%d%sEV",
+                hdr_steps == 1 ? 10 : hdr_steps, // trick: when steps=1 (auto) it will display A :)
+                hdr_stepsize / 8,
+                ((hdr_stepsize/4) % 2) ? ".5" : "");
+            break;
+        }
+#else
+        {
+            /* feature not enabled/available */
+            return 1;
+            break;
+        }
+#endif
         /* error */
         default:
             return 1;
@@ -297,10 +377,14 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
             font = FONT_LARGE;
             break;
         case INFO_FONT_CANON:
+        {
             font = 0;
-            *width = bfnt_puts(string, 1000, 1000, COLOR_CYAN, 0);
-            *height = 50;
+            *width = 0;
+            for (char* c = string; *c; c++)
+                *width += bfnt_char_get_width(*c);
+            *height = 40;
             break;
+        }
         /* error */
         default:
             return 1;
@@ -385,17 +469,17 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
 uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uint32_t run_type)
 {
     char str[BUF_SIZE];
-
-    if(info_get_string(str, BUF_SIZE, element->string_type))
-    {
-        element->hdr.pos.shown = 0;
-        return 1;
-    }
     
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
     int pos_x = element->hdr.pos.abs_x;
     int pos_y = element->hdr.pos.abs_y;
+
+    if(info_get_string(str, BUF_SIZE, element->string_type))
+    {
+        element->hdr.pos.shown = 0;
+        return 1;
+    }    
 
     /* update the width/height */
     info_measure_string(str, element->font_type, &element->hdr.pos.w, &element->hdr.pos.h);
@@ -468,7 +552,10 @@ uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uin
 
 uint32_t info_print_fill(info_elem_t *config, info_elem_fill_t *element, uint32_t run_type)
 {
-    bmp_fill(element->color, element->hdr.pos.x, element->hdr.pos.y, element->hdr.pos.w, element->hdr.pos.h);
+    /* get absolute position of this element */
+    info_get_absolute(config, (info_elem_t *)element);
+
+    bmp_fill(element->color, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
     return 0;
 }
 
@@ -495,39 +582,49 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
     else
     {
         element->hdr.pos.w = width;
-        element->hdr.pos.h = 3 * height + 8;
+        element->hdr.pos.h = 3 * height + 4;
     }
     
+#ifdef CONFIG_BATTERY_INFO
     if(run_type == INFO_PRINT)
     {
+        int perf = GetBatteryPerformance();
         if(element->horizontal)
         {
-            bmp_fill((GetBatteryPerformance()<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
+            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+4+width,pos_y,width,height);
+            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x+8+2*width,pos_y,width,height);
         }
         else
         {
-            bmp_fill((GetBatteryPerformance()<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
-            bmp_fill((GetBatteryPerformance()<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+height,width,height);
-            bmp_fill((GetBatteryPerformance()<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+8+2*height,width,height);
+            bmp_fill((perf<3 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y,width,height);
+            bmp_fill((perf<2 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+2+height,width,height);
+            bmp_fill((perf<1 ? COLOR_GRAY50 : COLOR_GREEN2),pos_x,pos_y+4+2*height,width,height);
         }
     }
+#else
+    /* feature n/a, paint it red */
+    bmp_fill(COLOR_RED, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+#endif
     return 0;
 }
 
 uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *element, uint32_t run_type)
 {
-    int batlev = GetBatteryLevel();
-    int col_field = bmp_getpixel(615,455);
-    
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
-    int pos_x = element->hdr.pos.abs_x;
-    int pos_y = element->hdr.pos.abs_y;
 
     element->hdr.pos.w = 96;
     element->hdr.pos.h = 32;
+
+#if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
+
+#ifdef CONFIG_BATTERY_INFO
+    int batlev = GetBatteryLevel();
+    int col_field = bmp_getpixel(615,455);
+    
+    int pos_x = element->hdr.pos.abs_x;
+    int pos_y = element->hdr.pos.abs_y;
     
     if(run_type == INFO_PRINT)
     {
@@ -564,6 +661,12 @@ uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *
         batfil = batlev*56/100;
         bmp_fill(batcol,pos_x+18+56-batfil,pos_y+8,batfil,16);
     }
+#else
+    /* feature n/a, paint it red */
+    bmp_fill(COLOR_RED, element->hdr.pos.abs_x, element->hdr.pos.abs_y, element->hdr.pos.w, element->hdr.pos.h);
+#endif
+
+#endif
     return 0;
 }
 
@@ -608,7 +711,7 @@ uint32_t info_print_element(info_elem_t *config, info_elem_t *element, uint32_t 
 
 uint32_t info_print_config(info_elem_t *config)
 {
-    uint32_t pos = 0;
+    uint32_t pos = 1;
     int32_t z = 0;
 
     while(config[pos].type != INFO_TYPE_END)
@@ -618,7 +721,7 @@ uint32_t info_print_config(info_elem_t *config)
         pos++;
     }
     
-    pos = 0;
+    pos = 1;
     while(config[pos].type != INFO_TYPE_END)
     { 
         /* but let check if the element should get shown. this updates above flag and ensures that lower layers are only drawn if the referenced is shown */
@@ -629,7 +732,7 @@ uint32_t info_print_config(info_elem_t *config)
     z = info_get_next_z(config, 0);
     while(z != INFO_Z_END)
     {
-        pos = 0;
+        pos = 1;
         while(config[pos].type != INFO_TYPE_END)
         {
             if(z == config[pos].hdr.pos.z)
@@ -679,6 +782,8 @@ uint32_t info_print_screen()
 {
     return info_print_config(info_config);
 }
+
+#ifdef FLEXINFO_DEVELOPER_MENU
 
 void info_menu_item_select(void* priv, int delta)
 {
@@ -1019,3 +1124,4 @@ static void info_edit_task()
 TASK_CREATE( "info_edit_task", info_edit_task, 0, 0x16, 0x1000 );
 INIT_FUNC("info.init", info_init);
 
+#endif
