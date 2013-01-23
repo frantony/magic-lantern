@@ -1386,7 +1386,7 @@ menu_display(
                 bmp_printf(
                     FONT(FONT_MED, MENU_WARNING_COLOR, COLOR_BLACK),
                      10,  MENU_HELP_Y_POS, 
-                        "Press MENU to hide items. Press MENU to show them again.   "
+                        "Press SET to hide items that you don't use. MENU: go back. "
                 );
             }
 
@@ -1499,7 +1499,7 @@ menus_display(
     int         y
 )
 {
-    int         x = orig_x + 150;
+    int         x = orig_x + 130;
 
     take_semaphore( menu_sem, 0 );
 
@@ -1518,7 +1518,7 @@ menus_display(
         num_tabs++;
     }
     
-    int icon_spacing = (720 - 150) / num_tabs;
+    int icon_spacing = (720 - 130) / num_tabs;
     
     int bgs = COLOR_BLACK;
     int bgu = COLOR_GRAY40;
@@ -2267,17 +2267,10 @@ handle_ml_menu_keys(struct event * event)
     switch( button_code )
     {
     case BGMT_MENU:
-/*        if (submenu_mode) submenu_mode = 0;
-        else advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
-        menu_lv_transparent_mode = 0;
-        menu_help_active = 0;
-*/
         if (!menu_lv_transparent_mode && submenu_mode != 2)
         {
-            if (!advanced_hidden_edit_mode) advanced_hidden_edit_mode = 2;
-            else menu_entry_showhide_toggle(menu);
+            advanced_hidden_edit_mode = !advanced_hidden_edit_mode;
             menu_needs_full_redraw = 1;
-            //~ menu_hidden_should_display_help = 1;
         }
         
         break;
@@ -2347,12 +2340,16 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_JOY_CENTER:
 #endif
     case BGMT_PRESS_SET:
-            if (menu_help_active) { 
+        if (menu_help_active) { 
 			page_number_active = 1-page_number_active;
 			menu_help_redraw();
 //			menu_help_active = 0; /* menu_damage = 1; */ 
 			break; 
 		}
+        else if (advanced_hidden_edit_mode)
+        {
+            menu_entry_showhide_toggle(menu);
+        }
         else
         {
             menu_entry_select( menu, 3 ); // "SET" select
@@ -2469,16 +2466,16 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    menu_find_by_name( "Audio", ICON_MIC);
-    menu_find_by_name( "Expo", ICON_AE);
-    menu_find_by_name( "Overlay", ICON_LV);
-    menu_find_by_name( "Movie", ICON_VIDEOCAM );
-    menu_find_by_name( "Shoot", ICON_PHOTOCAM );
-    menu_find_by_name( "Focus", ICON_SHARPNESS );
-    menu_find_by_name( "Display", ICON_MONITOR );
-    menu_find_by_name( "Prefs", ICON_SMILE );
-    menu_find_by_name( "Debug", ICON_HEAD_WITH_RAYS );
-    menu_find_by_name( "Help", ICON_i );
+    menu_find_by_name( "Audio",     ICON_ML_AUDIO);
+    menu_find_by_name( "Expo",      ICON_ML_EXPO);
+    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY);
+    menu_find_by_name( "Movie",     ICON_ML_MOVIE );
+    menu_find_by_name( "Shoot",     ICON_ML_SHOOT );
+    menu_find_by_name( "Focus",     ICON_ML_FOCUS );
+    menu_find_by_name( "Display",   ICON_ML_DISPLAY );
+    menu_find_by_name( "Prefs",     ICON_ML_PREFS );
+    menu_find_by_name( "Debug",     ICON_ML_DEBUG );
+    menu_find_by_name( "Help",      ICON_ML_INFO );
 
 }
 
@@ -2539,7 +2536,7 @@ void menu_redraw_flood()
 {
     if (!lv) msleep(100);
     else if (EXT_MONITOR_CONNECTED) msleep(300);
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 10; i++)
     {
         if (redraw_flood_stop) break;
         if (!menu_shown) break;

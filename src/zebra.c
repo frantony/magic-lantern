@@ -112,7 +112,7 @@ static int yuv2rgb_BU[256];
 
 static void precompute_yuv2rgb()
 {
-#ifdef CONFIG_5D3 // REC 709
+#if defined(CONFIG_5D3) || defined(CONFIG_6D)// REC 709
     /*
     *R = *Y + 1608 * V / 1024;
     *G = *Y -  191 * U / 1024 - 478 * V / 1024;
@@ -505,7 +505,7 @@ int get_global_draw() // menu setting, or off if
             #ifdef CONFIG_5D3
             !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
             #endif
-            lens_info.job_state <= 10;
+            job_state_ready_to_take_pic();
     }
     
     if (!lv && ZEBRAS_IN_QUICKREVIEW)
@@ -4128,7 +4128,7 @@ int handle_zoom_overlay(struct event * event)
 
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && recording == 2 && MVR_FRAME_NUMBER > 10 && event->param == 
-        #ifdef CONFIG_5D3
+        #if defined(CONFIG_5D3) || defined(CONFIG_6D)
         BGMT_PRESS_ZOOMIN_MAYBE
         #else
         BGMT_UNPRESS_ZOOMIN_MAYBE
@@ -4473,7 +4473,7 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
     extern uintptr_t new_LiveViewApp_handler;
-    #ifdef CONFIG_5D3
+    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
     extern thunk LiveViewLevelApp_handler;
     #endif
     #if defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_6D)
@@ -4487,7 +4487,7 @@ int liveview_display_idle()
         ( gui_menu_shown() || // force LiveView when menu is active, but hidden
             ( gui_state == GUISTATE_IDLE && 
               (dialog->handler == (dialog_handler_t) &LiveViewApp_handler || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
-                  #ifdef CONFIG_5D3
+                  #if defined(CONFIG_5D3) || defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
                   #endif
                //~ for this, check value of get_current_dialog_handler()
@@ -4499,7 +4499,7 @@ int liveview_display_idle()
             #ifdef CURRENT_DIALOG_MAYBE_2
             CURRENT_DIALOG_MAYBE_2 <= 3 &&
             #endif
-            lens_info.job_state < 10 &&
+            job_state_ready_to_take_pic() &&
             !mirror_down )
         );
 }
@@ -4796,7 +4796,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
     if (*prev_countdown && !c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
         action_on();
         //~ msleep(500);
@@ -4804,7 +4804,7 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
     }
     else if (!*prev_countdown && c)
     {
-        info_led_blink(1, 50, 50);
+        //~ info_led_blink(1, 50, 50);
         //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
         action_off();
         //~ msleep(500);
@@ -4886,7 +4886,7 @@ static void idle_display_off()
     extern int motion_detect;
     if (!(motion_detect || recording)) PauseLiveView();
     display_off();
-    msleep(100);
+    msleep(300);
     idle_countdown_display_off = 0;
     ASSERT(!(recording && LV_PAUSED));
     ASSERT(!DISPLAY_IS_ON);
@@ -4897,12 +4897,6 @@ static void idle_display_on()
     ResumeLiveView();
     display_on();
     redraw();
-    #if 0
-    if(is_movie_mode() && !recording && start_recording_on_resume && resumed_due_to_halfshutter) {
-    	schedule_movie_start();
-        resumed_due_to_halfshutter = 0;
-    }
-    #endif
     //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
 }
 
@@ -5982,6 +5976,9 @@ void play_422(char* filename)
     else if (size == 1904 * 1274 * 2) { w = 1904; h = 1274; } 
     else if (size == 1620 * 1080 * 2) { w = 1620; h = 1080; } 
     else if (size == 1280 *  720 * 2) { w = 1280; h =  720; } 
+	else if (size == 1808 * 1206 * 2) { w = 1808; h = 1206; } // 6D
+	else if (size == 1680 *  952 * 2) { w = 1680; h =  952; } // 600D
+	else if (size == 1728 *  972 * 2) { w = 1728; h =  972; } // 600D Crop
     else
     {
         bmp_printf(FONT_LARGE, 0, 50, "Cannot preview this picture.");

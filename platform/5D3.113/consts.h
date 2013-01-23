@@ -21,7 +21,7 @@
 
 /* these are used in bitrate.c for video bitrate hacks */
 #define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0
-#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF2175E4
+#define CACHE_HACK_GOP_SIZE_SLAVE    0xFF217624
 
 
 // no idea if it's overflowing, need to check experimentally 
@@ -184,7 +184,7 @@
 #define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B98) // similar
 
-#define BULB_MIN_EXPOSURE 100
+#define BULB_MIN_EXPOSURE 500
 
 // http://magiclantern.wikia.com/wiki/Fonts
 #define BFNT_CHAR_CODES    0xf7363764

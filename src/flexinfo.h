@@ -1,5 +1,9 @@
 
 
+
+#define FLEXINFO_DEFAULT_FILENAME CARD_DRIVE"ML/SETTINGS/FLEXINFO.XML"
+
+    
 /* these are binary coded (combineable) flags to either set ABSOLUTE or like (LEFT|CENTER)
    examples:
 
@@ -124,7 +128,6 @@ typedef struct
 typedef struct
 {
     info_elem_header_t hdr;
-    uint32_t string_type;
     uint32_t color;
 } info_elem_fill_t;
 
@@ -133,7 +136,7 @@ typedef struct
     info_elem_header_t hdr;
     uint32_t show_boundaries;
     uint32_t selected_item;
-    uint32_t anchor_target;
+    char name[16];
 } info_elem_config_t;
 
 typedef struct
@@ -154,10 +157,9 @@ typedef struct
 typedef struct
 {
     info_elem_header_t hdr;
-    uint32_t string_type;
     uint32_t fgcolor;
     uint32_t bgcolor;
-    uint8_t filename;
+    char filename[32];
     uint8_t *icon_data;
 } info_elem_icon_t;
 

@@ -187,7 +187,43 @@ info_elem_t info_config[] =
     /* entry 10, HDR bracketing status */
     { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_YELLOW, INFO_COL_BG, INFO_FONT_MEDIUM } },
 #endif
+    
+#if defined(CONFIG_600D)
+    /* entry 1, max AUTO ISO */
+    { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2, .name = "Max ISO Range"  }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_GM_POS_X, WBS_GM_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_SMALL } },
+    
+    /* entry 5, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    
+    /* entry 6, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
 
+#if defined(CONFIG_650D)
+    /* entry 1, max AUTO ISO */
+    { .string = { { INFO_TYPE_STRING, { MAX_ISO_POS_X, MAX_ISO_POS_Y, 2, .name = "Max ISO Range"  }}, INFO_STRING_ISO_MAX, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
+    
+    /* entry 2 and 3, WB strings */
+    { .string = { { INFO_TYPE_STRING, { WBS_GM_POS_X, WBS_GM_POS_Y, 2, .name = "WB GM" }}, INFO_STRING_WBS_GM, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    { .string = { { INFO_TYPE_STRING, { WBS_POS_X, WBS_POS_Y, 2, .name = "WB BA" }}, INFO_STRING_WBS_BA, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+    
+    /* entry 4, MLU string */
+    { .string = { { INFO_TYPE_STRING, { MLU_STATUS_POS_X, MLU_STATUS_POS_Y, 2, .name = "MLU" }}, INFO_STRING_MLU, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_SMALL } },
+    
+    /* entry 5, kelvin */
+    { .string = { { INFO_TYPE_STRING, { WB_KELVIN_POS_X, WB_KELVIN_POS_Y, 2, .name = "Kelvin" }}, INFO_STRING_KELVIN, COLOR_FG_NONLV, INFO_COL_FIELD, INFO_FONT_MEDIUM_SHADOW } },
+    
+    /* entry 6, HDR bracketing status */
+    { .string = { { INFO_TYPE_STRING, { HDR_STATUS_POS_X, HDR_STATUS_POS_Y, 2, .name = "HDR" }}, INFO_STRING_HDR, COLOR_FG_NONLV, INFO_COL_BG, INFO_FONT_MEDIUM } },
+#endif
+    
 #if defined(CONFIG_1100D)
     /* print ISO range */
     { .string = { { INFO_TYPE_STRING, { ISO_RANGE_POS_X, ISO_RANGE_POS_Y, 2, .name = "ISO Range" }}, INFO_STRING_ISO_MINMAX, COLOR_YELLOW, INFO_COL_FIELD, INFO_FONT_MEDIUM } },
@@ -205,6 +241,715 @@ info_elem_t info_config[] =
 
     { .type = INFO_TYPE_END },
 };
+
+char *info_strncpy(char *dst, char *src, uint32_t length)
+{
+    uint32_t pos = 0;
+    
+    while(pos < length)
+    {
+        dst[pos] = src[pos];
+        if(!src[pos])
+        {
+            return dst;
+        }
+        pos++;
+    }
+    dst[pos] = 0;
+    
+    return dst;
+}
+
+uint32_t info_xml_get_element(char *config, uint32_t *start_pos, char *buf, uint32_t buf_length)
+{
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t pos = *start_pos;
+    char escape_quot = 0;
+    
+    /* skip any whitespace */
+    while(config[pos] && (config[pos] == ' ' || config[pos] == '\t' || config[pos] == '\r' || config[pos] == '\n'))
+    {
+        pos++;
+    }
+    
+    /* reached the end or no starting tag found? */
+    if(!config[pos] || config[pos] != '<')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* well, then this is our next tag */
+    pos++;
+    start = pos;
+    
+    while(config[pos] && (config[pos] != '>' || escape_quot))
+    {
+        /* ignore any tags within quotation marks, waiting for an closed quot mark of the same type */
+        if(config[pos] == '"' || config[pos] == '\'')
+        {
+            /* nothing escaped yet? */
+            if(!escape_quot)
+            {
+                /* set our current quotation mark type */
+                escape_quot = config[pos];
+            }
+            else if(escape_quot == config[pos])
+            {
+                /* same quotation mark hit again, unset it */
+                escape_quot = 0;
+            }
+        }
+        
+        /* blank out any whitespace with a real space - as long it is not in a string */
+        if(!escape_quot && (config[pos] == '\t' || config[pos] == '\r' || config[pos] == '\n'))
+        {
+            config[pos] = ' ';
+        }
+        pos++;
+    }
+
+    /* reached the end or no end tag found? */
+    if(!config[pos] || config[pos] != '>')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* well, then this is our end */
+    end = pos - 1;
+    *start_pos = pos + 1;
+    
+    /* empty tags are quite useless and not well-formed */
+    if(end < start || (end - start + 1) >= buf_length )
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* copy text */
+    info_strncpy(buf, &(config[start]), end - start + 1);
+    buf[end - start + 1] = '\0';
+    
+    return 0;
+}
+
+uint32_t info_xml_get_attribute_token(char *attribute_str, char *buf, uint32_t buf_length)
+{
+    uint32_t start = 0;
+    uint32_t end = 0;
+    uint32_t pos = 0;
+    char escape_quot = 0;
+    
+    /* skip any character until next whitespace */
+    while(attribute_str[pos] && attribute_str[pos] == ' ')
+    {
+        pos++;
+    }
+    
+    /* reached the end or tag end found? */
+    if(!attribute_str[pos] || attribute_str[pos] == '/')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    start = pos;
+    
+    while(attribute_str[pos] && ((attribute_str[pos] != ' ' && attribute_str[pos] != '/' && attribute_str[pos] != '=') || escape_quot ))
+    {
+        /* ignore any tags within quotation marks, waiting for an closed quot mark of the same type */
+        if(attribute_str[pos] == '"' || attribute_str[pos] == '\'')
+        {
+            /* nothing escaped yet? */
+            if(!escape_quot)
+            {
+                /* set our current quotation mark type */
+                escape_quot = attribute_str[pos];
+            }
+            else if(escape_quot == attribute_str[pos])
+            {
+                /* same quotation mark hit again, unset it */
+                escape_quot = 0;
+            }
+        }
+            
+        pos++;
+    }
+
+    pos--;    
+    end = pos;
+
+    if(end < pos || (end - start + 1) >= buf_length )
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+    
+    /* copy text */
+    info_strncpy(buf, &(attribute_str[start]), end - start + 1);
+    buf[end - start + 1] = '\0';
+
+    return 0;
+}
+
+/* 
+ * gets element_str = "xml_token name1=value1 name2 = value2/"
+ * and returns value for given attribute name
+ */
+uint32_t info_xml_get_attribute(char *element_str, char *attribute, char *buf, uint32_t buf_length)
+{
+    uint32_t pos = 0;
+
+    /* skip any character until next whitespace to skip tag name */
+    while(element_str[pos] && element_str[pos] != ' ')
+    {
+        pos++;
+    }
+    
+    pos++;
+    
+    /* reached the end or tag end found? */
+    if(!element_str[pos] || element_str[pos] == '/')
+    {
+        strcpy(buf, "");
+        return 1;
+    }
+        
+    /* do this until the end was reached */
+    while(1)
+    {
+        char attribute_token[32];
+        char value_token[32];
+        
+        /* skip until next non-whitespace */
+        while(element_str[pos] && element_str[pos] == ' ')
+        {
+            pos++;
+        }
+        
+        /* reached the end or tag end found? */
+        if(!element_str[pos] || element_str[pos] == '/')
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+        
+        if(info_xml_get_attribute_token(&(element_str[pos]), attribute_token, sizeof(attribute_token)))
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+
+        pos += strlen(attribute_token);
+        
+        /* skip " = " between attribute and value */
+        while(element_str[pos] && (element_str[pos] == ' ' || element_str[pos] == '='))
+        {
+            pos++;
+        }
+        
+        /* reached the end? */
+        if(!element_str[pos])
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+        
+        /* now get the value of this attribute */
+        if(info_xml_get_attribute_token(&(element_str[pos]), value_token, sizeof(value_token)))
+        {
+            strcpy(buf, "");
+            return 1;
+        }
+
+        /* if this was the token we looked for, return content */
+        if(!strcmp(attribute, attribute_token))
+        {
+            /* trim quotes */
+            if(value_token[0] == '"')
+            {
+                uint32_t len = strlen(value_token);
+                info_strncpy(value_token, &(value_token[1]), len - 2);
+            }
+            
+            info_strncpy(buf, value_token, buf_length);
+            return 0;
+        }
+        
+        pos += strlen(value_token);
+    }
+ 
+    return 1;
+}
+
+uint32_t info_xml_parse_pos(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    /* all element have x/y etc */
+    if(!info_xml_get_attribute(config_str, "x", buf, sizeof(buf)))
+    {
+        config->hdr.pos.x = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "y", buf, sizeof(buf)))
+    {
+        config->hdr.pos.y = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "z", buf, sizeof(buf)))
+    {
+        config->hdr.pos.z = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "w", buf, sizeof(buf)))
+    {
+        config->hdr.pos.w = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "h", buf, sizeof(buf)))
+    {
+        config->hdr.pos.h = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor_flags", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor_flags = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "anchor_flags_self", buf, sizeof(buf)))
+    {
+        config->hdr.pos.anchor_flags_self = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "user_disable", buf, sizeof(buf)))
+    {
+        config->hdr.pos.user_disable = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "name", buf, sizeof(buf)))
+    {
+        info_strncpy(config->hdr.pos.name, buf, sizeof(config->hdr.pos.name));
+    }
+    
+    return 0;
+}
+
+
+uint32_t info_xml_parse_string(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_STRING;
+    
+    if(!info_xml_get_attribute(config_str, "string_type", buf, sizeof(buf)))
+    {
+        config->string.string_type = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
+    {
+        config->string.fgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "bgcolor", buf, sizeof(buf)))
+    {
+        config->string.bgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "font_type", buf, sizeof(buf)))
+    {
+        config->string.font_type = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_fill(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_FILL;
+    
+    if(!info_xml_get_attribute(config_str, "color", buf, sizeof(buf)))
+    {
+        config->fill.color = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_battery_icon(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_BATTERY_ICON;
+    
+    if(!info_xml_get_attribute(config_str, "pct_red", buf, sizeof(buf)))
+    {
+        config->battery_icon.pct_red = atoi(buf);
+    }
+    
+    if(!info_xml_get_attribute(config_str, "pct_yellow", buf, sizeof(buf)))
+    {
+        config->battery_icon.pct_yellow = atoi(buf);
+    }
+    
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_battery_perf(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_BATTERY_PERF;
+    
+    if(!info_xml_get_attribute(config_str, "horizontal", buf, sizeof(buf)))
+    {
+        config->battery_perf.horizontal = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "width", buf, sizeof(buf)))
+    {
+        config->battery_perf.width = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "height", buf, sizeof(buf)))
+    {
+        config->battery_perf.height = atoi(buf);
+    }
+    
+    return 0;
+}
+
+uint32_t info_xml_parse_icon(info_elem_t *config, char *config_str)
+{
+    char buf[32];
+    
+    uint32_t ret = info_xml_parse_pos(config, config_str);
+    
+    if(ret)
+    {
+        return ret;
+    }
+    
+    config->type = INFO_TYPE_ICON;
+    
+    if(!info_xml_get_attribute(config_str, "fgcolor", buf, sizeof(buf)))
+    {
+        config->icon.fgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "bgcolor", buf, sizeof(buf)))
+    {
+        config->icon.bgcolor = atoi(buf);
+    }
+    if(!info_xml_get_attribute(config_str, "filename", buf, sizeof(buf)))
+    {
+        info_strncpy(config->icon.filename, buf, sizeof(config->icon.filename));
+    }
+    
+    return 0;
+}
+
+uint32_t info_load_config(char *filename)
+{
+	uint32_t allocated_elements = 32;
+    uint32_t size = 0;
+    uint32_t done = 0;
+    uint32_t config_string_pos = 0;
+    uint32_t config_element_pos = 0;
+    char xml_element[256];
+    char attr_buf[64];
+
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+    {
+        return 1;
+	}
+
+	char *xml_config = alloc_dma_memory(size + 1);
+    xml_config[size] = '\0';
+	if (!xml_config)
+	{
+        return 1;
+	}
+
+	if ((unsigned)read_file(filename, xml_config, size)!=size)
+	{
+        free_dma_memory(xml_config);
+        return 1;
+	}
+    
+    /* read first xml token */
+    if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
+    {
+        free_dma_memory(xml_config);
+        return 1;
+    }
+    
+    /* should be a flexinfo */
+    if(strncmp(xml_element, "flexinfo", 8))
+    {
+        free_dma_memory(xml_config);
+        return 1;
+    }
+    
+    /* attribute tells how many elements are allocated */
+    if(!info_xml_get_attribute(xml_element, "elements", attr_buf, sizeof(attr_buf)))
+    {
+        allocated_elements = atoi(attr_buf) + 3;
+    }
+    
+    /* allocate the new config */
+    info_elem_t *new_config = (info_elem_t *)alloc_dma_memory(allocated_elements*sizeof(info_elem_t));
+    memset(new_config, 0, allocated_elements*sizeof(info_elem_t));
+    
+    /* first is config header */
+    new_config[config_element_pos].type = INFO_TYPE_CONFIG;
+    
+    /* config/root element has one configurable attribute. but may be omitted */
+    if(!info_xml_get_attribute(xml_element, "name", attr_buf, sizeof(attr_buf)))
+    {
+        info_strncpy(new_config[config_element_pos].config.name, attr_buf, sizeof(new_config[config_element_pos].config.name));
+    }
+    
+    config_element_pos++;
+    
+    do
+    {
+        uint32_t ret = 1;
+        info_elem_t *element = &(new_config[config_element_pos]);
+
+        /* read next element */
+        if(info_xml_get_element(xml_config, &config_string_pos, xml_element, sizeof(xml_element)))
+        {
+            free_dma_memory(new_config);
+            free_dma_memory(xml_config);
+            return 1;
+        }
+        
+        if(!strncmp(xml_element, "string", 6))
+        {
+            ret = info_xml_parse_string(element, xml_element);
+        }
+        if(!strncmp(xml_element, "fill", 4))
+        {
+            ret = info_xml_parse_fill(element, xml_element);
+        }
+        if(!strncmp(xml_element, "battery_icon", 12))
+        {
+            ret = info_xml_parse_battery_icon(element, xml_element);
+        }
+        if(!strncmp(xml_element, "battery_perf", 12))
+        {
+            ret = info_xml_parse_battery_perf(element, xml_element);
+        }
+        if(!strncmp(xml_element, "icon", 4))
+        {
+            ret = info_xml_parse_icon(element, xml_element);
+        }
+        if(!strncmp(xml_element, "/flexinfo", 9))
+        {
+            element->type = INFO_TYPE_END;
+            done = 1;
+            ret = 0;
+        }
+        
+        config_element_pos++;
+        if(ret || allocated_elements < config_element_pos)
+        {
+            free_dma_memory(new_config);
+            free_dma_memory(xml_config);
+            return ret;
+        }
+        
+    } while (!done);
+
+    free_dma_memory(xml_config);    
+    free_dma_memory(new_config);    
+    memcpy(info_config, new_config, config_element_pos * sizeof(info_elem_t));
+    return 0;
+}
+
+uint32_t info_save_config(info_elem_t *config, char *file)
+{
+    uint32_t pos = 1;
+    uint32_t elements = 0;
+    
+    while(config[elements].type != INFO_TYPE_END)
+    {
+        elements++;
+    }
+        
+    FILE* f = FIO_CreateFileEx(file);
+    if(!f)
+    {
+        return 1;
+    }
+    
+    my_fprintf(f, "<flexinfo elements=%d>\n", elements - 1);
+    
+    while(config[pos].type != INFO_TYPE_END)
+    {
+        my_fprintf(f, "    ");
+        switch(config[pos].type)
+        {
+            case INFO_TYPE_STRING:
+                my_fprintf(f, "<string ");
+                break;
+            case INFO_TYPE_BATTERY_ICON:
+                my_fprintf(f, "<battery_icon ");
+                break;
+            case INFO_TYPE_BATTERY_PERF:
+                my_fprintf(f, "<battery_perf ");
+                break;
+            case INFO_TYPE_FILL:
+                my_fprintf(f, "<fill ");
+                break;
+            case INFO_TYPE_ICON:
+                my_fprintf(f, "<icon ");
+                break;
+        }
+        
+        /* dump position field data */
+        my_fprintf(f, "name=\"%s\" ", config[pos].hdr.pos.name);
+        if(config[pos].hdr.pos.x)
+        {
+            my_fprintf(f, "x=%d ", config[pos].hdr.pos.x);
+        }
+        if(config[pos].hdr.pos.y)
+        {
+            my_fprintf(f, "y=%d ", config[pos].hdr.pos.y);
+        }
+        if(config[pos].hdr.pos.z)
+        {
+            my_fprintf(f, "z=%d ", config[pos].hdr.pos.z);
+        }
+        if(config[pos].hdr.pos.w)
+        {
+            my_fprintf(f, "w=%d ", config[pos].hdr.pos.w);
+        }
+        if(config[pos].hdr.pos.h)
+        {
+            my_fprintf(f, "h=%d ", config[pos].hdr.pos.h);
+        }
+        if(config[pos].hdr.pos.anchor_flags)
+        {
+            my_fprintf(f, "anchor_flags=%d ", config[pos].hdr.pos.anchor_flags);
+        }
+        if(config[pos].hdr.pos.anchor)
+        {
+            my_fprintf(f, "anchor=%d ", config[pos].hdr.pos.anchor);
+        }
+        if(config[pos].hdr.pos.anchor_flags_self)
+        {
+            my_fprintf(f, "anchor_flags_self=%d ", config[pos].hdr.pos.anchor_flags_self);
+        }
+        if(config[pos].hdr.pos.user_disable)
+        {
+            my_fprintf(f, "user_disable=%d ", config[pos].hdr.pos.user_disable);
+        }
+        
+        switch(config[pos].type)
+        {
+            case INFO_TYPE_STRING:
+                if(config[pos].string.string_type)
+                {
+                    my_fprintf(f, "string_type=%d ", config[pos].string.string_type);
+                }
+                if(config[pos].string.fgcolor)
+                {
+                    my_fprintf(f, "fgcolor=%d ", config[pos].string.fgcolor);
+                }
+                if(config[pos].string.bgcolor)
+                {
+                    my_fprintf(f, "bgcolor=%d ", config[pos].string.bgcolor);
+                }
+                if(config[pos].string.font_type)
+                {
+                    my_fprintf(f, "font_type=%d ", config[pos].string.font_type);
+                }
+                break;
+                
+            case INFO_TYPE_BATTERY_ICON:
+                if(config[pos].battery_icon.pct_red)
+                {
+                    my_fprintf(f, "pct_red=%d ", config[pos].battery_icon.pct_red);
+                }
+                if(config[pos].battery_icon.pct_yellow)
+                {
+                    my_fprintf(f, "pct_yellow=%d ", config[pos].battery_icon.pct_yellow);
+                }
+                break;
+                
+            case INFO_TYPE_BATTERY_PERF:
+                if(config[pos].battery_perf.horizontal)
+                {
+                    my_fprintf(f, "horizontal=%d ", config[pos].battery_perf.horizontal);
+                }
+                if(config[pos].battery_perf.width)
+                {
+                    my_fprintf(f, "width=%d ", config[pos].battery_perf.width);
+                }
+                if(config[pos].battery_perf.height)
+                {
+                    my_fprintf(f, "height=%d ", config[pos].battery_perf.height);
+                }
+                break;
+                
+            case INFO_TYPE_FILL:
+                if(config[pos].fill.color)
+                {
+                    my_fprintf(f, "color=%d ", config[pos].fill.color);
+                }
+                break;
+                
+            case INFO_TYPE_ICON:
+                my_fprintf(f, "filename=\"%s\"", config[pos].icon.filename);
+                if(config[pos].icon.fgcolor)
+                {
+                    my_fprintf(f, "fgcolor=%d ", config[pos].icon.fgcolor);
+                }
+                if(config[pos].icon.bgcolor)
+                {
+                    my_fprintf(f, "bgcolor=%d ", config[pos].icon.bgcolor);
+                }
+                break;
+            break;
+        }
+        my_fprintf(f, "/>\n");
+        pos++;
+    }
+    
+    my_fprintf(f, "</flexinfo>\n");
+    FIO_CloseFile(f);
+    
+    return 0;
+}
+
+/* ********************************************************************************** */
+
 
 uint32_t info_get_string(char *buffer, uint32_t maxsize, uint32_t string_type)
 {
@@ -544,8 +1289,48 @@ uint32_t info_measure_string(char *string, uint32_t font_type, int32_t *width, i
     return 0;
 }
 
+uint32_t info_get_anchor_offset(info_elem_t *element, uint32_t flags, int32_t *offset_x, int32_t *offset_y)
+{
+    switch(flags & INFO_ANCHOR_H_MASK)
+    {
+        case INFO_ANCHOR_LEFT:
+            *offset_x = 0;
+            break;
+        case INFO_ANCHOR_HCENTER:
+            *offset_x = element->hdr.pos.w / 2;
+            break;
+        case INFO_ANCHOR_RIGHT:
+            *offset_x = element->hdr.pos.w;
+            break;
+        default:
+            *offset_x = 0;
+            break;
+    }
+
+    switch(flags & INFO_ANCHOR_V_MASK)
+    {
+        case INFO_ANCHOR_TOP:
+            *offset_y = 0;
+            break;
+        case INFO_ANCHOR_VCENTER:
+            *offset_y = element->hdr.pos.h / 2;
+            break;
+        case INFO_ANCHOR_BOTTOM:
+            *offset_y = element->hdr.pos.h;
+            break;
+        default:
+            *offset_y = 0;
+            break;
+    }
+
+    return 0;
+}
+
 uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
 {
+    int32_t offset_x = 0;
+    int32_t offset_y = 0;
+    
     /* in case of absolute positioning, this is the absolute pos else it is the offset from the anchor */
     element->hdr.pos.abs_x = element->hdr.pos.x;
     element->hdr.pos.abs_y = element->hdr.pos.y;
@@ -556,66 +1341,40 @@ uint32_t info_get_absolute(info_elem_t *config, info_elem_t *element)
         /* determine position from referenced element identified by 'anchor' and update pos_x, pos_y (they contain the offset) */
         info_elem_t *anchor = &(config[element->hdr.pos.anchor]);
         
-        if(!element->hdr.pos.shown)
+        if(!anchor->hdr.pos.shown)
         {
-            anchor->hdr.pos.shown = 0;
+            element->hdr.pos.shown = 0;
         }
-
-        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
+        
+        /* calculate anchor offset from top left of anchor item */
+        info_get_anchor_offset(anchor, element->hdr.pos.anchor_flags, &offset_x, &offset_y);
+        
+        /* if any coordinate was specified to be relative (anchored), update it */
+        if(element->hdr.pos.anchor_flags & INFO_ANCHOR_H_MASK)
         {
-            case INFO_ANCHOR_LEFT:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x;
-                break;
-            case INFO_ANCHOR_HCENTER:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w / 2;
-                break;
-            case INFO_ANCHOR_RIGHT:
-                element->hdr.pos.abs_x += anchor->hdr.pos.x + anchor->hdr.pos.w;
-                break;
+            element->hdr.pos.abs_x += anchor->hdr.pos.abs_x + offset_x;
         }
-
-        switch(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
+        if(element->hdr.pos.anchor_flags & INFO_ANCHOR_V_MASK)
         {
-            case INFO_ANCHOR_TOP:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y;
-                break;
-            case INFO_ANCHOR_VCENTER:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h / 2;
-                break;
-            case INFO_ANCHOR_BOTTOM:
-                element->hdr.pos.abs_y += anchor->hdr.pos.y + anchor->hdr.pos.h;
-                break;
-        }
-
-        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
-        {
-            case INFO_ANCHOR_LEFT:
-                element->hdr.pos.abs_x += 0;
-                break;
-            case INFO_ANCHOR_HCENTER:
-                element->hdr.pos.abs_x += -element->hdr.pos.w / 2;
-                break;
-            case INFO_ANCHOR_RIGHT:
-                element->hdr.pos.abs_x += -element->hdr.pos.w;
-                break;
-        }
-
-        switch(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
-        {
-            case INFO_ANCHOR_TOP:
-                element->hdr.pos.abs_y += 0;
-                break;
-            case INFO_ANCHOR_VCENTER:
-                element->hdr.pos.abs_y += -element->hdr.pos.h / 2;
-                break;
-            case INFO_ANCHOR_BOTTOM:
-                element->hdr.pos.abs_y += -element->hdr.pos.h;
-                break;
+            element->hdr.pos.abs_y += anchor->hdr.pos.abs_y + offset_y;
         }
     }
+
+    /* translate position by own anchor offset */
+    info_get_anchor_offset(element, element->hdr.pos.anchor_flags_self, &offset_x, &offset_y);
+    
+    /* if any coordinate was specified to be relative (anchored), update it */
+    if(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_H_MASK)
+    {
+        element->hdr.pos.abs_x -= offset_x;
+    }
+    if(element->hdr.pos.anchor_flags_self & INFO_ANCHOR_V_MASK)
+    {
+        element->hdr.pos.abs_y -= offset_y;
+    }
+    
     return 0;
 }
-
     
 uint32_t info_print_string(info_elem_t *config, info_elem_string_t *element, uint32_t run_type)
 {
@@ -790,17 +1549,17 @@ uint32_t info_print_battery_perf(info_elem_t *config, info_elem_battery_perf_t *
 
 uint32_t info_print_battery_icon(info_elem_t *config, info_elem_battery_icon_t *element, uint32_t run_type)
 {
+    element->hdr.pos.w = 96;
+    element->hdr.pos.h = 32;
+    
     /* get absolute position of this element */
     info_get_absolute(config, (info_elem_t *)element);
-    
+
     /* anchor not shown or nothing to print */
     if(!element->hdr.pos.shown)
     {
         return 1;
     }
-
-    element->hdr.pos.w = 96;
-    element->hdr.pos.h = 32;
 
 #if 0 // fights with Canon icon; do not draw, but keep it for positioning the other elements
 
@@ -956,7 +1715,7 @@ uint32_t info_print_config(info_elem_t *config)
     while(config[pos].type != INFO_TYPE_END)
     {
         /* by default all are set as shown */
-        config[pos].hdr.pos.shown = 1;
+        config[pos].hdr.pos.shown = !config[pos].hdr.pos.user_disable;
         pos++;
     }
     
@@ -985,16 +1744,18 @@ uint32_t info_print_config(info_elem_t *config)
                 }
                 
                 /* paint border around item and some label when the item was selected */
-                if(config[0].config.show_boundaries || config[0].config.selected_item == pos || config[0].config.anchor_target == pos)
+                uint32_t selected_item = config[0].config.selected_item;
+                
+                if(config[0].config.show_boundaries || selected_item == pos || config[selected_item].hdr.pos.anchor == pos)
                 {
                     int color = COLOR_RED;
                     
                     /* the currently selected item is drawn green and the anchor target is drawn blue */
-                    if(config[0].config.selected_item == pos)
+                    if(selected_item == pos)
                     {
                         color = COLOR_GREEN1;
                     }
-                    else if(config[0].config.anchor_target == pos)
+                    else if(config[selected_item].hdr.pos.anchor == pos)
                     {
                         color = COLOR_BLUE;
                     }
@@ -1014,10 +1775,27 @@ uint32_t info_print_config(info_elem_t *config)
                         bmp_fill(color,config[pos].hdr.pos.abs_x,config[pos].hdr.pos.abs_y,8,8);
                     }
                     
+                    if(selected_item == pos)
+                    {
+                        /* draw anchor line */
+                        info_elem_t *anchor = &(config[config[pos].hdr.pos.anchor]);
+                        int32_t anchor_offset_x = 0;
+                        int32_t anchor_offset_y = 0;
+                        int32_t element_offset_x = 0;
+                        int32_t element_offset_y = 0;
+                        
+                        info_get_anchor_offset(anchor, config[pos].hdr.pos.anchor_flags, &anchor_offset_x, &anchor_offset_y);
+                        info_get_anchor_offset(&(config[pos]), config[pos].hdr.pos.anchor_flags_self, &element_offset_x, &element_offset_y);
+                        
+                        draw_line(anchor->hdr.pos.abs_x + anchor_offset_x, anchor->hdr.pos.abs_y + anchor_offset_y, config[pos].hdr.pos.abs_x + element_offset_x, config[pos].hdr.pos.abs_y + element_offset_y, COLOR_WHITE);
+                    }
+                    
                     /* now put the title bar */
-                    char buf[32];
+                    char label[64];
                     int offset = 0;
                     int font_height = fontspec_font(FONT_SMALL)->height;
+                    
+                    strcpy(label, "");
                     
                     /* position properly when the item is at some border */
                     if(font_height > config[pos].hdr.pos.abs_y)
@@ -1032,10 +1810,20 @@ uint32_t info_print_config(info_elem_t *config)
                     /* any name to print? */
                     if(strlen(config[pos].hdr.pos.name) > 0)
                     {
-                        snprintf(buf, sizeof(buf), "%s", config[pos].hdr.pos.name);
-                        int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
-                        bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), buf);
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%s ", config[pos].hdr.pos.name);
+                        strcpy(&label[strlen(label)], buf);
                     }
+                    
+                    if(config[0].config.show_boundaries)
+                    {
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "%d draws ", config[pos].hdr.pos.redraws);
+                        strcpy(&label[strlen(label)], buf);
+                    }
+                    
+                    int fnt = FONT(FONT_SMALL, COLOR_WHITE, color);
+                    bmp_printf(fnt, COERCE(config[pos].hdr.pos.abs_x, 0, 720), COERCE(config[pos].hdr.pos.abs_y + offset, 0, 480), label);
                 }
             }
             pos++;
@@ -1304,6 +2092,47 @@ void info_menu_item_anchor_self_select(void* priv, int delta)
     }
 }
 
+
+void info_menu_item_hide_select(void* priv, int delta)
+{
+    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
+    
+    item->hdr.pos.user_disable = !item->hdr.pos.user_disable;
+}
+
+void info_menu_item_hide_display(void *priv, int x, int y, int selected)
+{
+    char menu_line[64];
+    info_elem_t *config = (info_elem_t *)priv;
+    info_elem_t *item = (info_elem_t *) &config[config[0].config.selected_item];
+    
+    if(config[0].config.selected_item)
+    {
+        if(item->hdr.pos.user_disable)
+        {
+            snprintf(menu_line, sizeof(menu_line), "Show Item");
+        }
+        else
+        {
+            snprintf(menu_line, sizeof(menu_line), "Hide Item");
+        }
+    }
+    else
+    {
+        snprintf(menu_line, sizeof(menu_line), "Anchor item: (none)");
+    }
+    
+    if(selected && config[0].config.selected_item)
+    {
+        strcpy(info_current_menu, menu_line);
+    }
+    else
+    {
+        bmp_printf(MENU_FONT, x, y, menu_line);
+    }
+}
+
 void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
 {
     char menu_line[64];
@@ -1337,10 +2166,21 @@ void info_menu_item_anchor_self_display(void *priv, int x, int y, int selected)
     }
     
 }
+void info_menu_save_select(void* priv, int delta)
+{
+    info_save_config(info_config, FLEXINFO_DEFAULT_FILENAME);
+}
+
+void info_menu_save_display(void *priv, int x, int y, int selected)
+{
+    bmp_printf(MENU_FONT, x, y, "Save config");
+}
+
 
 void info_menu_reset_select(void* priv, int delta)
 {
-    /* ToDo */
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
+    info_print_config(info_config);
 }
 
 void info_menu_reset_display(void *priv, int x, int y, int selected)
@@ -1402,6 +2242,14 @@ static struct menu_entry info_menus[] = {
                 .help = "Select a specific element for editing.",
             },
             {
+                .name = "Hide Item",
+                .priv = info_config,
+                .max = 1,
+                .select = info_menu_item_hide_select,
+                .display = info_menu_item_hide_display,
+                .help = "Show or hide the item.",
+            },
+            {
                 .name = "Pos X",
                 .priv = info_config,
                 .min = 0,
@@ -1438,11 +2286,27 @@ static struct menu_entry info_menus[] = {
                 .help = "Select anchor type.",
             },
             {
+                .name = "Anchor own",
+                .priv = info_config,
+                .min = 0,
+                .max = 9,
+                .select = info_menu_item_anchor_self_select,
+                .display = info_menu_item_anchor_self_display,
+                .help = "Select own anchor type.",
+            },
+            {
                 .name = "Anchor item",
                 .priv = info_config,
                 .select = info_menu_item_anchor_item_select,
                 .display = info_menu_item_anchor_item_display,
                 .help = "Select Anchor item.",
+            },
+            {
+                .name = "Save config",
+                .priv = info_config,
+                .select = info_menu_save_select,
+                .display = info_menu_save_display,
+                .help = "Save menu settings",
             },
             {
                 /* this item is the last and thus overwrites the whole screen when editing */
@@ -1460,6 +2324,7 @@ static struct menu_entry info_menus[] = {
 static void info_init()
 {
     menu_add( "Prefs", info_menus, COUNT(info_menus) );
+    info_load_config(FLEXINFO_DEFAULT_FILENAME);
 }
 
 static void info_edit_task()

@@ -128,7 +128,6 @@ static CONFIG_INT("hdr.scripts", hdr_scripts, 2); //1 enfuse, 2 align+enfuse, 3 
 
 static CONFIG_INT( "interval.timer.index", interval_timer_index, 10 );
 static CONFIG_INT( "interval.start.timer.index", interval_start_timer_index, 3 );
-static CONFIG_INT( "interval.movie.duration.index", interval_movie_duration_index, 2);
 static CONFIG_INT( "interval.stop_after", interval_stop_after, 0 );
 static CONFIG_INT( "interval.use_autofocus", interval_use_autofocus, 0 );
 //~ static CONFIG_INT( "interval.stop.after", interval_stop_after, 0 );
@@ -411,14 +410,8 @@ interval_timer_display( void * priv, int x, int y, int selected )
         bmp_printf(
             selected ? MENU_FONT_SEL : MENU_FONT,
             x, y,
-            "%s: %s%s",
-            (!is_movie_mode() || silent_pic_enabled) ? 
-                "Take a pic every" : 
-                "REC a clip every",
-            format_time_hours_minutes_seconds(d),
-            (!is_movie_mode() || silent_pic_enabled) ? // possible jitter warning
-                (raw2shutter_ms(lens_info.raw_shutter) > (d-1) * 1000 + 500 ? " Jitter!" : "" ) 
-            : "" // movie mode, no warning
+            "Take a pic every: %s",
+            format_time_hours_minutes_seconds(d)
         );
     }
     
@@ -454,32 +447,14 @@ interval_stop_after_display( void * priv, int x, int y, int selected )
 }
 
 static void
-interval_movie_stop_display( void * priv, int x, int y, int selected )
-{
-    interval_movie_duration_index = COERCE(interval_movie_duration_index, 0, interval_timer_index-1);
-    int d = timer_values[interval_movie_duration_index];
-
-    if ((is_movie_mode() && !silent_pic_enabled) || selected)
-    {
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Stop REC after  : %s",
-            format_time_hours_minutes_seconds(d)
-        );
-        if (!is_movie_mode() || silent_pic_enabled)
-            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Movie mode inactive.");
-        else
-            menu_draw_icon(x, y, MNI_PERCENT, (*(int*)priv) * 100 / COUNT(timer_values));
-    }
-    else menu_draw_icon(x, y, MNI_NONE, 0);
-}
-
-static void
 interval_timer_toggle( void * priv, int delta )
 {
     int * ptr = priv;
-    *ptr = mod(*ptr + delta, COUNT(timer_values));
+
+    if (priv == &interval_start_timer_index)
+        *ptr = mod(*ptr + delta - 1, COUNT(timer_values) - 1) + 1;
+    else
+        *ptr = mod(*ptr + delta, COUNT(timer_values));
 }
 
 static void
@@ -518,7 +493,7 @@ intervalometer_display( void * priv, int x, int y, int selected )
             x, y,
             "Intervalometer  : ON, %s%s",
             format_time_hours_minutes_seconds(d),
-            bulb_ramping_enabled ? ", BRamp" : (!is_movie_mode() || silent_pic_enabled) ? "" : ", Movie"
+            bulb_ramping_enabled ? ", BRamp" : ""
         );
         if (selected) timelapse_calc_display(&interval_timer_index, 10, 370, selected);
     }
@@ -840,8 +815,12 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-    ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
-    
+#if defined(CONFIG_6D) 
+ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
+   
+#else
+   ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
+#endif    
     zoom_sharpen_step();
     zoom_auto_exposure_step();
     
@@ -904,6 +883,12 @@ int handle_mlu_handheld(struct event * event)
 {
     if (MLU_HANDHELD && !lv)
     {
+        extern int ml_taking_pic;
+        if (ml_taking_pic) return 1; // do not use this feature for pictures initiated by ML code
+        if (HDR_ENABLED) return 1; // may interfere with HDR bracketing
+        if (trap_focus) return 1; // may not play nice with trap focus
+        if (is_bulb_mode()) return 1; // not good in bulb mode
+
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug && event->param == GMT_OLC_INFO_CHANGED)
         {
@@ -1276,10 +1261,10 @@ void playback_compare_images_task(int dir)
 {
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
-    
+
     if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
     if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
-    
+
     if (dir == 0) // reserved for intervalometer
     {
         next_image_in_play_mode(-1);
@@ -2000,7 +1985,7 @@ analog_iso_toggle( void * priv, int sign )
     int r = lens_info.raw_iso;
     int a, d;
     split_iso(r, &a, &d);
-    a = COERCE(a + sign * 8, 72, 112);
+    a = COERCE(a + sign * 8, MIN_ISO, MAX_ANALOG_ISO);
     lens_set_rawiso(a + d);
 }
 
@@ -2010,7 +1995,7 @@ digital_iso_toggle( void * priv, int sign )
     int r = lens_info.raw_iso;
     int a, d;
     split_iso(r, &a, &d);
-    d = COERCE(d + sign, -3, (a == 112 ? 16 : 4));
+    d = COERCE(d + sign, -3, (a == MAX_ANALOG_ISO ? 16 : 4));
     while (d > 8 && d < 16) d += sign;
     lens_set_rawiso(a + d);
 }
@@ -2019,7 +2004,7 @@ void
 fullstop_iso_toggle( void * priv, int sign )
 {
     int min_iso = MIN_ISO; // iso 100 or 200D+
-    int max_iso = 120; // iso 6400
+    int max_iso = MAX_ISO; // max ISO
     int r = lens_info.raw_iso;
     if (!r) r = sign > 0 ? min_iso-8 : max_iso+8;
     int rounded = ((r+3)/8) * 8;
@@ -3320,7 +3305,7 @@ void ensure_bulb_mode()
 {
 #ifdef CONFIG_BULB
 
-    lens_wait_readytotakepic(64);
+    while (lens_info.job_state) msleep(100);
 
     #ifdef CONFIG_SEPARATE_BULB_MODE
         int a = lens_info.raw_aperture;
@@ -3334,6 +3319,10 @@ void ensure_bulb_mode()
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
         prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
     #endif
+    
+    SetGUIRequestMode(0);
+    while (!display_idle()) msleep(100);
+    
 #endif
 }
 
@@ -3362,10 +3351,17 @@ void
 bulb_take_pic(int duration)
 {
 #ifdef CONFIG_BULB
+
+    extern int ml_taking_pic;
+    if (ml_taking_pic) return;
+    ml_taking_pic = 1;
+
+
     //~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
     int m0r = shooting_mode;
+
     ensure_bulb_mode();
     
     assign_af_button_to_star_button();
@@ -3379,12 +3375,11 @@ bulb_take_pic(int duration)
     // with this, clock_task will update the millisecond timer as fast as it can
     bulb_exposure_running_accurate_clock_needed = 1;
     
-    SW1(1,100);
-    msleep(200);
+    SW1(1,300);
     
     int t_start = get_ms_clock_value();
     int t_end = t_start + duration;
-    SW2(1,100);
+    SW2(1,300);
     
     //~ msleep(duration);
     //int d = duration/1000;
@@ -3402,6 +3397,13 @@ bulb_take_pic(int duration)
         
         // for 550D and other cameras that may keep the display on during bulb exposures -> always turn it off
         if (DISPLAY_IS_ON && s==1) fake_simple_button(BGMT_INFO);
+
+        // tell how many minutes the exposure will take
+        if (s == 2)
+        {
+            int d = duration / 1000;
+            if (d/60) { beep_times(d/60); msleep(500); }
+        }
         
         // turn off the LED - no light pollution, please :)
         // but blink it quickly every 10 seconds to have some feedback
@@ -3411,14 +3413,14 @@ bulb_take_pic(int duration)
         if (s % 60 == 1) { msleep(200); _card_led_on(); msleep(10); _card_led_off(); if (s/60) beep_times(s/60); }
         
         // exposure was canceled earlier by user
-        if (lens_info.job_state < 10) 
+        if (job_state_ready_to_take_pic()) 
         {
             beep();
             break;
         }
     }
     
-    while (get_ms_clock_value() < t_end && lens_info.job_state >= 10)
+    while (get_ms_clock_value() < t_end && !job_state_ready_to_take_pic())
         msleep(MIN_MSLEEP);
     
     //~ NotifyBox(3000, "BulbEnd");
@@ -3435,6 +3437,8 @@ bulb_take_pic(int duration)
     prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
+    
+    ml_taking_pic = 0;
 #endif
 }
 
@@ -3540,6 +3544,33 @@ mlu_display( void * priv, int x, int y, int selected )
         : get_mlu() ? "ON" : "OFF"
     );
     if (get_mlu() && lv) menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "Mirror Lockup does not work in LiveView");
+    else if (MLU_HANDHELD && 
+        (
+            HDR_ENABLED || 
+            trap_focus || 
+            is_bulb_mode() || 
+            intervalometer_running || 
+            motion_detect || 
+            #ifdef FEATURE_AUDIO_REMOTE_SHOT
+            audio_release_running || 
+            #endif
+            is_focus_stack_enabled())
+        )
+    {
+        static char msg[60];
+        snprintf(msg, sizeof(msg), "Handhedld MLU does not work with %s.",
+            HDR_ENABLED ? "HDR bracketing" :
+            trap_focus ? "trap focus" :
+            is_bulb_mode() ? "bulb shots" :
+            intervalometer_running ? "intervalometer" :
+            motion_detect ? "motion detection" :
+            #ifdef FEATURE_AUDIO_REMOTE_SHOT
+            audio_release_running ? "audio remote" :
+            #endif
+            is_focus_stack_enabled() ? "focus stacking" : "?!"
+        );
+        menu_draw_icon(x, y, MNI_WARNING, (intptr_t) msg);
+    }
     else menu_draw_icon(x, y, mlu_auto ? MNI_AUTO : MNI_BOOL(get_mlu()), 0);
 }
 #endif // FEATURE_MLU
@@ -3769,7 +3800,11 @@ static int bramp_set_display_gain_and_measure_luma(int gain)
         flip_zoom();
         msleep(1000);
     }
+    #ifdef BRAMP_CALIBRATION_DELAY
+    msleep(BRAMP_CALIBRATION_DELAY);
+    #else
     msleep(500);
+    #endif
     return bramp_measure_luma(0);
 }
 
@@ -4022,7 +4057,7 @@ void bulb_ramping_init()
                 gain0 < 150 ? "too bright" : 
                 "not static"
             ); 
-            
+            msleep(500);
             goto calib_start;
         }
         
@@ -4525,6 +4560,8 @@ expo_lock_display( void * priv, int x, int y, int selected )
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature only works in M mode.");
         if (!lens_info.raw_iso)
             menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature requires manual ISO.");
+        if (HDR_ENABLED)
+            menu_draw_icon(x, y, MNI_WARNING, (intptr_t) "This feature does not work with HDR bracketing.");
     }
 }
 
@@ -4610,6 +4647,7 @@ static void expo_lock_step()
     if (shooting_mode != SHOOTMODE_M) return;
     if (!lens_info.raw_iso) return;
     if (ISO_ADJUSTMENT_ACTIVE) return;
+    if (HDR_ENABLED) return;
     
     if (expo_lock_value == 12345)
         expo_lock_value = expo_lock_get_current_value();
@@ -4885,15 +4923,6 @@ static struct menu_entry shoot_menus[] = {
                 .choices = (const char *[]) {"NO", "YES"},
                 .help = "Whether the camera should auto-focus at each shot.",
                 .icon_type = IT_DISABLE_SOME_FEATURE_NEG,
-            },
-            #endif
-            #ifdef FEATURE_INTERVALOMETER_MOVIE
-            {
-                .name = "Stop REC after",
-                .priv       = &interval_movie_duration_index,
-                .display    = interval_movie_stop_display,
-                .select     = interval_timer_toggle,
-                .help = "Duration for each video clip (in movie mode only).",
             },
             #endif
             MENU_EOL
@@ -5803,9 +5832,9 @@ int picture_was_taken_flag = 0;
 
 #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
 // for firing HDR shots - avoids random misfire due to low polling frequency
-PROP_HANDLER(PROP_LAST_JOB_STATE)
+void hdr_flag_picture_was_taken()
 {
-    if (buf[0] > 10) picture_was_taken_flag = 1;
+    picture_was_taken_flag = 1;
 }
 
 void hdr_create_script(int steps, int skip0, int focus_stack, int f0)
@@ -5991,7 +6020,7 @@ static int hdr_shutter_release(int ev_x8, int allow_af)
         }
         else if (hdr_type == 2) // aperture
         {
-            ev_x8 = COERCE(ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
+            ev_x8 = COERCE(-ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
             ans = hdr_set_rawaperture(av0 + ev_x8);
             if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
@@ -6110,8 +6139,8 @@ static int hdr_check_cancel(int init)
 void ensure_play_or_qr_mode_after_shot()
 {
     msleep(300);
-    while (lens_info.job_state > 8) msleep(100);
-    msleep(300);
+    while (!job_state_ready_to_take_pic()) msleep(100);
+    msleep(500);
     #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
     for (int i = 0; i < 20; i++)
     {
@@ -6124,7 +6153,7 @@ void ensure_play_or_qr_mode_after_shot()
     
     if (!QR_OR_PLAY) // image review disabled?
     {
-        while (lens_info.job_state > 8) msleep(100);
+        while (!job_state_ready_to_take_pic()) msleep(100);
         fake_simple_button(BGMT_PLAY);
         for (int i = 0; i < 50; i++)
         {
@@ -6336,7 +6365,7 @@ void movie_start()
 {
 #ifdef CONFIG_MOVIE
     while (get_halfshutter_pressed()) msleep(100);
-    if (lens_info.job_state >= 10) return; 
+    if (!job_state_ready_to_take_pic()) return; 
 
     ensure_movie_mode();
     
@@ -6398,16 +6427,6 @@ void movie_end()
 #endif
 }
 
-#ifdef FEATURE_INTERVALOMETER_MOVIE
-static void
-short_movie()
-{
-    movie_start();
-    msleep(timer_values[interval_movie_duration_index] * 1000);
-    movie_end();
-}
-#endif
-
 // take one picture or a HDR / focus stack sequence
 // to be used with the intervalometer
 void hdr_shot(int skip0, int wait)
@@ -6443,9 +6462,6 @@ void hdr_shot(int skip0, int wait)
 
 int remote_shot_flag = 0;
 void schedule_remote_shot() { remote_shot_flag = 1; }
-
-//~ static int mlu_lock_flag = 0;
-//~ void schedule_mlu_lock() { mlu_lock_flag = 1; }
 
 static int movie_start_flag = 0;
 void schedule_movie_start() { movie_start_flag = 1; }
@@ -6777,6 +6793,18 @@ void md_take_pics() // for motion detection
 }
 #endif
 
+struct msg_queue * shoot_task_mqueue = NULL;
+
+/* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
+void shoot_task_redraw()
+{
+    if(shoot_task_mqueue)
+    {
+        msg_queue_post(shoot_task_mqueue, 1);
+    }
+}
+
+
 static void misc_shooting_info()
 {
     display_shortcut_key_hints_lv();
@@ -6853,26 +6881,15 @@ static void misc_shooting_info()
     }
 }
 
-struct msg_queue * shoot_task_mqueue = NULL;
-
-/* cause an immediate redraw of the shooting task infos. not used yet, but can be triggered by model-specific code */
-void shoot_task_redraw()
-{
-    if(shoot_task_mqueue)
-    {
-        msg_queue_post(shoot_task_mqueue, 1);
-    }
-}
-
 static void
 shoot_task( void* unused )
 {
     /* this is used to determine if a feature is active that requires high task rate */
     int priority_feature_enabled = 0;
-    
+
     /* creating a message queue primarily for interrupting sleep to repaint immediately */
     shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
-     
+
     #ifdef CONFIG_LIVEVIEW
     if (!lv)
     {   // center AF frame at startup in photo mode
@@ -6907,13 +6924,13 @@ shoot_task( void* unused )
         {
             delay = MIN_MSLEEP;
         }
-        
         int err = msg_queue_receive(shoot_task_mqueue, (struct event**)&msg, delay);        
+
         priority_feature_enabled = 0;
-        
+
         /* when we received a message, redraw immediately */
         if (k%5 == 0 || !err) misc_shooting_info();
-        
+
         #ifdef FEATURE_MLU_HANDHELD_DEBUG
         if (mlu_handled_debug) big_bmp_printf(FONT_MED, 50, 100, "%s", mlu_msg);
         #endif
@@ -6944,13 +6961,6 @@ shoot_task( void* unused )
             remote_shot(1);
             remote_shot_flag = 0;
         }
-        //~ #ifdef CONFIG_MLU
-        //~ if (mlu_lock_flag)
-        //~ {
-            //~ mlu_lock_mirror_if_needed();
-            //~ mlu_lock_flag = 0;
-        //~ }
-        //~ #endif
         #ifdef CONFIG_MOVIE
         if (movie_start_flag)
         {
@@ -6992,13 +7002,18 @@ shoot_task( void* unused )
         #if defined(FEATURE_HDR_BRACKETING) || defined(FEATURE_FOCUS_STACKING)
         // avoid camera shake for HDR shots => force self timer
         static int drive_mode_bk = -1;
-        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && get_halfshutter_pressed() && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
+        if (((HDR_ENABLED && hdr_delay) || is_focus_stack_enabled()) && drive_mode != DRIVE_SELFTIMER_2SEC && drive_mode != DRIVE_SELFTIMER_REMOTE)
         {
-            drive_mode_bk = drive_mode;
-            #ifndef CONFIG_5DC
-            lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
-            #endif
-            info_led_on();
+            priority_feature_enabled = 1;
+            if (get_halfshutter_pressed())
+            {
+                drive_mode_bk = drive_mode;
+                #ifndef CONFIG_5DC
+                lens_set_drivemode(DRIVE_SELFTIMER_2SEC);
+                #endif
+                info_led_on();
+                msleep(100);
+            }
         }
         
         // restore drive mode if it was changed
@@ -7008,6 +7023,7 @@ shoot_task( void* unused )
             lens_set_drivemode(drive_mode_bk);
             drive_mode_bk = -1;
             info_led_off();
+            msleep(100);
         }
         #endif
     
@@ -7028,9 +7044,9 @@ shoot_task( void* unused )
                 for (int i = 0; i < 10; i++)
                 {
                     msleep(100);
-                    if (!get_halfshutter_pressed() || lens_info.job_state >= 10) break;
+                    if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) break;
                 }
-                if (!get_halfshutter_pressed() || lens_info.job_state >= 10) { info_led_off(); continue; }
+                if (!get_halfshutter_pressed() || !job_state_ready_to_take_pic()) { info_led_off(); continue; }
                 
                 beep();
                 info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
@@ -7047,7 +7063,7 @@ shoot_task( void* unused )
                 NotifyBox(2000, "[2s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || !job_state_ready_to_take_pic()) 
                 {
                     NotifyBox(2000, "Bulb timer canceled.");
                     info_led_off();
@@ -7056,7 +7072,7 @@ shoot_task( void* unused )
                 NotifyBox(2000, "[1s] Bulb timer: %s", format_time_hours_minutes_seconds(d));
                 info_led_on();
                 wait_till_next_second();
-                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || lens_info.job_state >= 10) 
+                if (get_halfshutter_pressed() || !display_idle() || m0 != shooting_mode || !job_state_ready_to_take_pic()) 
                 {
                     NotifyBox(2000, "Bulb timer canceled.");
                     info_led_off();
@@ -7439,7 +7455,7 @@ shoot_task( void* unused )
             }
         }
         #endif
-
+        
         #ifdef FEATURE_INTERVALOMETER        
         #define SECONDS_REMAINING (intervalometer_next_shot_time - seconds_clock)
         #define SECONDS_ELAPSED (seconds_clock - seconds_clock_0)
@@ -7502,10 +7518,7 @@ shoot_task( void* unused )
                 }
 
                 #ifdef FEATURE_BULB_RAMPING
-                if (bulb_ramping_enabled)
-                {
-                    bulb_ramping_init();
-                }
+                if (bulb_ramping_enabled) bulb_ramping_init();
                 #endif
             }
 
@@ -7555,12 +7568,6 @@ shoot_task( void* unused )
                     take_a_pic(0);
                 }
             }
-            #ifdef FEATURE_INTERVALOMETER_MOVIE
-            else if (is_movie_mode() && !silent_pic_enabled && !bulb_ramping_enabled)
-            {
-                short_movie();
-            }
-            #endif
             else
             {
                 hdr_shot(0, 1);
@@ -7571,6 +7578,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_BULB_RAMPING
             if (bulb_ramping_enabled)
             {
+                bulb_ramping_init(); // just in case
                 compute_exposure_for_next_shot();
             }
             #endif
@@ -7596,7 +7604,7 @@ shoot_task( void* unused )
             bramp_cleanup();
             #endif
             intervalometer_pictures_taken = 0;
-            intervalometer_next_shot_time = seconds_clock + timer_values[interval_start_timer_index];
+            intervalometer_next_shot_time = seconds_clock + MAX(timer_values[interval_start_timer_index], 1);
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
