@@ -71,6 +71,7 @@ ML_OBJS-y = \
 	afma.o \
 	raw.o \
 	chdk-dng.o \
+	edmac-memcpy.o \
 	asm.o \
 
 #include generic rules and definitions
