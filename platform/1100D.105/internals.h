@@ -126,3 +126,5 @@
 
 /** We have AllocateMemoryResourceForSingleChunk */
 #define CONFIG_EXMEM_SINGLE_CHUNK
+
+#define CONFIG_MENU_WITH_AV

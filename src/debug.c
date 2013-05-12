@@ -748,7 +748,7 @@ static void bsod()
 static void run_test()
 {
     msleep(2000);
-    
+#ifdef CONFIG_EDMAC_MEMPCY    
     uint8_t* real = bmp_vram_real();
     uint8_t* idle = bmp_vram_idle();
     int xPos = 0;
@@ -767,7 +767,8 @@ static void run_test()
         }
     }
     return;
-    
+#endif
+
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
     return;
