@@ -747,6 +747,29 @@ static void bsod()
 
 static void run_test()
 {
+    #ifdef CONFIG_EDMAC_MEMCPY
+    msleep(2000);
+    
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    int xPos = 0;
+    int xOff = 2;
+    int yPos = 0;
+    
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 960, 560);
+    while(true)
+    {
+        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 0, 0, 960, xPos, yPos, 960-xPos, 560-yPos);
+        xPos += xOff;
+        
+        if(xPos >= 720 || xPos < 0)
+        {
+            xOff *= -1;
+        }
+    }
+    return;
+    #endif
+    
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
     return;
@@ -1046,7 +1069,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
 
     int times = 0;
     int t0 = get_ms_clock_value();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < INT_MAX; i++)
     {
         bench_fun(arg0, arg1, arg2, arg3);
         if (i%2) info_led_off(); else info_led_on();
@@ -1079,6 +1102,15 @@ static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
     bmp_fill(COLOR_BLACK, arg0, arg1, arg2, arg3);
     bmp_draw_to_idle(0);
 }
+
+#ifdef CONFIG_EDMAC_MEMCPY
+void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
+{
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 720, 480);
+}
+#endif
 
 static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
 {
@@ -1152,6 +1184,7 @@ static void mem_benchmark_task()
     #endif
     #ifdef CONFIG_EDMAC_MEMCPY
     mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0);
+    mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle, 0, 0, 0, 0);
     #endif
     mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
     mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
@@ -4340,11 +4373,11 @@ static void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/PLUGINS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
