@@ -29,8 +29,8 @@
 /* when enabled, it hooks shortcut keys */
 static int raw_video_enabled = 0;
 
-static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1920,  2048,  2560,  2880,  3592 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1920","2048","2560","2880","3592")
+static int resolution_presets_x[] = {  640,  720,  960,  1280,  1320,  1440,  1600,  1720,  1880,  1920,  2048,  2560,  2880,  3592 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","720","960","1280","1320","1440","1600","1720","1880","1920","2048","2560","2880","3592")
 static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960,  1080,  1152,  1280,  1320 };
 #define  RESOLUTION_CHOICES_Y CHOICES("320","360","480","540","720","840","960","1080","1152","1280","1320")
 
@@ -39,12 +39,13 @@ static int resolution_presets_y[] = {  320,  360,  480,  540,  720,  840,  960, 
 //~ static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
 
 /* no config options yet */
-static int resolution_index_x = 5;
-static int resolution_index_y = 4;
+static int resolution_index_x = 9;
+static int resolution_index_y = 7;
 static int measured_write_speed = 0;
 static int stop_on_buffer_overflow = 1;
 static int sound_rec = 2;
 static int panning_enabled = 0;
+static int hacked_mode = 0;
 
 #define RAW_IDLE      0
 #define RAW_PREPARING 1
@@ -74,7 +75,6 @@ static int saving_buffer_index = 0;               /* from which buffer we are sa
 static int capture_offset = 0;                    /* position of capture pointer inside the buffer (0-32MB) */
 static int frame_count = 0;                       /* how many frames we have processed */
 static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-static struct semaphore * copy_sem = 0;           /* for vertical sync used when copying frames */
 static char* movie_filename = 0;                  /* file name for current (or last) movie */
 
 static int get_res_x()
@@ -104,7 +104,7 @@ static void refresh_raw_settings()
 {
     if (RAW_IS_IDLE)
     {
-        /* poke the raw flag every now and then, to autodetect the resolution */
+        /* autodetect the resolution (update every second) */
         static int aux = INT_MIN;
         if (should_run_polling_action(1000, &aux))
         {
@@ -133,6 +133,13 @@ static MENU_UPDATE_FUNC(raw_main_update)
 
 static MENU_UPDATE_FUNC(resolution_update)
 {
+    if (!raw_video_enabled)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable RAW video first.");
+        MENU_SET_VALUE("N/A");
+        return;
+    }
+    
     refresh_raw_settings();
 
     int is_x = (entry->priv == &resolution_index_x);
@@ -143,7 +150,7 @@ static MENU_UPDATE_FUNC(resolution_update)
     if(lv)
     {
         if (selected != possible)
-            MENU_SET_RINFO("can't do %d", selected);
+            MENU_SET_RINFO("  can't %d", selected);
         else
             MENU_SET_RINFO("max %d", is_x ? raw_info.jpeg.width : raw_info.jpeg.height);
     }
@@ -170,7 +177,7 @@ static unsigned int lv_rec_save_footer(FILE *save_file)
     footer.sourceFpsx1000 = fps_get_current_x1000();
     footer.raw_info = raw_info;
 
-    int written = FIO_WriteFile(save_file, UNCACHEABLE(&footer), sizeof(lv_rec_file_footer_t));
+    int written = FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
     
     return written == sizeof(lv_rec_file_footer_t);
 }
@@ -275,8 +282,13 @@ static int frame_offset_y = 0;
 static int frame_offset_delta_x = 0;
 static int frame_offset_delta_y = 0;
 
+static unsigned int raw_rec_should_preview(unsigned int ctx);
+
 static void cropmark_draw()
 {
+    if (raw_rec_should_preview(0))
+        raw_force_aspect_ratio_1to1();
+
     int res_x = get_res_x();
     int res_y = get_res_y();
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
@@ -318,33 +330,29 @@ static void panning_update()
 {
     if (!panning_enabled) return;
     
-    if (frame_offset_delta_x)
-    {
-        int res_x = get_res_x();
-        int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
-        
-        frame_offset_x = COERCE(
-            frame_offset_x + frame_offset_delta_x, 
-            raw_info.active_area.x1 - skip_x,
-            raw_info.active_area.x2 - res_x - skip_x
-        );
-    }
-
-    if (frame_offset_delta_y)
-    {
-        int res_y = get_res_y();
-        int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-        
-        frame_offset_y = COERCE(
-            frame_offset_y + frame_offset_delta_y, 
-            raw_info.active_area.y1 - skip_y,
-            raw_info.active_area.y2 - res_y - skip_y
-        );
-    }
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
+    int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
+    
+    frame_offset_x = COERCE(
+        frame_offset_x + frame_offset_delta_x, 
+        raw_info.active_area.x1 - skip_x,
+        raw_info.active_area.x2 - res_x - skip_x
+    );
+    
+    frame_offset_y = COERCE(
+        frame_offset_y + frame_offset_delta_y, 
+        raw_info.active_area.y1 - skip_y,
+        raw_info.active_area.y2 - res_y - skip_y
+    );
 }
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
+    if (!raw_video_enabled)
+        return 0;
+    
     /* refresh cropmark (faster when panning, slower when idle) */
     static int aux = INT_MIN;
     if (frame_offset_delta_x || frame_offset_delta_y || should_run_polling_action(500, &aux))
@@ -356,7 +364,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
 
     /* update settings when changing video modes (outside menu) */
-    if (raw_video_enabled && RAW_IS_IDLE && !gui_menu_shown())
+    if (RAW_IS_IDLE && !gui_menu_shown())
     {
         refresh_raw_settings();
     }
@@ -364,12 +372,67 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
-static void process_frame()
+static void lv_unhack(int unused)
 {
-    if (!lv) return;
+    call("aewb_enableaewb", 1);
+    idle_globaldraw_en();
+    PauseLiveView();
+    ResumeLiveView();
+}
+
+static void hack_liveview()
+{
+    if (!hacked_mode) return;
+    
+    int rec = RAW_IS_RECORDING;
+    static int prev_rec = 0;
+    int should_hack = 0;
+    int should_unhack = 0;
+
+    if (rec)
+    {
+        if (frame_count == 0)
+            should_hack = 1;
+        /*
+        if (frame_count % 10 == 0)
+            should_hack = 1;
+        else if (frame_count % 10 == 9)
+            should_unhack = 1;
+        */
+    }
+    else if (prev_rec)
+    {
+        should_unhack = 1;
+    }
+    prev_rec = rec;
+    
+    if (should_hack)
+    {
+        call("aewb_enableaewb", 0);
+        idle_globaldraw_dis();
+        for (int channel = 0; channel < 32; channel++)
+        {
+            /* silence out the EDMACs used for HD and LV buffers */
+            int pitch = edmac_get_length(channel) & 0xFFFF;
+            if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
+            {
+                uint32_t reg = edmac_get_base(channel);
+                *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
+            }
+        }
+    }
+    else if (should_unhack)
+    {
+        task_create("lv_unhack", 0x1e, 0x1000, lv_unhack, (void*)0);
+    }
+}
+
+static int process_frame()
+{
+    if (!lv) return 0;
     
     /* skip the first frame, it will be gibberish */
-    if (frame_count == 0) { frame_count++; return; }
+    if (frame_count == 0) { frame_count++; return 0; }
     
     /* copy current frame to our buffer and crop it to its final size */
     int res_x = get_res_x();
@@ -378,16 +441,15 @@ static void process_frame()
     /* center crop */
     int skip_x = raw_info.active_area.x1 + (raw_info.jpeg.width - res_x) / 2;
     int skip_y = raw_info.active_area.y1 + (raw_info.jpeg.height - res_y) / 2;
-    skip_x += frame_offset_x;
-    skip_y += frame_offset_y;
+    if (panning_enabled)
+    {
+        skip_x += frame_offset_x;
+        skip_y += frame_offset_y;
+    }
     
-    /* copy frame to our buffer */
+    /* start copying frame to our buffer */
     void* ptr = buffers[capturing_buffer_index].ptr + capture_offset;
-    edmac_copy_rectangle(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
-    
-    /* hack: edmac rectangle routine only works for first call, third call and so on, figure out why */
-    /* meanwhile, just use a dummy call that will fail */
-    edmac_memcpy(bmp_vram_idle(), bmp_vram_real(), 4096);
+    int ans = edmac_copy_rectangle_start(ptr, fullsize_buffers[(frame_count+1) % 2], raw_info.pitch, skip_x/8*14, skip_y/2*2, res_x*14/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -400,11 +462,24 @@ static void process_frame()
             frame_count
         );
     }
+    
+    return ans;
 }
 
 static unsigned int raw_rec_vsync_cbr(unsigned int unused)
 {
+    static int dma_transfer_in_progress = 0;
+    /* there may be DMA transfers started in process_frame, finish them */
+    /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
+    if (dma_transfer_in_progress)
+    {
+        edmac_copy_rectangle_finish();
+        dma_transfer_in_progress = 0;
+    }
+    
     if (!raw_video_enabled) return 0;
+    
+    hack_liveview();
  
     /* panning window is updated when recording, but also when not recording */
     panning_update();
@@ -445,25 +520,13 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
         show_buffer_status(0);
     }
     
-    /* don't do the copying from LiveView task, because we might slow it down */
-    give_semaphore(copy_sem);
-    //~ process_frame();
+    dma_transfer_in_progress = process_frame();
 
     /* try a sync beep */
     if (sound_rec == 2 && frame_count == 0)
         beep();
 
     return 0;
-}
-
-static void raw_video_copy_task()
-{
-    while (RAW_IS_RECORDING)
-    {
-        int r = take_semaphore(copy_sem, 500);
-        if (r == 0)
-            process_frame();
-    }
 }
 
 static char* get_next_raw_movie_file_name()
@@ -542,9 +605,6 @@ static void raw_video_rec_task()
     
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
-
-    /* offload frame copying to another task, so we don't slow down Canon's LiveView task */
-    task_create("raw_copy_task", 0x18, 0x1000, raw_video_copy_task, (void*)0);
 
     int t0 = 0;
     uint32_t written = 0;
@@ -626,7 +686,6 @@ abort:
     written += FIO_WriteFile(f, buffers[capturing_buffer_index].ptr, capture_offset);
 
     /* write metadata */
-    lv_rec_save_footer(f);
     int footer_ok = lv_rec_save_footer(f);
     if (!footer_ok)
     {
@@ -660,6 +719,8 @@ static MENU_SELECT_FUNC(raw_start_stop)
 
 static MENU_SELECT_FUNC(raw_video_toggle)
 {
+    if (!RAW_IS_IDLE) return;
+    
     raw_video_enabled = !raw_video_enabled;
     
     /* toggle the lv_save_raw flag from raw.c */
@@ -696,6 +757,8 @@ static void raw_video_playback_task()
         goto cleanup;
 
     clrscr();
+    struct vram_info * lv_vram = get_yuv422_vram();
+    memset(lv_vram->vram, 0, lv_vram->width * lv_vram->pitch);
     for (int i = 0; i < frame_count-1; i++)
     {
         bmp_printf(FONT_MED, 0, os.y_max - 20, "%d/%d", i+1, frame_count-1);
@@ -709,6 +772,7 @@ static void raw_video_playback_task()
         
         raw_info.buffer = buf;
         raw_set_geometry(resx, resy, 0, 0, 0, 0);
+        raw_force_aspect_ratio_1to1();
         raw_preview_fast();
     }
 
@@ -776,18 +840,26 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Sound recording options.",
             },
             {
-                .name = "Dolly mode",
+                .name = "Frame skipping",
+                .priv = &stop_on_buffer_overflow,
+                .max = 1,
+                .choices = CHOICES("Allow", "OFF"),
+                .icon_type = IT_BOOL_NEG,
+                .help = "Enable if you don't mind skipping frames (for slow cards).",
+            },
+            {
+                .name = "Panning mode",
                 .priv = &panning_enabled,
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
-                .help2 = "Use arrow keys to move the window.",
+                .help2 = "Use direction keys to move the window.",
             },
             {
-                .name = "Buffer full",
-                .priv = &stop_on_buffer_overflow,
+                .name = "HaCk3D mode",
+                .priv = &hacked_mode,
                 .max = 1,
-                .choices = CHOICES("Skip frames", "Stop recording"),
-                .help = "What to do when the buffer gets full: stop or skip frames.",
+                .help = "Some extreme hacks for squeezing a little more speed.",
+                .help2 = "Your camera will explode.",
             },
             {
                 .name = "Playback",
@@ -836,25 +908,25 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_PRESS_UP:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 return 0;
             case MODULE_KEY_PRESS_DOWN:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 return 0;
             case MODULE_KEY_PRESS_DOWN_LEFT:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 frame_offset_delta_x -= 8;
                 return 0;
             case MODULE_KEY_PRESS_DOWN_RIGHT:
-                frame_offset_delta_y += 8;
+                frame_offset_delta_y += 2;
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_PRESS_UP_LEFT:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 frame_offset_delta_x -= 8;
                 return 0;
             case MODULE_KEY_PRESS_UP_RIGHT:
-                frame_offset_delta_y -= 8;
+                frame_offset_delta_y -= 2;
                 frame_offset_delta_x += 8;
                 return 0;
             case MODULE_KEY_JOY_CENTER:
@@ -879,7 +951,7 @@ static unsigned int raw_rec_should_preview(unsigned int ctx)
 {
     /* enable preview in x5 mode, since framing doesn't match */
     /* keep x10 mode unaltered, for focusing */
-    return raw_video_enabled && RAW_IS_IDLE && lv_dispsize == 5;
+    return raw_video_enabled && lv_dispsize == 5;
 }
 
 static unsigned int raw_rec_update_preview(unsigned int ctx)
@@ -887,13 +959,14 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     if (!raw_rec_should_preview(0))
         return 0;
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
+    raw_force_aspect_ratio_1to1();
     raw_preview_fast_ex(raw_info.buffer, buffers->dst_buf, BM2LV_Y(os.y0), BM2LV_Y(os.y_max), !get_halfshutter_pressed());
+    if (!RAW_IS_IDLE) msleep(500); /* be gentle with the CPU, save it for recording */
     return 1;
 }
 
 static unsigned int raw_rec_init()
 {
-    copy_sem = create_named_semaphore("raw_copy_sem", 0);
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     return 0;
 }
