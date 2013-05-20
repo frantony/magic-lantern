@@ -10,6 +10,9 @@
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
+/* can be computed from black level analysis, so we no longer need this */
+#undef CONFIG_DXO_DYNAMIC_RANGE
+
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
 #else
@@ -52,6 +55,10 @@
 
 #if defined(CONFIG_5D3) || defined(CONFIG_6D)
 #define RAW_PHOTO_EDMAC 0xc0f04808
+#endif
+
+#if defined(CONFIG_60D)
+#define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -144,6 +151,16 @@ void raw_buffer_intercept_from_stateobj()
     -4300, 10000,    12184, 10000,    2378, 10000, \
      -819, 10000,     1944, 10000,    5931, 10000
 #endif
+
+#ifdef CONFIG_60D
+        //~ { "Canon EOS 60D", 0, 0x2ff7,
+        //~ {  6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
+    #define CAM_COLORMATRIX1                       \
+      6719, 10000,     -994, 10000,    -925, 10000,\
+    -4408, 10000,    12426, 10000,    2211, 10000, \
+     -887, 10000,     2129, 10000,    6051, 10000
+#endif
+
 
 #if defined(CONFIG_650D) || defined(CONFIG_EOSM) //Same sensor??
     //~ { "Canon EOS 650D", 0, 0x354d,
@@ -256,6 +273,13 @@ int raw_update_params()
         skip_right  = zoom ? 0 : 2;
         #endif
 
+        #ifdef CONFIG_60D
+        skip_top    = 26;
+        skip_left   = zoom ? 0 : 152;
+        skip_right  = zoom ? 0 : 2;
+        #endif
+
+
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         //~ raw_info.height = zoom ? 1102 : 718;
         skip_top    = 24;
@@ -312,10 +336,11 @@ int raw_update_params()
         /* from debug log: [TTJ][150,27089,0] RAW(5792,3804,0,14) */
         width = 5792;
         height = 3804;
-        skip_left = 176;
+        skip_left = 160;
         skip_top = 54;
         /* first pixel should be red, but here it isn't, so we'll skip one line */
-        raw_info.buffer += width * 14/8;
+        /* also we have a 16-pixel border on the left that contains image data */
+        raw_info.buffer += width * 14/8 + 16*14/8;
         #endif
 
         #ifdef CONFIG_5D3
@@ -352,7 +377,8 @@ int raw_update_params()
         dbg_printf("Neither LV nor QR\n");
         return 0;
     }
-    
+
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     /**
      * Dynamic range, from DxO
      * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
@@ -383,16 +409,20 @@ int raw_update_params()
 
     #ifdef CONFIG_600D
     int dynamic_ranges[] = {1146, 1139, 1116, 1061, 980, 898, 806, 728};
-	#endif
+    #endif
 
     #ifdef CONFIG_650D
     int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
     #endif
 
+    #ifdef CONFIG_60D
+    int dynamic_ranges[] = {1091, 1072, 1055, 999, 910, 824, 736, 662};
+    #endif
+
     #ifdef CONFIG_EOSM
     int dynamic_ranges[] = {1121, 1124, 1098, 1043, 962, 892, 779, 683, 597};
     #endif
-
+#endif
 /*********************** Portable code ****************************************/
 
     raw_set_geometry(width, height, skip_left, skip_right, skip_top, skip_bottom);
@@ -401,25 +431,32 @@ int raw_update_params()
     if (lv) iso = FRAME_ISO;
     if (!iso) iso = lens_info.raw_iso;
     if (!iso) iso = lens_info.raw_iso_auto;
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 72 + (COUNT(dynamic_ranges)-1) * 8);
     int dr_index = COERCE((iso_rounded - 72) / 8, 0, COUNT(dynamic_ranges)-1);
     float iso_digital = (iso - iso_rounded) / 8.0f;
     raw_info.dynamic_range = dynamic_ranges[dr_index];
     dbg_printf("dynamic range: %d.%02d EV (iso=%d)\n", raw_info.dynamic_range/100, raw_info.dynamic_range%100, raw2iso(iso));
+#else
+    int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
+    float iso_digital = (iso - iso_rounded) / 8.0f;
+#endif
     
-    raw_info.black_level = autodetect_black_level();
     raw_info.white_level = WHITE_LEVEL;
+    raw_info.black_level = autodetect_black_level();
     
     if (iso_digital <= 0)
     {
         /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
         raw_info.white_level *= powf(2, iso_digital);
     }
+#ifdef CONFIG_DXO_DYNAMIC_RANGE
     else if (iso_digital > 0)
     {
         /* at positive digital ISO, the white level doesn't change, but the dynamic range is reduced */
         raw_info.dynamic_range -= (iso_digital * 100);
     }
+#endif
 
     dbg_printf("black=%d white=%d\n", raw_info.black_level, raw_info.white_level);
 
@@ -551,17 +588,30 @@ int FAST ev_to_raw(float ev)
     return raw_info.black_level + powf(2, ev) * raw_max;
 }
 
-int autodetect_black_level()
+static int autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, int dy, int* out_mean, int* out_stdev)
 {
     int black = 0;
     int num = 0;
-    /* use a small area from top-left corner for quick black calibration */
-    for (int y = raw_info.active_area.y1 + 10; y < raw_info.active_area.y1 + 20; y++)
+    /* compute average level */
+    for (int y = y1; y < y2; y += dy)
     {
-        for (int x = 0; x < raw_info.active_area.x1 - 5; x += 2)
+        for (int x = x1; x < x2; x += dx)
         {
             black += raw_get_pixel(x, y);
             num++;
+        }
+    }
+
+    int mean = black / num;
+
+    /* compute standard deviation */
+    int stdev = 0;
+    for (int y = y1; y < y2; y += dy)
+    {
+        for (int x = x1; x < x2; x += dx)
+        {
+            int dif = raw_get_pixel(x, y) - mean;
+            stdev += dif * dif;
             
             #ifdef RAW_DEBUG_BLACK
             /* to check if we are reading the black level from the proper spot, enable RAW_DEBUG_BLACK here and in save_dng. */
@@ -569,7 +619,55 @@ int autodetect_black_level()
             #endif
         }
     }
-    return black / num;
+    stdev /= num;
+    stdev = sqrtf(stdev);
+    
+    *out_mean = mean;
+    *out_stdev = stdev;
+}
+
+int autodetect_black_level()
+{
+    int mean = 0;
+    int stdev = 0;
+    
+    if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
+    {
+        autodetect_black_level_calc(
+            4, raw_info.active_area.x1 - 4,
+            raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20, 
+            3, 5,
+            &mean, &stdev
+        );
+    }
+    else /* use the top black bar for black calibration */
+    {
+        autodetect_black_level_calc(
+            raw_info.active_area.x1 + 20, raw_info.active_area.x2 - 20, 
+            4, raw_info.active_area.y1 - 4,
+            5, 3,
+            &mean, &stdev
+        );
+    }
+    
+    #ifndef CONFIG_DXO_DYNAMIC_RANGE
+    /**
+     * A = full well capacity / read-out noise 
+     * DR in dB = 20 log10(A)
+     * DR in stops = dB / 6 = log2(A)
+     * I guess noise level is the RMS value, which is identical to stdev
+     * 
+     * This is quite close to DxO measurements (within +/- 0.5 EV), 
+     * except at very high ISOs where there seems to be noise reduction applied to raw data
+     */
+     
+    int black_level = mean + stdev/2;
+    raw_info.dynamic_range = (int)roundf((log2f(raw_info.white_level - black_level) - log2f(stdev)) * 100);
+    #endif
+
+    // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
+
+    return mean + stdev/2;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
@@ -668,12 +766,16 @@ void raw_lv_enable()
 {
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
+    call("lv_af_raw", 1); /* this enables Canon's bad pixel removal, thanks nanomad */
+    call("aewb_enableaewb", 0); /* lowers CPU usage a little */
 }
 
 void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
+    call("lv_af_raw", 0);
+    call("aewb_enableaewb", 1);
 }
 
 int raw_lv_is_enabled()
@@ -682,7 +784,7 @@ int raw_lv_is_enabled()
 }
 
 /* may not be correct on 4:3 screens */
-int raw_force_aspect_ratio_1to1()
+void raw_force_aspect_ratio_1to1()
 {
     if (lv2raw.sy < lv2raw.sx) /* image too tall */
     {

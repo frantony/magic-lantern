@@ -227,6 +227,10 @@ static int setup_buffers()
             void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
             if (ptr != fullsize_buffers[0])
             {
+                /* 32MB writes are slower (require two cfDMAWriteBlk calls: 65533+3 blocks).
+                 * Shrink the buffer by 1.5 K and it's fast again. We'll throw away 64K, just in case. */
+                size = MIN(size, 32*1024*1024 - 64*1024);
+                
                 buffers[buffer_count].ptr = ptr;
                 buffers[buffer_count].size = size;
                 buffers[buffer_count].used = 0;
@@ -374,7 +378,6 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void lv_unhack(int unused)
 {
-    call("aewb_enableaewb", 1);
     idle_globaldraw_en();
     PauseLiveView();
     ResumeLiveView();
@@ -408,8 +411,8 @@ static void hack_liveview()
     
     if (should_hack)
     {
-        call("aewb_enableaewb", 0);
         idle_globaldraw_dis();
+        int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
             /* silence out the EDMACs used for HD and LV buffers */
@@ -417,6 +420,7 @@ static void hack_liveview()
             if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
+                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %x ", reg, shamem_read(reg + 0x10) & 0xFFFF);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
@@ -855,7 +859,7 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "Use direction keys to move the window.",
             },
             {
-                .name = "HaCk3D mode",
+                .name = "HaCKeD mode",
                 .priv = &hacked_mode,
                 .max = 1,
                 .help = "Some extreme hacks for squeezing a little more speed.",
