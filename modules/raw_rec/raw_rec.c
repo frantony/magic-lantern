@@ -278,7 +278,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     
     if (selected_y != res_y)
     {
-        char* ratio = guess_aspect_ratio(res_x, res_y);
+        char* ratio = guess_aspect_ratio(res_x, res_y * squeeze);
         MENU_SET_VALUE(ratio);
         MENU_SET_HELP("Could not get %s. Max vertical resolution: %d.", aspect_ratio_choices[aspect_ratio_index], res_y);
     }
@@ -638,7 +638,9 @@ static unsigned int raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[frame_count % 2]);
     
-    if (capture_offset + raw_info.frame_size >= buffers[capturing_buffer_index].size)
+    int res_x = get_res_x();
+    int res_y = get_res_y();
+    if (capture_offset + res_x * res_y * 14/8 >= buffers[capturing_buffer_index].size)
     {
         /* this buffer is full, try next one */
         int next_buffer = mod(capturing_buffer_index + 1, buffer_count);
