@@ -14,51 +14,28 @@ PLATFORM_INC=.
 
 PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
 
-# magiclantern.lds script MUST be first
-# entry.o MUST be second
-# menu.o and debug.o must come before the modules
-#	$(SRC_DIR)/entry.o \
+CONFIG_RELOC = y
+CONFIG_STATIC_FONTS=y
 
-ML_OBJS-y = \
-	magiclantern.lds \
-	local_entry.o \
+ML_BOOT_HACK_OBJ=n
+ML_BITRATE_OBJ=n
+ML_FPS_ENGIO_OBJ=n
+ML_AUDIO_OBJ=n
+ML_LIVEVIEW_OBJ=n
+ML_MOVTWEAKS_OBJ=n
+ML_LV_IMG_ENGIO_OBJ=n
+ML_HDR_OBJ=n
+ML_EXMEM_OBJ=n
+ML_BOOTFLAGS_OBJ=n
+ML_ENTRY_OBJ = local_entry.o
+
+ML_ZEBRA_OBJ = zebra-5dc.o
+
+ML_EXTRA_OBJS = \
 	init.o \
-	stubs.o \
 	dummy.o \
-	version.o \
-	bmp.o \
-	font-large.o \
-	font-med.o \
-	font-small.o \
-	config.o \
-	menu.o \
-	debug.o \
-	stdio.o \
-	property.o \
-	propvalues.o \
-	gui.o \
-	gui-common.o \
-	tweaks.o \
-	lens.o \
-	picstyle.o \
-	cfn.o \
-	zebra-5dc.o \
-	shoot.o \
-	chdk-gui_draw.o \
-	menuhelp.o \
-	menuindex.o \
-	af_patterns.o \
-	focus.o \
-	notify_box.o \
-	dialog_test.o \
-	vram.o \
-	aj_port.o \
-	state-object.o \
-	tasks.o \
-	beep.o \
 	dm-spy.o \
 	tp-spy.o \
-	reloc.o \
 
 
 #include generic rules and definitions

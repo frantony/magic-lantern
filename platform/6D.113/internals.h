@@ -126,5 +126,9 @@
 /** Use the new Rec.709 for YUV-RGB conversion (undefine for Rec.601) */
 #define CONFIG_REC709
 
-/** We have AllocateMemoryResourceForSingleChunck */
-#define CONFIG_EXMEM_SINGLE_CHUNCK
+/** We have AllocateMemoryResourceForSingleChunk */
+#define CONFIG_EXMEM_SINGLE_CHUNK
+
+/** We have access to raw data in both photo mode and in LiveView */
+#define CONFIG_RAW_PHOTO
+#define CONFIG_RAW_LIVEVIEW

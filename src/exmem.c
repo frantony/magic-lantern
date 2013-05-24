@@ -107,6 +107,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     if(size > 0)
     {
         ASSERT(!alloc_sem_timed_out);
+        alloc_sem_timed_out = 0;
         AllocateMemoryResource(size, allocCBR, (unsigned int)&hSuite, 0x50);
         
         int r = take_semaphore(alloc_sem, 100);
@@ -121,7 +122,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 4 * 1024 * 1024;
+        int backup_size = 8 * 1024 * 1024;
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite(backup_size);
 
@@ -131,7 +132,7 @@ struct memSuite *shoot_malloc_suite(size_t size)
             if(testSuite)
             {
                 shoot_free_suite(testSuite);
-                max_size = size * 1024 * 1024 + backup_size;
+                max_size = size * 1024 * 1024;
             }
             else
             {
@@ -147,8 +148,8 @@ struct memSuite *shoot_malloc_suite(size_t size)
     return hSuite;
 }
 
-#ifndef CONFIG_EXMEM_SINGLE_CHUNCK
-/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunck, so we'll use our own implementation */
+#ifndef CONFIG_EXMEM_SINGLE_CHUNK
+/* compatibility mode: we don't have AllocateMemoryResourceForSingleChunk, so we'll use our own implementation */
 /* it's a lot slower, but at least it works */
 
 /* try hard to allocate a contiguous block */
@@ -225,11 +226,12 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
     if(size > 0)
     {
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         ASSERT(!alloc_sem_timed_out);
+        alloc_sem_timed_out = 0;
 
         struct memSuite * hSuite = NULL;
-        AllocateMemoryResourceForSingleChunck(size, allocCBR, (unsigned int)&hSuite, 0x50);
+        AllocateMemoryResourceForSingleChunk(size, allocCBR, (unsigned int)&hSuite, 0x50);
 
         int r = take_semaphore(alloc_sem, 100);
         if (r)
@@ -261,7 +263,7 @@ struct memSuite * shoot_malloc_suite_contig(size_t size)
         
         shoot_free_suite(hSuite);
         
-        #ifdef CONFIG_EXMEM_SINGLE_CHUNCK
+        #ifdef CONFIG_EXMEM_SINGLE_CHUNK
         return shoot_malloc_suite_contig(max_size);
         #else
         /* our hack is not guaranteed to find the largest block, so we will reduce the size a bit */

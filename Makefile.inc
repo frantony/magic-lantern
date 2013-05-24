@@ -9,21 +9,6 @@ ifeq ($(CONFIG_CCACHE), y)
     HOST_CC := $(CCACHE) $(CC)
 endif	
 
-UNAME:=$(shell uname)
-
-ifeq ($(UNAME), Darwin)
-	# Variable declaration for Mac OS X
-	UMOUNT=hdiutil unmount
-	CF_CARD="/Volumes/EOS_DIGITAL"
-	STAT_CMD=stat -f "%N: %z bytes"
-else
-	# Default settings for remaining operating systems
-	UMOUNT=umount
-	CF_CARD=/media/EOS_DIGITAL/
-	STAT_CMD=stat -c "%n: %s bytes"
-endif
-
-
 # Quiet the build process
 build = \
 	@if [ X"$V" = X"1" ]; then \
@@ -81,7 +66,7 @@ NOT_USED_FLAGS=\
 
 AFLAGS=\
 	$(FLAGS)
-    
+
 LFLAGS=
 
 CFLAGS += $(CFLAG_USER)
@@ -152,6 +137,7 @@ ifeq ($(CONFIG_QEMU),y)
 CFLAGS += -DCONFIG_QEMU -DCONFIG_STATIC_FONTS
 endif
 
+
 # PyMite scripting paths
 PYMITE_PATH		= $(HOME)/build/pymite-08
 PYMITE_LIB		= $(PYMITE_PATH)/src/vm/libpmvm_dryos.a
@@ -159,17 +145,210 @@ PYMITE_CFLAGS	= \
 	-I$(PYMITE_PATH)/src/vm \
 	-I$(PYMITE_PATH)/src/platform/dryos
 
+# only because of 5DC, it's not ready for boot-hack.c yet.
+ifeq ($(ML_BOOT_HACK_OBJ), n)
+ML_BOOT_HACK_OBJ =
+else ifndef ML_BOOT_HACK_OBJ
+ML_BOOT_HACK_OBJ = boot-hack.o
+endif
+
+ifeq ($(ML_LIVEVIEW_OBJ), n)
+ML_LIVEVIEW_OBJ =
+else ifndef ML_LIVEVIEW_OBJ
+ML_LIVEVIEW_OBJ = liveview.o
+endif
+
+ifeq ($(ML_BITRATE_OBJ), n)
+ML_BITRATE_OBJ =
+else ifndef ML_BITRATE_OBJ
+ML_BITRATE_OBJ = bitrate.o
+endif
+
+ifeq ($(ML_FPS_ENGIO_OBJ), n)
+ML_FPS_ENGIO_OBJ =
+else ifndef ML_FPS_ENGIO_OBJ
+ML_FPS_ENGIO_OBJ = fps-engio.o
+endif
+
+ifeq ($(ML_AUDIO_OBJ), n)
+ML_AUDIO_OBJ =
+else ifndef ML_AUDIO_OBJ
+ML_AUDIO_OBJ = audio-ak.o
+endif
+
+ifeq ($(ML_ZEBRA_OBJ), n)
+ML_ZEBRA_OBJ =
+else ifndef ML_ZEBRA_OBJ
+ML_ZEBRA_OBJ = zebra.o
+endif
+
+ifeq ($(ML_BOOTFLAGS_OBJ), n)
+ML_BOOTFLAGS_OBJ =
+else ifndef ML_BOOTFLAGS_OBJ
+ML_BOOTFLAGS_OBJ = bootflags.o
+endif
+
+ifeq ($(ML_AF_PATTERNS_OBJ), n)
+ML_AF_PATTERNS_OBJ = 
+else ifndef ML_AF_PATTERNS_OBJ
+ML_AF_PATTERNS_OBJ = af_patterns.o
+endif
+
+ifeq ($(ML_MOVTWEAKS_OBJ), n)
+ML_MOVTWEAKS_OBJ =
+else ifndef ML_MOVTWEAKS_OBJ
+ML_MOVTWEAKS_OBJ = movtweaks.o
+endif
+
+ifeq ($(ML_LV_IMG_ENGIO_OBJ), n)
+ML_LV_IMG_ENGIO_OBJ =
+else ifndef ML_LV_IMG_ENGIO_OBJ
+ML_LV_IMG_ENGIO_OBJ = lv-img-engio.o
+endif
+
+ifeq ($(ML_HDR_OBJ), n)
+ML_HDR_OBJ =
+else ifndef ML_HDR_OBJ
+ML_HDR_OBJ = hdr.o
+endif
+
+ifeq ($(ML_IMGCONV_OBJ), n)
+ML_IMGCONV_OBJ =
+else ifndef ML_IMGCONV_OBJ
+ML_IMGCONV_OBJ = imgconv.o
+endif
+
+ifeq ($(ML_EXMEM_OBJ), n)
+ML_EXMEM_OBJ =
+else ifndef ML_EXMEM_OBJ
+ML_EXMEM_OBJ = exmem.o
+endif
+
+ifeq ($(ML_ENTRY_OBJ), n)
+ML_ENTRY_OBJ =
+else ifndef ML_ENTRY_OBJ
+ML_ENTRY_OBJ = $(SRC_DIR)/entry.o
+endif
+
+ML_SMALL_FONT_OBJS = \
+	font-small2.o \
+	font-med2.o \
+	font-large.o \
+
+ML_STATIC_FONT_OBJS = \
+	font-small.o \
+	font-med.o \
+	font-large.o
+
+ML_DYNAMIC_FONT_OBJS = \
+	font-dyn.o
+
+ifeq ($(CONFIG_SMALL_FONTS), y)
+ML_STATIC_FONT_OBJS = $(ML_SMALL_FONT_OBJS)
+endif
+
+ML_FONT_OBJS = $(ML_DYNAMIC_FONT_OBJS)
+
+ifeq ($(CONFIG_STATIC_FONTS), y)
+ML_FONT_OBJS += $(ML_STATIC_FONT_OBJS)
+CFLAGS += -DCONFIG_STATIC_FONTS=1
+endif
 
 #
 # global disabler for extra objects
 #
 ifneq ($(CONFIG_NO_EXTRA_OBJS),y)
 
+ifndef CONFIG_ADD_INSTALLER_OBJECTS
+CONFIG_ADD_SOURCE_OBJECTS = y
+endif
+
 #
 # depending on CONFIG_ defines add .o files (may get merged into definition above?) 
 #
-ML_OBJS-y += \
-	ico.o
+
+# magiclantern.lds script MUST be first
+# entry.o MUST be second
+# menu.o and debug.o must come before the modules
+ML_OBJS-y = \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o
+
+ML_INSTALLER_OBJS = \
+	installer.o \
+	ico.o \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	stdio.o \
+	property.o \
+	propvalues.o \
+	dialog_test.o \
+	$(ML_BOOTFLAGS_OBJ) \
+	vram.o \
+
+#	chdk-gui_draw.o
+
+# 5DC is not ready for boot-hack.c yet
+ifneq ($(MODEL), 5DC)
+endif
+
+ML_SRC_OBJS += \
+	$(ML_BOOT_HACK_OBJ) \
+	ico.o \
+	edmac.o \
+	menu.o \
+	debug.o \
+	cfn.o \
+	gui.o \
+	picstyle.o \
+	$(ML_EXMEM_OBJ) \
+	bmp.o \
+	$(ML_FONT_OBJS) \
+	config.o \
+	stdio.o \
+	$(ML_BITRATE_OBJ) \
+	tweaks.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui-common.o \
+	chdk-gui_draw.o \
+	$(ML_MOVTWEAKS_OBJ) \
+	menuhelp.o \
+	menuindex.o \
+	$(ML_AF_PATTERNS_OBJ) \
+	focus.o \
+	notify_box.o \
+	$(ML_BOOTFLAGS_OBJ) \
+	dialog_test.o \
+	vram.o \
+	aj_port.o \
+	$(ML_FPS_ENGIO_OBJ) \
+	shoot.o \
+	$(ML_HDR_OBJ) \
+	$(ML_LV_IMG_ENGIO_OBJ) \
+	state-object.o \
+	tasks.o \
+	beep.o \
+	vsync-lite.o \
+	tskmon.o \
+	battery.o \
+	$(ML_IMGCONV_OBJ) \
+	histogram.o \
+	falsecolor.o \
+	$(ML_AUDIO_OBJ) \
+	$(ML_ZEBRA_OBJ) \
+
+
+ML_OBJS-$(CONFIG_ADD_INSTALLER_OBJECTS) += \
+	$(ML_INSTALLER_OBJS)
+
+ML_OBJS-$(CONFIG_ADD_SOURCE_OBJECTS) += \
+	$(ML_SRC_OBJS)
+
+ML_OBJS-y += $(ML_EXTRA_OBJS)
 
 ML_OBJS-$(CONFIG_GDB) += \
 	gdb.o
@@ -197,7 +376,7 @@ ML_OBJS-$(CONFIG_PLUGINS) += \
 	plugin.o
 
 ML_OBJS-$(CONFIG_RELOC) += \
-	liveview.o \
+	$(ML_LIVEVIEW_OBJ) \
 	reloc.o
 
 ML_OBJS-$(CONFIG_TIMECODE) += \
@@ -223,9 +402,11 @@ ML_OBJS-$(CONFIG_MODULES) += \
 
 ML_OBJS-$(CONFIG_QEMU)	+= \
 	qemu-util.o \
-	font-small.o \
-	font-med.o \
-	font-large.o
+	$(ML_STATIC_FONT_OBJS)
+
+ifdef ML_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
 
 endif
 
@@ -448,16 +629,14 @@ magiclantern: $(ML_OBJS-y) dietlibc.a newlib-libc.a
 		$^ \
 		-lm \
 		-lgcc \
-        -Xlinker -Map=location.map \
+		-Xlinker -Map=location.map \
 	)
 
 $(PLATFORM_DIR)/version.c: FORCE
-	$(call build,VERSION,( \
-		echo 'const char build_version[] = "$(VERSION)";' ; \
-		echo 'const char build_id[] = "'`hg id`'";' ; \
-		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' ; \
-		echo 'const char build_user[] = "'`whoami`@`hostname`'";' ; \
-	) > $@)
+		echo 'const char build_version[] = "$(VERSION)";' > $@
+		echo 'const char build_id[] = "'`hg id`'";' >> $@
+		echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
+		echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
 autoexec: reboot.o
 	$(call build,LD,$(LD) \
@@ -524,7 +703,7 @@ clean:
 		*.o   \
 		*.d \
 		*.a \
-        *.map \
+		*.map \
 		$(BIN_FILES) \
 		magiclantern.lds \
 		*.bmp \
@@ -752,3 +931,4 @@ DEPS  := $(COBJS:.o=.d)
 
 FORCE:
 
+# vim: ft=make

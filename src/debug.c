@@ -12,6 +12,8 @@
 #include "lens.h"
 #include "plugin.h"
 #include "version.h"
+#include "edmac.h"
+#include "asm.h"
 
 #ifdef FEATURE_DEBUG_INTERCEPT
 #include "dm-spy.h"
@@ -35,6 +37,9 @@
 void audio_reg_dump_once();
 #endif
 
+#if defined(CONFIG_EDMAC_MEMCPY)
+#include "edmac-memcpy.h"
+#endif
 
 extern int config_autosave;
 extern void config_autosave_toggle(void* unused, int delta);
@@ -61,6 +66,11 @@ unsigned GetFileSize(char* filename);
 void ui_lock(int what);
 
 void fake_halfshutter_step();
+
+#ifdef FEATURE_DEBUG_INTERCEPT
+void j_debug_intercept() { debug_intercept(); }
+void j_tp_intercept() { tp_intercept(); }
+#endif
 
 #ifdef FEATURE_SCREENSHOT
 
@@ -737,6 +747,29 @@ static void bsod()
 
 static void run_test()
 {
+    #ifdef CONFIG_EDMAC_MEMCPY
+    msleep(2000);
+    
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    int xPos = 0;
+    int xOff = 2;
+    int yPos = 0;
+    
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 960, 560);
+    while(true)
+    {
+        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 0, 0, 960, xPos, yPos, 960-xPos, 560-yPos);
+        xPos += xOff;
+        
+        if(xPos >= 720 || xPos < 0)
+        {
+            xOff *= -1;
+        }
+    }
+    return;
+    #endif
+    
     call("lv_save_raw", 1);
     call("aewb_enableaewb", 0);
     return;
@@ -879,11 +912,11 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     msleep(2000);
 }
 
-static void print_benchmark_header()
+static char* print_benchmark_header()
 {
     bmp_printf(FONT_MED, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
     
-    char mode[100];
+    static char mode[100];
     snprintf(mode, sizeof(mode), "Mode: ");
     if (lv)
     {
@@ -909,6 +942,7 @@ static void print_benchmark_header()
     STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
     
     bmp_printf(FONT_MED, 0, 60, mode);
+    return mode;
 }
 
 static void card_benchmark_task()
@@ -1022,6 +1056,62 @@ static void twocard_benchmark_task()
 
 #endif
 
+static void card_bufsize_benchmark_task()
+{
+    msleep(1000);
+    if (!DISPLAY_IS_ON) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    canon_gui_disable_front_buffer();
+    clrscr();
+    
+    int x = 0;
+    int y = 100;
+    
+    FILE* log = FIO_CreateFileEx(CARD_DRIVE"bench.log");
+    if (log == INVALID_PTR) goto cleanup;
+
+    my_fprintf(log, "Buffer size experiment\n");
+    my_fprintf(log, "ML %s, %s\n", build_version, build_id); // this includes camera name
+    char* mode = print_benchmark_header();
+    my_fprintf(log, "%s\n", mode);
+    
+    #ifdef CARD_A_MAKER
+    my_fprintf(log, "CF %s %s\n", CARD_A_MAKER, CARD_A_MODEL);
+    #endif
+    
+    while(1)
+    {
+        /* random buffer size between 1K and 32M, with 1K increments */
+        uint32_t bufsize = ((rand() % 32768) + 1) * 1024;
+
+        msleep(1000);
+        uint32_t filesize = 256; // MB
+        uint32_t n = filesize * 1024 * 1024 / bufsize;
+
+        FILE* f = FIO_CreateFileEx(CARD_BENCHMARK_FILE);
+        int t0 = get_ms_clock_value();
+        int total = 0;
+        for (uint32_t i = 0; i < n; i++)
+        {
+            uint32_t start = (int)UNCACHEABLE(YUV422_LV_BUFFER_1);
+            bmp_printf(FONT_LARGE, 0, 0, "Writing: %d/100 (buf=%dK)... ", i * 100 / n, bufsize/1024);
+            uint32_t r = FIO_WriteFile( f, (const void *) start, bufsize );
+            total += r;
+            if (r != bufsize) break;
+        }
+        FIO_CloseFile(f);
+        int t1 = get_ms_clock_value();
+        int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
+        bmp_printf(FONT_MED, x, y += font_med.height, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
+        if (y > 450) y = 100;
+        
+        my_fprintf(log, "%d %d\n", bufsize, speed);
+        
+    }
+cleanup:
+    if (log != INVALID_PTR) FIO_CloseFile(log);
+    canon_gui_enable_front_buffer(1);
+}
+
 typedef void (*mem_bench_fun)(
     int arg0,
     int arg1,
@@ -1036,7 +1126,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
 
     int times = 0;
     int t0 = get_ms_clock_value();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < INT_MAX; i++)
     {
         bench_fun(arg0, arg1, arg2, arg3);
         if (i%2) info_led_off(); else info_led_on();
@@ -1070,6 +1160,15 @@ static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
     bmp_draw_to_idle(0);
 }
 
+#ifdef CONFIG_EDMAC_MEMCPY
+void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
+{
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 720, 480);
+}
+#endif
+
 static uint64_t FAST mem_test_read64(uint64_t* buf, uint32_t n)
 {
     /** GCC output with -Os attribute(O3):
@@ -1101,74 +1200,6 @@ static uint32_t FAST mem_test_read32(uint32_t* buf, uint32_t n)
     return tmp;
 }
 
-#ifdef CONFIG_EDMAC_MEMCPY
-
-/* todo: move in a separate source file? */
-
-static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
-static struct semaphore * edmac_memcpy_done_sem = 0; /* to know when memcpy is finished */
-
-static void edmac_memcpy_init()
-{
-    edmac_memcpy_sem = create_named_semaphore("edmac_memcpy_sem", 1);
-    edmac_memcpy_done_sem = create_named_semaphore("edmac_memcpy_done_sem", 0);
-}
-
-INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
-
-static void edmac_memcpy_complete_cbr (int ctx)
-{
-    give_semaphore(edmac_memcpy_done_sem);
-}
-
-void* edmac_memcpy(void* dst, void* src, size_t length)
-{
-    take_semaphore(edmac_memcpy_sem, 0);
-
-    if(length % 4096)
-    {
-        length &= 4095;
-    }
-    
-    /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
-    uint32_t dmaChannelRead = 0x19;
-    uint32_t dmaChannelWrite = 0x11;
-
-    /* both channels get connected to this... lets call it service. it will just output the data it gets as input */
-    uint32_t dmaConnection = 6;
-
-    /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-    uint32_t dmaFlags = 0x20001000;
-
-    /* create a memory suite from a already existing (continuous) memory block with given size. */
-    struct memSuite *memSuiteSource = CreateMemorySuite(src, length, 0);
-    struct memSuite *memSuiteDest = CreateMemorySuite(dst, length, 0);
-
-    /* only read channel will emit a callback when reading from memory is done. write channels would just silently wrap */
-    PackMem_RegisterEDmacCompleteCBRForMemorySuite(dmaChannelRead, &edmac_memcpy_complete_cbr, 0);
-
-    /* connect the selected channels to 6 so any data read from RAM is passed to write channel */
-    ConnectWriteEDmac(dmaChannelWrite, dmaConnection);
-    ConnectReadEDmac(dmaChannelRead, dmaConnection);
-
-    /* setup EDMAC driver to handle memory suite copy. check return codes for being zero (OK)! if !=0 then the suite size was not a multiple of 4096 */
-    int err = PackMem_SetEDmacForMemorySuite(dmaChannelWrite, memSuiteDest , dmaFlags);
-    err |= PackMem_SetEDmacForMemorySuite(dmaChannelRead, memSuiteSource , dmaFlags);
-
-    if(err)
-    {
-        return 0;
-    }
-    
-    /* start transfer. no flags for write, 2 for read channels */
-    PackMem_StartEDmac(dmaChannelWrite, 0);
-    PackMem_StartEDmac(dmaChannelRead, 2);
-    take_semaphore(edmac_memcpy_done_sem, 0);
-    
-    give_semaphore(edmac_memcpy_sem);
-    return dst;
-}
-#endif
 
 static void mem_benchmark_task()
 {
@@ -1210,6 +1241,7 @@ static void mem_benchmark_task()
     #endif
     #ifdef CONFIG_EDMAC_MEMCPY
     mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0);
+    mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle, 0, 0, 0, 0);
     #endif
     mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)CACHEABLE(buf1),   0,                           bufsize, 0);
     mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,     (intptr_t)UNCACHEABLE(buf1), 0,                           bufsize, 0);
@@ -3139,7 +3171,7 @@ void menu_kill_flicker()
 
 static int edmac_selection;
 
-static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
+static void edmac_display_page(int i0, int x0, int y0)
 {
     bmp_printf(
         FONT_MED,
@@ -3153,16 +3185,17 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     {
         char msg[100];
         
-        uint32_t addr = shamem_read(base + (i<<8) + 8);
+        uint32_t base = edmac_get_base(i0+i);
+        uint32_t addr = shamem_read(base + 8);
         union edmac_size_t
         {
             struct { short x, y; } size;
             uint32_t raw;
         };
         
-        union edmac_size_t size = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
+        union edmac_size_t size = (union edmac_size_t) shamem_read(base + 0x10);
         
-        int state = MEM(base + (i<<8) + 0);
+        int state = MEM(base + 0);
         int color = 
             state == 0 ? COLOR_GRAY(50) :   // inactive?
             state == 1 ? COLOR_GREEN1 :     // active?
@@ -3179,7 +3212,14 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
         
         if (color == COLOR_RED)
             STR_APPEND(msg, " (%x)", state);
+
+        uint32_t conn_w  = edmac_get_connection(i0+i, EDMAC_DIR_WRITE);
+        uint32_t conn_r  = edmac_get_connection(i0+i, EDMAC_DIR_READ);
         
+        if (conn_r == 0xFF) { if (conn_w != 0) STR_APPEND(msg, " <w%x>", conn_w); }
+        else if (conn_w == 0) { STR_APPEND(msg, " <r%x>", conn_r); }
+        else { STR_APPEND(msg, " <%x,%x>", conn_w, conn_r); }
+
         bmp_printf(
             FONT(FONT_MED, color, COLOR_BLACK),
             x0, y0 + i * font_med.height, 
@@ -3188,24 +3228,26 @@ static void edmac_display_page(int i0, uint32_t base, int x0, int y0)
     }
 }
 
-static void edmac_display_detailed(int i0, uint32_t base, int i)
+static void edmac_display_detailed(int channel)
 {
+    uint32_t base = edmac_get_base(channel);
+
     int x = 50;
     int y = 50;
     bmp_printf(
         FONT_LARGE,
         x, y,
         "EDMAC #%d - %x\n", 
-        i0 + i,
-        base + (i<<8) + 8
+        channel,
+        base
     );
     y += font_large.height;
     
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
-    uint32_t state = MEM(base + (i<<8) + 0);
-    uint32_t flags = shamem_read(base + (i<<8) + 4);
-    uint32_t addr = shamem_read(base + (i<<8) + 8);
+    uint32_t state = MEM(base + 0);
+    uint32_t flags = shamem_read(base + 4);
+    uint32_t addr = shamem_read(base + 8);
 
     union edmac_size_t
     {
@@ -3213,29 +3255,47 @@ static void edmac_display_detailed(int i0, uint32_t base, int i)
         uint32_t raw;
     };
     
-    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + (i<<8) + 0x0C);
-    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + (i<<8) + 0x10);
-    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + (i<<8) + 0x14);
+    union edmac_size_t size_n = (union edmac_size_t) shamem_read(base + 0x0C);
+    union edmac_size_t size_b = (union edmac_size_t) shamem_read(base + 0x10);
+    union edmac_size_t size_a = (union edmac_size_t) shamem_read(base + 0x14);
     
-    uint32_t off1b = shamem_read(base + (i<<8) + 0x18);
-    uint32_t off2b = shamem_read(base + (i<<8) + 0x1C);
-    uint32_t off1a = shamem_read(base + (i<<8) + 0x20);
-    uint32_t off2a = shamem_read(base + (i<<8) + 0x24);
-    uint32_t off3  = shamem_read(base + (i<<8) + 0x28);
+    uint32_t off1b = shamem_read(base + 0x18);
+    uint32_t off2b = shamem_read(base + 0x1C);
+    uint32_t off1a = shamem_read(base + 0x20);
+    uint32_t off2a = shamem_read(base + 0x24);
+    uint32_t off3  = shamem_read(base + 0x28);
+
+    uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
+    uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
     
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Address : %8x ", addr);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "State   : %8x ", state);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags   : %8x ", flags);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Address    : %8x ", addr);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "State      : %8x ", state);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Flags      : %8x ", flags);
     y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A  : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B  : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N  : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
     y += font_med.height;
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a   : %8x ", off1a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b   : %8x ", off1b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a   : %8x ", off2a);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b   : %8x ", off2b);
-    bmp_printf(FONT_MED, 50, y += font_med.height, "off3    : %8x ", off3);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1a      : %8x ", off1a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off1b      : %8x ", off1b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2a      : %8x ", off2a);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off2b      : %8x ", off2b);
+    bmp_printf(FONT_MED, 50, y += font_med.height, "off3       : %8x ", off3);
+    y += font_med.height;
+    bmp_printf(FONT_MED, 50, y += font_med.height, "Connection : write=0x%x read=0x%x ", conn_w, conn_r);
+    
+    #ifdef CONFIG_5D3
+    /**
+     * ConnectReadEDmac(channel, conn)
+     * RAM:edmac_register_interrupt(channel, cbr_handler, ...)
+     * => *(8 + 32*arg0 + *0x12400) = arg1
+     * and also: *(12 + 32*arg0 + *0x12400) = arg1
+     */
+    uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
+    uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
+    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
+    bmp_printf(FONT_MED, 50, y += font_med.height, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
+    #endif
 }
 
 static MENU_UPDATE_FUNC(edmac_display)
@@ -3246,8 +3306,8 @@ static MENU_UPDATE_FUNC(edmac_display)
 
     if (edmac_selection == 0) // overview
     {
-        edmac_display_page(0, 0xC0F04000, 20, 30);
-        edmac_display_page(16, 0xC0F26000, 360, 30);
+        edmac_display_page(0, 0, 30);
+        edmac_display_page(16, 360, 30);
 
         //~ int x = 20;
         bmp_printf(
@@ -3272,10 +3332,7 @@ static MENU_UPDATE_FUNC(edmac_display)
     }
     else // detailed view
     {
-        if (edmac_selection <= 16)
-            edmac_display_detailed(0, 0xC0F04000, edmac_selection - 1);
-        else
-            edmac_display_detailed(16, 0xC0F26000, edmac_selection - 16 - 1);
+        edmac_display_detailed(edmac_selection - 1);
     }
 }
 #endif
@@ -3410,13 +3467,13 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_DEBUG_INTERCEPT
     {
         .name        = "DM Log",
-        .priv        = debug_intercept,
+        .priv        = j_debug_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log DebugMessages"
     },
     {
         .name        = "TryPostEvent Log",
-        .priv        = tp_intercept,
+        .priv        = j_tp_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log TryPostEvents"
     },
@@ -3583,6 +3640,13 @@ static struct menu_entry debug_menus[] = {
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
+            {
+                .name = "Card buffer benchmark (inf)",
+                .select = (void(*)(void*,int))run_in_separate_task,
+                .priv = card_bufsize_benchmark_task,
+                .help = "Experiment for finding optimal write buffer sizes.",
+                .help2 = "Results saved in BENCH.LOG."
+            },
             #ifdef CONFIG_5D3
             {
                 .name = "CF+SD write benchmark (1 min)",
@@ -3668,7 +3732,7 @@ static struct menu_entry debug_menus[] = {
             {
                 .name = "EDMAC display",
                 .priv = &edmac_selection,
-                .max = 32,
+                .max = 48,
                 .update = edmac_display,
             },
             MENU_EOL
@@ -4375,11 +4439,11 @@ static void CopyMLFilesToRAM_BeforeFormat()
     TmpMem_AddFile(CARD_DRIVE "AUTOEXEC.BIN");
     TmpMem_AddFile(CARD_DRIVE "MAGIC.FIR");
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SETTINGS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/MODULES/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/SCRIPTS/", 0);
-    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/PLUGINS/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DATA/", 0);
+    CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/CROPMKS/", 1);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/DOC/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE "ML/LOGS/", 0);
     CopyMLDirectoryToRAM_BeforeFormat(CARD_DRIVE, 0);
