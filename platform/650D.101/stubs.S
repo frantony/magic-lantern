@@ -44,6 +44,8 @@
 
 NSTUB( ROMBASEADDR, firmware_entry )
 
+NSTUB(0xFF376650, lv_change_raw)
+
 /** experimental EDMAC research **/
 NSTUB(0x00008B7C, CreateMemorySuite)
 NSTUB(0x00008974, DeleteMemorySuite)
@@ -222,7 +224,6 @@ NSTUB(0xFF19CD0C, ENCODE_StartEncodeJpeg)
 NSTUB(0xFF13BA28, AllocateMemoryResource) // m_pfAllocMemoryCBR
 NSTUB(0xFF13BA74, AllocateContinuousMemoryResource) // m_pfContAllocMemoryCBR
 NSTUB(0xFF13BB8C, FreeMemoryResource) // m_pfFreeMemoryCBR
-NSTUB(0xFF0E94C4, AllocateMemoryResourceForSingleChunk) // Initialize Resource Wrapper R1
 
 NSTUB(0x8F28, GetFirstChunkFromSuite)
 NSTUB(0x8900, GetMemoryAddressOfMemoryChunk)

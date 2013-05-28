@@ -54,11 +54,14 @@ static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 
 #ifdef FEATURE_AUTO_ETTR
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
+static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
 static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.shutter", auto_ettr_max_shutter, 11);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 #endif
+
+#define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
 
 void move_lv_afframe(int dx, int dy);
 void movie_start();
@@ -516,6 +519,11 @@ static MENU_UPDATE_FUNC(intervalometer_display)
         
         if (auto_power_off_time && auto_power_off_time <= d)
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Check auto power off setting (currently %ds).", auto_power_off_time);
+        
+        #ifdef FEATURE_AUTO_ETTR
+        if (auto_ettr && image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Auto ETTR: enable image review from Canon menu.");
+        #endif
     }
     else
     {
@@ -3656,7 +3664,7 @@ PROP_HANDLER(PROP_FILE_PREFIX)
 
 #ifdef FEATURE_POST_DEFLICKER
 static char* xmp_template =
-"<?xpacket begin='﻿' id='W5M0MpCehiHzreSzNTczkc9d'?>\n"
+"<?xpacket begin='﻿'?> \n"
 "<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image::ExifTool 7.89'>\n"
 "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
 " <rdf:Description rdf:about=''\n"
@@ -3735,24 +3743,21 @@ void post_deflicker_show_info()
 static MENU_UPDATE_FUNC(post_deflicker_update)
 {
     if (!can_use_raw_overlays_photo())
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
-    }
 
     if (HDR_ENABLED)
-    {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
-    }
+
+    if (image_review_time == 0)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
     
     if (is_continuous_drive())
-    {
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
-    }
-    
+
     if (post_deflicker)
     {
         MENU_SET_VALUE(post_deflicker_sidecar_type ? "UFRaw" : "XMP");
-        MENU_SET_RINFO("%d/%d%%", post_deflicker_target_level, post_deflicker_percentile);
+        MENU_SET_RINFO("%dEV/%d%%", post_deflicker_target_level, post_deflicker_percentile);
     }
     
     if (post_deflicker && post_deflicker_sidecar_type==1)
@@ -3802,8 +3807,6 @@ int auto_ettr_get_correction()
     return last_value;
 }
 
-static int expo_lock_adjust_iso(int delta);
-static int expo_lock_adjust_tv(int delta, int slowest_shutter);
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
@@ -3811,32 +3814,37 @@ static void auto_ettr_work(int corr)
 {
     int delta = -corr * 8 / 100;
     int shutter_lim = auto_ettr_max_shutter*8 + 16;
+    int tv = lens_info.raw_shutter;
+    int iso = lens_info.raw_iso;
+    if (!tv || !iso) return;
 
-    if (lens_info.raw_shutter < shutter_lim)
-    {
-        delta += lens_info.raw_shutter - shutter_lim;
-        lens_set_rawshutter(shutter_lim);
-    }
+    //~ int old_expo = tv - iso;
+
+    /* apply exposure correction */
+    tv += delta;
+
+    /* use the lowest ISO for which we can get shutter = shutter_lim or higher */
+    int offset = MIN(tv - shutter_lim, iso - MIN_ISO);
+    tv -= offset;
+    iso -= offset;
+
+    /* some shutter values are not accepted by Canon firmware */
+    int tvr = round_shutter(tv, shutter_lim);
+    iso += tvr - tv;
     
-    if (delta < 0) /* slower shutter speed */
-    {
-        int delta_extra = 0;
-        if (lens_info.raw_shutter + delta < shutter_lim)
-        {
-            int old_delta = delta;
-            delta = shutter_lim - lens_info.raw_shutter;
-            delta_extra = old_delta - delta;
-        }
-        
-        delta = expo_lock_adjust_tv(delta, shutter_lim);
-        delta += delta_extra;
-        delta = expo_lock_adjust_iso(delta);
-    }
-    else /* faster shutter speed */
-    {
-        delta = expo_lock_adjust_iso(delta);
-        delta = expo_lock_adjust_tv(delta, shutter_lim);
-    }
+    /* analog iso can be only in 1 EV increments */
+    int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, MAX_ANALOG_ISO);
+    
+    /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
+    tvr += isor - iso;
+    tvr = round_shutter(tvr, shutter_lim);
+
+    /* apply the new settings */
+    lens_set_rawshutter(tvr);
+    lens_set_rawiso(isor);
+
+    //~ int new_expo = tvr - isor;
+    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
 
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
@@ -3845,7 +3853,6 @@ static void auto_ettr_work(int corr)
 static volatile int auto_ettr_running = 0;
 static void auto_ettr_step_task(int corr)
 {
-    if (auto_ettr_running) return;
     auto_ettr_work(corr);
     if (ABS(corr) < 50) { } /* that's ok */
     else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
@@ -3865,30 +3872,55 @@ static void auto_ettr_step()
     if (corr != INT_MIN)
     {
         /* we'd better not change expo settings from prop task (we won't get correct confirmations) */
+        auto_ettr_running = 1;
         task_create("ettr_task", 0x1c, 0x1000, auto_ettr_step_task, (void*) corr);
     }
 }
 
-static void auto_ettr_step_lv()
+static int auto_ettr_check_pre_lv()
 {
-    if (!auto_ettr) return;
-    if (shooting_mode != SHOOTMODE_M) return;
-    if (lens_info.raw_iso == 0) return;
-    if (lens_info.raw_shutter == 0) return;
-    if (HDR_ENABLED) return;
-    if (!expsim) return;
-    if (is_movie_mode()) return;
-    if (lv_dispsize != 1) return;
-    if (LV_PAUSED) return;
-    if (get_halfshutter_pressed()) return;
-    if (!liveview_display_idle()) return;
+    if (!auto_ettr) return 0;
+    if (shooting_mode != SHOOTMODE_M) return 0;
+    if (lens_info.raw_iso == 0) return 0;
+    if (lens_info.raw_shutter == 0) return 0;
+    if (HDR_ENABLED) return 0;
 
     int raw = pic_quality & 0x60000;
-    if (!raw) return;
+    if (!raw) return 0;
+    return 1;
+}
+
+static int auto_ettr_check_in_lv()
+{
+    if (!expsim) return 0;
+    if (is_movie_mode()) return 0;
+    if (lv_dispsize != 1) return 0;
+    if (LV_PAUSED) return 0;
+    if (!liveview_display_idle()) return 0;
+    return 1;
+}
+
+static int auto_ettr_check_lv()
+{
+    if (!auto_ettr_check_pre_lv()) return 0;
+    if (!auto_ettr_check_in_lv()) return 0;
+    return 1;
+}
+
+static void auto_ettr_step_lv()
+{
+    if (!auto_ettr || !AUTO_ETTR_TRIGGER_PHOTO)
+        return;
     
-    /* only update once per second, so the exposure has a chance to be updated on the LCD */
+    if (!auto_ettr_check_lv())
+        return;
+    
+    if (get_halfshutter_pressed())
+        return;
+
+    /* only update once per 1.5 seconds, so the exposure has a chance to be updated on the LCD */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(1000, &aux))
+    if (!should_run_polling_action(1500, &aux))
         return;
     
     raw_lv_request();
@@ -3909,14 +3941,83 @@ static void auto_ettr_step_lv()
     }
 }
 
+static void auto_ettr_on_request_task(int unused)
+{
+    beep();
+    
+    int was_in_lv = lv;
+    if (!lv) force_liveview();
+    if (!lv) goto end;
+    if (lv_dispsize != 1) set_lv_zoom(1);
+    if (!auto_ettr_check_lv()) goto end;
+    if (get_halfshutter_pressed())
+    {
+        msleep(500);
+        if (get_halfshutter_pressed()) goto end;
+    }
+
+    NotifyBox(100000, "Auto ETTR...");
+    for (int k = 0; k < 5; k++)
+    {
+        msleep(500);
+        
+        raw_lv_request();
+        int corr = auto_ettr_get_correction();
+        raw_lv_release();
+
+        if (corr != INT_MIN)
+        {
+            auto_ettr_work(corr);
+            msleep(1000);
+        }
+        else
+            break;
+        
+        if (ABS(corr) < 60)
+            break;
+        
+        if (get_halfshutter_pressed())
+            break;
+    }
+    NotifyBoxHide();
+
+end:
+    beep();
+    if (lv && !was_in_lv) fake_simple_button(BGMT_LV);
+    auto_ettr_running = 0;
+}
+
+int handle_ettr_keys(struct event * event)
+{
+    if (!auto_ettr) return 1;
+    if (!auto_ettr_trigger) return 1;
+    if (!display_idle()) return 1;
+    if (!auto_ettr_check_pre_lv()) return 1;
+    if (lv && !auto_ettr_check_in_lv()) return 1;
+    
+    if (
+            (auto_ettr_trigger == 1 && event->param == BGMT_PRESS_SET) ||
+            (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
+       0)
+    {
+        auto_ettr_running = 1;
+        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
+        if (auto_ettr_trigger == 1) return 0;
+    }
+    return 1;
+}
+
 static MENU_UPDATE_FUNC(auto_ettr_update)
 {
     int raw = pic_quality & 0x60000;
     if (!raw)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "You must shoot RAW in order to use this.");
 
-    if (!lv && !can_use_raw_overlays_photo())
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available.");
+    if (!lv && !can_use_raw_overlays_photo() && AUTO_ETTR_TRIGGER_PHOTO)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Photo RAW data not available, try in LiveView.");
+
+    if (image_review_time == 0 && AUTO_ETTR_TRIGGER_PHOTO)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Enable image review from Canon menu.");
 
     if (HDR_ENABLED)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDR bracketing.");
@@ -3924,13 +4025,18 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     if (lv && !expsim)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "In LiveView, this requires ExpSim enabled.");
     
-    if (is_continuous_drive())
+    if (is_continuous_drive() && AUTO_ETTR_TRIGGER_PHOTO)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
     
     if (auto_ettr)
-        MENU_SET_RINFO("%d/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+        MENU_SET_RINFO("%dEV/%d%%", auto_ettr_target_level, auto_ettr_percentile);
 
-    if (lv)
+    if (auto_ettr && auto_ettr_trigger)
+        MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
+
+    if (auto_ettr_trigger)
+        MENU_SET_HELP("Press the shortcut key to optimize the exposure (ETTR).");
+    else if (lv)
         MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
     else
         MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
@@ -3948,7 +4054,8 @@ PROP_HANDLER(PROP_GUI_STATE)
         #endif
         
         #ifdef FEATURE_AUTO_ETTR
-        auto_ettr_step();
+        if (AUTO_ETTR_TRIGGER_PHOTO)
+            auto_ettr_step();
         #endif
     }
 }
@@ -4126,13 +4233,39 @@ static void bulb_ramping_showinfo()
 
 #endif // FEATURE_BULB_RAMPING
 
-int expo_value_rounding_ok(int raw)
+int expo_value_rounding_ok(int raw, int is_aperture)
 {
-    if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
+    if (is_aperture)
+        if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
+    
     int r = raw % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5)
         return 0;
     return 1;
+}
+
+int round_shutter(int tv, int slowest_shutter)
+{
+    int tvr;
+    tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 3, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 4, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    return 0;
+}
+
+int round_aperture(int av)
+{
+    int avr;
+    avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 3, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 4, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    return 0;
 }
 
 #ifdef FEATURE_EXPO_LOCK
@@ -4183,28 +4316,13 @@ static int expo_lock_get_current_value()
 }
 
 // returns the remainder
-static int expo_lock_adjust_tv(int delta, int slowest_shutter)
+static int expo_lock_adjust_tv(int delta)
 {
     if (!delta) return 0;
     int old_tv = lens_info.raw_shutter;
     int new_tv = old_tv + delta;
-    new_tv = COERCE(new_tv, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-
-    if (!expo_value_rounding_ok(new_tv)) // try to change it by a small amount, so Canon firmware will accept it
-    {
-        int new_tv_plus1  = COERCE(new_tv + 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus1 = COERCE(new_tv - 1, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_plus2  = COERCE(new_tv + 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_minus2 = COERCE(new_tv - 2, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-        int new_tv_plus3  = COERCE(new_tv + 3, MAX(16, slowest_shutter), FASTEST_SHUTTER_SPEED_RAW);
-        
-        if (expo_value_rounding_ok(new_tv_plus1)) new_tv = new_tv_plus1;
-        else if (expo_value_rounding_ok(new_tv_minus1)) new_tv = new_tv_minus1;
-        else if (expo_value_rounding_ok(new_tv_plus2)) new_tv = new_tv_plus2;
-        else if (expo_value_rounding_ok(new_tv_minus2)) new_tv = new_tv_minus2;
-        else if (expo_value_rounding_ok(new_tv_plus3)) new_tv = new_tv_plus3;
-    }
-
+    new_tv = COERCE(new_tv, 16, FASTEST_SHUTTER_SPEED_RAW);
+    new_tv = round_shutter(new_tv, 16);
     lens_set_rawshutter(new_tv);
     msleep(100);
     return delta - lens_info.raw_shutter + old_tv;
@@ -4218,20 +4336,7 @@ static int expo_lock_adjust_av(int delta)
     int old_av = lens_info.raw_aperture;
     int new_av = old_av + delta;
     new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    
-    if (!expo_value_rounding_ok(new_av)) // try to change it by a small amount, so Canon firmware will accept it
-    {
-        int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        
-        if (expo_value_rounding_ok(new_av_plus1)) new_av = new_av_plus1;
-        else if (expo_value_rounding_ok(new_av_minus1)) new_av = new_av_minus1;
-        else if (expo_value_rounding_ok(new_av_plus2)) new_av = new_av_plus2;
-        else if (expo_value_rounding_ok(new_av_minus2)) new_av = new_av_minus2;
-    }
-    
+    new_av = round_aperture(new_av);
     lens_set_rawaperture(new_av);
     msleep(100);
     return delta - lens_info.raw_aperture + old_av;
@@ -4245,6 +4350,8 @@ static int expo_lock_adjust_iso(int delta)
     int delta_r = ((delta + 4 * SGN(delta)) / 8) * 8;
     int new_iso = COERCE(old_iso - delta_r, MIN_ISO, MAX_ANALOG_ISO);
 
+    /* for very fast adjustments: stop at max auto ISO;
+     * will try to adjust something else before going above max auto ISO */
     int max_auto_iso = auto_iso_range & 0xFF;
     if (new_iso > max_auto_iso && old_iso < max_auto_iso)
         new_iso = max_auto_iso;
@@ -4313,13 +4420,13 @@ static void expo_lock_step()
             int delta = expo_lock_value - current_value;
             if (expo_lock_iso == 1)
             {
-                delta = expo_lock_adjust_tv(delta, 0);
+                delta = expo_lock_adjust_tv(delta);
                 if (ABS(delta) >= 4) delta = expo_lock_adjust_av(delta);
             }
             else
             {
                 delta = expo_lock_adjust_av(delta);
-                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta, 0);
+                if (ABS(delta) >= 4) delta = expo_lock_adjust_tv(delta);
             }
             //~ delta = expo_lock_adjust_iso(delta);
     }
@@ -4345,13 +4452,13 @@ static void expo_lock_step()
         int delta = expo_lock_value - current_value;
         if (expo_lock_av == 1 || (lens_info.raw_iso > max_auto_iso - 8 && delta < 0))
         {
-            delta = expo_lock_adjust_tv(delta, 0);
+            delta = expo_lock_adjust_tv(delta);
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
         }
         else
         {
             if (ABS(delta) > 4) delta = expo_lock_adjust_iso(delta);
-            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta, 0);
+            if (ABS(delta) >= 8) delta = expo_lock_adjust_tv(delta);
         }
         //~ delta = expo_lock_adjust_av(delta);
     }
@@ -4583,6 +4690,46 @@ static struct menu_entry shoot_menus[] = {
             },
             #endif
             MENU_EOL
+        },
+    },
+    #endif
+
+    #ifdef FEATURE_POST_DEFLICKER
+    {
+        .name = "Post Deflicker", 
+        .priv = &post_deflicker, 
+        .max = 1,
+        .update = post_deflicker_update,
+        .help  = "Create sidecar files with exposure compensation,",
+        .help2 = "so all your pics look equally exposed, without flicker.",
+        .works_best_in = DEP_PHOTO_MODE,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Sidecar file type",
+                .priv = &post_deflicker_sidecar_type,
+                .max = 1,
+                .choices = CHOICES("Adobe XMP", "UFRaw"),
+                .help = "Sidecar file format, for deflicker metadata.",
+            },
+            {
+                .name = "Deflicker percentile",
+                .priv = &post_deflicker_percentile,
+                .min = 20,
+                .max = 80,
+                .unit = UNIT_PERCENT,
+                .help  = "Where to meter for deflickering. Recommended: 50% (median).",
+                .help2 = "Try 75% if you get black borders (e.g. Samyang 8mm on 5D).",
+            },
+            {
+                .name = "Deflicker target level",
+                .priv = &post_deflicker_target_level,
+                .min = -8,
+                .max = -1,
+                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
+                .help = "Desired exposure level for processed pics. 0=overexposed.",
+            },
+            MENU_EOL,
         },
     },
     #endif
@@ -4821,45 +4968,6 @@ static struct menu_entry shoot_menus[] = {
     },
     #endif
     
-    #ifdef FEATURE_POST_DEFLICKER
-    {
-        .name = "Post Deflicker", 
-        .priv = &post_deflicker, 
-        .max = 1,
-        .update = post_deflicker_update,
-        .help  = "Create sidecar files with exposure compensation,",
-        .help2 = "so all your pics look equally exposed, without flicker.",
-        .works_best_in = DEP_PHOTO_MODE,
-        .submenu_width = 710,
-        .children =  (struct menu_entry[]) {
-            {
-                .name = "Sidecar file type",
-                .priv = &post_deflicker_sidecar_type,
-                .max = 1,
-                .choices = CHOICES("Adobe XMP", "UFRaw"),
-                .help = "Sidecar file format, for deflicker metadata.",
-            },
-            {
-                .name = "Deflicker percentile",
-                .priv = &post_deflicker_percentile,
-                .min = 20,
-                .max = 80,
-                .unit = UNIT_PERCENT,
-                .help = "Where to meter for deflickering. Recommended: 50% (median).",
-            },
-            {
-                .name = "Deflicker target level",
-                .priv = &post_deflicker_target_level,
-                .min = -8,
-                .max = -1,
-                .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
-                .help = "Desired exposure level for processed pics. 0=overexposed.",
-            },
-            MENU_EOL,
-        },
-    },
-    #endif
-
     #ifdef FEATURE_LV_3RD_PARTY_FLASH
         #ifndef FEATURE_FLASH_TWEAKS
         #error This requires FEATURE_FLASH_TWEAKS.
@@ -5510,6 +5618,13 @@ static struct menu_entry expo_menus[] = {
         .depends_on = DEP_PHOTO_MODE | DEP_M_MODE | DEP_MANUAL_ISO,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
+            {
+                .name = "Trigger mode",
+                .priv = &auto_ettr_trigger,
+                .max = 2,
+                .choices = CHOICES("Always ON", "Press SET", "HalfS DblClick"),
+                .help = "When should the exposure be adjusted for ETTR",
+            },
             {
                 .name = "ETTR percentile",
                 .priv = &auto_ettr_percentile,

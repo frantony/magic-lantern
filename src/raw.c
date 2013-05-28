@@ -58,7 +58,7 @@
 #endif
 
 #if defined(CONFIG_60D)
-#define RAW_PHOTO_EDMAC 0xc0f04A08
+#define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
 static uint32_t raw_buffer_photo = 0;
@@ -80,6 +80,29 @@ void raw_buffer_intercept_from_stateobj()
 
 
 }
+
+/** 
+ * Raw type (optional)
+ * decompile lv_af_raw
+ * => (5D3) lv_set_raw_type(arg0 ? 4 : 7)
+ * => MEM(0x2D168) = a bunch of values, default 34, 18 with lv_af on, 14 with lv_af off.
+ * see also http://www.magiclantern.fm/forum/index.php?topic=5614.msg39696#msg39696
+ */
+
+#ifdef CONFIG_5D3
+/**
+ * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
+ * "Best images in: 17, 35, 37, 39, 81, 83, 99"
+ * note: values are off by 1
+ */
+#define PREFERRED_RAW_TYPE 16
+#define RAW_TYPE_ADDRESS 0x2D168
+#endif
+
+#ifdef CONFIG_5D2
+/* a.d.: without lv_af_raw, 5D2 has magenta cast in zoom mode */
+#define USE_LV_AF_RAW
+#endif
 
 /** 
  * White level
@@ -288,11 +311,10 @@ int raw_update_params()
 
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
-        //~ raw_info.height = zoom ? 1102 : 718;
-        skip_top    = 24;
-        skip_left   = 68;
+        skip_top    = 28;
+        skip_left   = 74;
         skip_right  = 0;
-        skip_bottom = 1;
+        skip_bottom = 4;
         #endif
         
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
@@ -301,6 +323,11 @@ int raw_update_params()
     else if (QR_MODE) // image review after taking pics
     {
         raw_info.buffer = (void*) raw_buffer_photo;
+        
+        #ifdef CONFIG_60D
+        raw_info.buffer = (void*) shamem_read(RAW_PHOTO_EDMAC);
+        #endif
+        
         if (!raw_info.buffer)
         {
             dbg_printf("Photo raw buffer null\n");
@@ -375,12 +402,21 @@ int raw_update_params()
         skip_top = 50; // Meta Data
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
+        #if defined(CONFIG_60D)
+        width = 5344;
+        height = 3516;
+        skip_left = 142;
+        skip_right = 0;
+        skip_top = 50;
+        #endif
+
+        #if defined(CONFIG_EOSM) || defined(CONFIG_650D)
         width = 5280;
         height = 3528;
-        skip_left = 68;
-        skip_right = 0;
-        skip_top = 28;
+        skip_left = 84;
+        skip_top = 64;
+        skip_right = width - 5267;
+        skip_bottom = height - 3519; 
         #endif
 
 
@@ -723,7 +759,8 @@ int autodetect_black_level()
 
     // bmp_printf(FONT_MED, 50, 100, "black: mean=%d stdev=%d dr=%d \n", mean, stdev, raw_info.dynamic_range);
 
-    return mean + stdev/2;
+    /* slight correction for the magenta cast in shadows */
+    return mean + stdev/8;
 }
 
 void raw_lv_redirect_edmac(void* ptr)
@@ -818,18 +855,36 @@ void FAST raw_preview_fast()
 }
 
 static int lv_raw_enabled;
+#ifdef PREFERRED_RAW_TYPE
+static int old_raw_type = -1;
+#endif
 static void raw_lv_enable()
 {
     lv_raw_enabled = 1;
     call("lv_save_raw", 1);
-    call("lv_af_raw", 1); /* this enables Canon's bad pixel removal, thanks nanomad */
+    
+#ifdef PREFERRED_RAW_TYPE
+    old_raw_type = MEM(RAW_TYPE_ADDRESS);
+    MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
+#elif defined(USE_LV_AF_RAW)
+    call("lv_af_raw", 1);
+#endif
 }
 
 static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
     call("lv_save_raw", 0);
+    
+#ifdef PREFERRED_RAW_TYPE
+    if (old_raw_type != -1)
+    {
+        MEM(RAW_TYPE_ADDRESS) = old_raw_type;
+        old_raw_type = -1;
+    }
+#elif defined(USE_LV_AF_RAW)
     call("lv_af_raw", 0);
+#endif
 }
 
 int raw_lv_is_enabled()
