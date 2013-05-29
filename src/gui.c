@@ -3,6 +3,26 @@
  * This was previously camera-specific
  **/
 
+/*
+ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 #include <gui.h>
 
 #include <dryos.h>
@@ -19,7 +39,7 @@
  * [E] 60D  : counter_0x0c <-> msg_queue_0x30
  * [E] 650D : counter_0x0c <-> msg_queue_0x30
  * [E] EOSM : counter_0x0c <-> msg_queue_0x30
- * [D] 5D3  : counter_0x0c <-> msg_queue_0x30
+ * [E] 5D3  : counter_0x0c <-> msg_queue_0x30
  * [D] 6D   : counter_0x0c <-> msg_queue_0x30
  */
 
@@ -38,149 +58,57 @@
 
 struct semaphore * gui_sem;
 
+#ifdef FEATURE_JOY_CENTER_ACTIONS
+static int joy_center_press_count = 0;
+static int joy_center_action_disabled = 0;
+static void joypress_task()
+{
+	extern int joy_center_pressed;
+	TASK_LOOP
+	{
+		msleep(20);
+		if (joy_center_pressed) joy_center_press_count++;
+		else
+		{
+			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
+			{
+				if (is_submenu_or_edit_mode_active())
+				{
+					fake_simple_button(BGMT_Q); // close submenu
+				}
+				else
+				{
+					fake_simple_button(BGMT_PRESS_SET); // do normal SET
+					fake_simple_button(BGMT_UNPRESS_UDLR);
+				}
+			}
+			joy_center_press_count = 0;
+		}
+
+		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
+		{
+			joy_center_press_count = 0;
+			fake_simple_button(BGMT_UNPRESS_UDLR);
+
+			if (gui_menu_shown())
+				fake_simple_button(BGMT_Q);
+			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
+			{
+				give_semaphore( gui_sem ); // open ML menu
+				joy_center_press_count = 0;
+				joy_center_pressed = 0;
+			}
+			msleep(500);
+		}
+
+	}
+}
+TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
+#endif // FEATURE_JOY_CENTER_ACTIONS
+
 #ifdef CONFIG_GUI_DEBUG
 int event_ctr = 0;
 #endif
-
-#ifdef CONFIG_MENU_WITH_AV
-int bgmt_av_status;
-int get_bgmt_av_status() {
-    return bgmt_av_status;
-}
-
-/** 
- * FIXME: Totally statically-coded for 1100D..
- * But at least Canon decided to keep the TRASH button
- * in the newer models...Thanks!
- */
-int update_bgmt_av_status(struct event * event) {
-    if(!BGMT_AV) return -1;
-    if(event == NULL) return -1;
-    if(event->obj == NULL) return -1;
-    int gmt_int_ev_obj = *(int*)(event->obj);
-    switch(shooting_mode) {
-        case SHOOTMODE_MOVIE:
-        case SHOOTMODE_P:
-        case SHOOTMODE_ADEP:
-            if(gmt_int_ev_obj == 0x3010040) return 1;
-            if(gmt_int_ev_obj == 0x1010040) return 0;
-            break;
-        case SHOOTMODE_M:
-            if(gmt_int_ev_obj == 0x1010006) return 1;
-            if(gmt_int_ev_obj == 0x3010006) return 0;
-            break;
-        case SHOOTMODE_AV:
-        case SHOOTMODE_TV:
-            if(gmt_int_ev_obj == (0x1010040+2*shooting_mode)) return 1;
-            if(gmt_int_ev_obj == (0x3010040+2*shooting_mode)) return 0;
-            break;
-        default:
-            return -1;
-    }
-    return -1; //Annoying compiler :)
-}
-
-int handle_av_short_for_menu(struct event* event) {
-    static int t_press   = 0;
-    static int t_unpress = 0;
-    unsigned int dt = 0;
-    unsigned int is_idle = (gui_state == GUISTATE_IDLE);
-    bgmt_av_status = update_bgmt_av_status(event);
-    // We can't detect MLEV_AV_SHOT while in ML menu
-    if(gui_menu_shown()) {
-        t_unpress = 0;
-        t_press = 0;
-    }
-    /** AV long/short press management code. Assumes that the press event is fired only once even if the button is held **/
-    if(bgmt_av_status == 1) { // AV PRESSED
-        t_press = get_ms_clock_value();
-        dt = t_press - t_unpress; // Time elapsed since the button was unpressed
-        if(dt < 500) { // Ignore if happened less than half a second ago (anti-bump)
-            t_press = 0; 
-        } 
-    } else if (bgmt_av_status == 0) { // AV UNPRESSED
-        t_unpress = get_ms_clock_value();
-        dt = t_unpress - t_press; // Time elapsed since the AV button was pressed
-        if (dt < 200 && is_idle) { // 200ms  -> short press
-            fake_simple_button(BGMT_TRASH);
-        }
-    }
-    return 1;
-} 
-#endif //CONFIG_MENU_WITH_AV
-
-#ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
-PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
-
-int video_mode[5];
-PROP_HANDLER(PROP_VIDEO_MODE)
-{
-    memcpy(video_mode, buf, 20);
-}
-
-int disp_pressed = 0;
-int get_disp_pressed() { return disp_pressed; }
-int disp_zoom_pressed = 0;
-
-int handle_digital_zoom_shortcut(struct event * event)
-{
-    switch(event->param) {
-        case BGMT_PRESS_DISP:
-            disp_pressed = 1; 
-            disp_zoom_pressed = 0; 
-        case BGMT_UNPRESS_DISP:
-            disp_pressed = 0;
-        case BGMT_PRESS_ZOOMIN_MAYBE: 
-        case BGMT_PRESS_ZOOMOUT_MAYBE:
-            disp_zoom_pressed = 1;
-        default:
-            break;
-    }
-
-    extern int digital_zoom_shortcut;
-    if (digital_zoom_shortcut && lv && is_movie_mode() && disp_pressed)
-    {
-        if (!video_mode_crop)
-        {
-            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-            {
-                if (!recording)
-                {
-                    video_mode[0] = 0xc;
-                    video_mode[4] = 2;
-                    prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-                }
-                return 0;
-            }
-        }
-        else
-        {
-            if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
-            {
-                if (!recording)
-                {
-                    int x = 300;
-                    prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
-                }
-                NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
-                return 0; // don't allow more than 3x zoom
-            }
-            if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
-            {
-                if (!recording)
-                {
-                    video_mode[0] = 0;
-                    video_mode[4] = 0;
-                    prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
-                }
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-#endif //FEATURE_DIGITAL_ZOOM_SHORTCUT
-
 
 // return 0 if you want to block this event
 static int handle_buttons(struct event * event)
@@ -192,20 +120,29 @@ static int handle_buttons(struct event * event)
     extern int ml_started;
     if (!ml_started) return 1;
 
-#ifdef CONFIG_MENU_WITH_AV
-    if (handle_av_short_for_menu(event) == 0) return 0;
-#endif
-
-#ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
-    if (handle_digital_zoom_shortcut(event) == 0) return 0;
-#endif
 
     if (handle_common_events_by_feature(event) == 0) return 0;
+
+#ifdef FEATURE_JOY_CENTER_ACTIONS
+	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
+	{
+		joy_center_press_count = 1;
+		return 0; // handled above
+	}
+
+	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
+		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
+		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
+		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
+		joy_center_action_disabled = 1;
+
+	if (event->param == BGMT_UNPRESS_UDLR)
+		joy_center_action_disabled = 0;
     
+#endif // FEATURE_JOY_CENTER_ACTIONS
+
     return 1;
 }
-
-
 
 struct gui_main_struct {
   void *          obj;        // off_0x00;
