@@ -126,3 +126,7 @@
 
 /** This camera uses the exposure comp button to open ML menu */
 #define CONFIG_MENU_WITH_AV
+
+/** We have access to Raw data */
+#define CONFIG_RAW_LIVEVIEW
+#define CONFIG_RAW_PHOTO

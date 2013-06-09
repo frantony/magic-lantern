@@ -30,8 +30,8 @@
 
 #define DRYOS_ASSERT_HANDLER 0x233B8 // dec TH_assert or assert_0
 
-#define YUV422_LV_BUFFER_1 0x4bde7800
-#define YUV422_LV_BUFFER_2 0x4b9d7800
+#define YUV422_LV_BUFFER_2 0x4bde7800
+#define YUV422_LV_BUFFER_1 0x4b9d7800
 #define YUV422_LV_BUFFER_3 0x4c1f7800
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)

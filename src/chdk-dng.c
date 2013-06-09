@@ -6,7 +6,7 @@
  */
 
 
-#undef RAW_DEBUG_BLACK
+#define RAW_DEBUG_BLACK
 
 #ifdef CONFIG_MAGICLANTERN
 #include "dryos.h"

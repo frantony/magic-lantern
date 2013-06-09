@@ -5,9 +5,9 @@
 #include "bmp.h"
 #include "lens.h"
 
-#undef RAW_DEBUG        /* define it to help with porting */
-#undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
-#undef RAW_DEBUG_BLACK  /* for checking black level calibration */
+#define RAW_DEBUG        /* define it to help with porting */
+#define RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
+#define RAW_DEBUG_BLACK  /* for checking black level calibration */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
 #ifdef RAW_DEBUG
@@ -35,7 +35,7 @@ int raw_get_shave_right() { return shave_right; } /* todo: add it in raw_info st
 #define RAW_LV_EDMAC 0xC0F26008
 #endif
 
-#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
+#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D) || defined(CONFIG_1100D)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
@@ -49,7 +49,7 @@ int raw_get_shave_right() { return shave_right; } /* todo: add it in raw_info st
  * and http://a1ex.bitbucket.org/ML/states/ for state diagrams.
  */
 
-#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_600D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
+#if defined(CONFIG_5D2) || defined(CONFIG_50D) || defined(CONFIG_500D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || (defined(CONFIG_DIGIC_V) && !defined(CONFIG_FULLFRAME))
 #define RAW_PHOTO_EDMAC 0xc0f04A08
 #endif
 
@@ -193,13 +193,22 @@ void raw_buffer_intercept_from_stateobj()
     -6493, 10000,    12964, 10000,    2784, 10000, \
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
-	
+
+#ifdef CONFIG_1100D
+    //~ { "Canon EOS 1100D", 0, 0x3510,
+    //~ { 6444,-904,-893,-4563,12308,2535,-903,2016,6728 } },
+    #define CAM_COLORMATRIX1                       \
+     6444, 10000,     -904, 10000,    -893, 10000, \
+    -4563, 10000,    12308, 10000,    2535, 10000, \
+     -903, 10000,     2016, 10000,    6728, 10000
+#endif
+
 #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
-	#define CAM_COLORMATRIX1                     \
-     6602, 10000,     -841, 10000,    -939, 10000,\
+    #define CAM_COLORMATRIX1                       \
+     6602, 10000,     -841, 10000,    -939, 10000, \
     -4472, 10000,    12458, 10000,    2247, 10000, \
      -975, 10000,     2039, 10000,    6148, 10000
 #endif
