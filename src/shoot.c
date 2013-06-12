@@ -56,11 +56,12 @@ static CONFIG_INT("post.deflicker.level", post_deflicker_target_level, -4);
 #ifdef FEATURE_AUTO_ETTR
 static CONFIG_INT("auto.ettr", auto_ettr, 0);
 static CONFIG_INT("auto.ettr.trigger", auto_ettr_trigger, 1);
-static CONFIG_INT("auto.ettr.prctile", auto_ettr_percentile, 98);
+static CONFIG_INT("auto.ettr.ignore", auto_ettr_ignore, 2);
 static CONFIG_INT("auto.ettr.level", auto_ettr_target_level, 0);
 static CONFIG_INT("auto.ettr.max.tv", auto_ettr_max_shutter, 88);
 static CONFIG_INT("auto.ettr.clip", auto_ettr_clip, 0);
 static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
+#define auto_ettr_percentile (1000 - auto_ettr_ignore)
 #endif
 
 #define AUTO_ETTR_TRIGGER_PHOTO (auto_ettr_trigger == 0 || intervalometer_running)
@@ -125,20 +126,6 @@ int uniwb_is_active()
         ABS((int)lens_info.WBGain_G - 1024) < 100 &&
         ABS((int)lens_info.WBGain_B - 1024) < 100;
 }
-
-/*
-static CONFIG_INT("uniwb.mode", uniwb_mode, 0);
-static CONFIG_INT("uniwb.old.wb_mode", uniwb_old_wb_mode, 0);
-static CONFIG_INT("uniwb.old.gain_R", uniwb_old_gain_R, 0);
-static CONFIG_INT("uniwb.old.gain_G", uniwb_old_gain_G, 0);
-static CONFIG_INT("uniwb.old.gain_B", uniwb_old_gain_B, 0);
-
-int uniwb_is_active() 
-{
-    return 
-        uniwb_mode &&
-        uniwb_is_active_check_lensinfo_only();
-}*/
 
 //~ CONFIG_INT("iso_selection", iso_selection, 0);
 
@@ -429,8 +416,6 @@ int get_exposure_time_raw()
 static PROP_INT(PROP_VIDEO_SYSTEM, pal);
 
 #ifdef FEATURE_INTERVALOMETER
-
-static PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 
 static MENU_UPDATE_FUNC(timelapse_calc_display)
 {
@@ -2390,8 +2375,6 @@ aperture_toggle( void* priv, int sign)
 void
 kelvin_toggle( void* priv, int sign )
 {
-    //~ if (uniwb_is_active()) return;
-
     int k;
     switch (lens_info.wb_mode)
     {
@@ -2523,83 +2506,12 @@ static MENU_UPDATE_FUNC(wb_custom_gain_display)
 static void
 wb_custom_gain_toggle( void * priv, int delta )
 {
-    //~ if (uniwb_is_active()) return;
     int p = (intptr_t) priv;
     int deltaR = p == 1 ? -delta * 16 * MAX(1, lens_info.WBGain_R/1024) : 0;
     int deltaG = p == 2 ? -delta * 16 * MAX(1, lens_info.WBGain_G/1024) : 0;
     int deltaB = p == 3 ? -delta * 16 * MAX(1, lens_info.WBGain_B/1024) : 0;
     lens_set_custom_wb_gains(lens_info.WBGain_R + deltaR, lens_info.WBGain_G + deltaG, lens_info.WBGain_B + deltaB);
 }
-
-/*
-static void uniwb_save_normal_wb_params()
-{
-    if (uniwb_is_active_check_lensinfo_only()) return;
-    //~ info_led_blink(1,50,50);
-    uniwb_old_wb_mode = lens_info.wb_mode;
-    if (lens_info.WBGain_R != 1024 || lens_info.WBGain_G != 1024 || lens_info.WBGain_B != 1024)
-    {
-        uniwb_old_gain_R = lens_info.WBGain_R;
-        uniwb_old_gain_G = lens_info.WBGain_G;
-        uniwb_old_gain_B = lens_info.WBGain_B;
-    }
-}
-
-static void uniwb_enable()
-{
-    uniwb_save_normal_wb_params();
-    lens_set_custom_wb_gains(1024, 1024, 1024);
-}
-
-static void uniwb_disable()
-{
-    //~ info_led_blink(2,200,200);
-    if (!uniwb_old_gain_R) return;
-    lens_set_custom_wb_gains(uniwb_old_gain_R, uniwb_old_gain_G, uniwb_old_gain_B);
-    prop_request_change(PROP_WB_MODE_LV, &uniwb_old_wb_mode, 4);
-    prop_request_change(PROP_WB_MODE_PH, &uniwb_old_wb_mode, 4);
-    msleep(100);
-    if (!uniwb_is_active_check_lensinfo_only()) // successfully disabled
-    {
-        uniwb_old_gain_R = uniwb_old_gain_G = uniwb_old_gain_B = uniwb_old_wb_mode = 0;
-    }
-}
-
-void uniwb_step()
-{
-    //~ if (!lv) return;
-    
-    int uniwb_desired_state = 0;
-    switch (uniwb_mode)
-    {
-        case 0: // always off
-            uniwb_desired_state = 0;
-            break;
-        case 1: // always on
-            uniwb_desired_state = 1;
-            break;
-        case 2: // halfshutter
-            uniwb_desired_state = get_halfshutter_pressed();
-            break;
-        case 3: // halfshutter not pressed
-            uniwb_desired_state = !get_halfshutter_pressed();
-            break;
-    }
-
-    if (!display_idle() && !gui_menu_shown())
-    {
-        uniwb_save_normal_wb_params(); // maybe user is changing WB settings from Canon menu - save them as non-uniWB params
-    }
-    else if (uniwb_desired_state == 0) 
-    {
-        if (uniwb_old_gain_R) uniwb_disable();
-    }
-    else
-    {
-        if (!uniwb_is_active()) uniwb_enable();
-    }
-}
-*/
 
 static int crit_kelvin(int k)
 {
@@ -3835,7 +3747,7 @@ int auto_ettr_get_correction()
     
     /* this is kinda slow, don't run it very often */
     static int aux = INT_MIN;
-    if (!should_run_polling_action(100, &aux) && last_value != INT_MIN)
+    if (!lv && !should_run_polling_action(100, &aux) && last_value != INT_MIN)
         return last_value;
     
     int gray_proj = 
@@ -3872,11 +3784,14 @@ int auto_ettr_get_correction()
 static int expo_lock_get_current_value();
 static int expo_lock_value;
 
-static void auto_ettr_work(int corr)
+/* returns how much of the correction was applied */
+/* ideally should return "corr" or something close */
+static int auto_ettr_work(int corr)
 {
     int tv = lens_info.raw_shutter;
     int iso = lens_info.raw_iso;
-    if (!tv || !iso) return;
+    if (!tv || !iso) return 0;
+    int old_expo = tv - iso;
 
     int delta = -corr * 8 / 100;
 
@@ -3890,11 +3805,11 @@ static void auto_ettr_work(int corr)
             {
                 NotifyBox(2000, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
                 prev_tv = tv;
-                return; /* wait for next iteration */
+                return 0; /* wait for next iteration */
             }
             else
             {
-                msleep(500);
+                msleep(1000);
                 bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: Tv <= %s ", lens_format_shutter(tv));
             }
         }
@@ -3904,7 +3819,7 @@ static void auto_ettr_work(int corr)
         if (lv && prev_tv != tv && auto_ettr_trigger == 0)
         {
             prev_tv = tv;
-            return; /* small pause when you change exposure manually */
+            return 0; /* small pause when you change exposure manually */
         }
     }
 
@@ -3912,8 +3827,6 @@ static void auto_ettr_work(int corr)
 
     /* can't go slower than 1/fps in movie mode */
     if (is_movie_mode()) shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(1000 / video_mode_fps));
-
-    //~ int old_expo = tv - iso;
 
     /* apply exposure correction */
     tv += delta;
@@ -3932,6 +3845,7 @@ static void auto_ettr_work(int corr)
     int isor = COERCE((iso + 4) / 8 * 8, MIN_ISO, max_auto_iso);
     
     /* cancel ISO rounding errors by adjusting shutter, which goes in smaller increments */
+    /* this may choose a shutter speed higher than selected one, at high iso, which may not be desirable */
     tvr += isor - iso;
     tvr = round_shutter(tvr, shutter_lim);
 
@@ -3939,22 +3853,55 @@ static void auto_ettr_work(int corr)
     lens_set_rawshutter(tvr);
     lens_set_rawiso(isor);
 
-    //~ int new_expo = tvr - isor;
-    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
-
     /* don't let expo lock undo our changes */
     expo_lock_value = expo_lock_get_current_value();
     
     prev_tv = lens_info.raw_shutter;
+
+    int new_expo = tvr - isor;
+    //~ bmp_printf(FONT_MED, 50, 160, "expo old=%d new=%d should be %d     ", old_expo, new_expo, old_expo + delta);
+    return - (new_expo - old_expo) * 100/8;
 }
 
 static volatile int auto_ettr_running = 0;
+
+static int ettr_pics_took = 0;
 static void auto_ettr_step_task(int corr)
 {
-    auto_ettr_work(corr);
-    if (ABS(corr) < 50) { } /* that's ok */
-    else if (auto_ettr_overexposure_warning || ABS(corr) > 800) beep_times(2); /* take two more pics */
-    else beep_times(1); /* take one more pic */
+    lens_wait_readytotakepic(64);
+    int applied = auto_ettr_work(corr);
+    
+    int changed_something = ABS(applied) >= 50;
+    int limits_reached = ABS(applied - corr) >= 50;
+    
+    if (!limits_reached && corr >= -20 && corr <= 70)
+    {
+        /* cool, we got the ideal exposure */
+        beep();
+        ettr_pics_took = 0;
+    }
+    else if (ettr_pics_took >= 3)
+    {
+        /* I give up */
+        beep_times(3);
+        ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: giving up");
+    }
+    else if (limits_reached && !changed_something)
+    {
+        beep_times(3);
+        ettr_pics_took = 0;
+        msleep(1000);
+        bmp_printf(FONT_MED, 0, os.y0, "Auto ETTR: expo limits reached");
+    }
+    else
+    {
+        /* take another pic */
+        auto_ettr_running = 0;
+        lens_take_picture(0, AF_DISABLE);
+        ettr_pics_took++;
+    }
     auto_ettr_running = 0;
 }
 
@@ -4019,32 +3966,65 @@ int auto_ettr_vsync_cbr()
         int altered_iso = current_iso;
         int altered_shutter = current_shutter;
 
+        int max_shutter = get_max_shutter_timer();
+        if (current_shutter > max_shutter) max_shutter = current_shutter;
+
+        /* first increase shutter speed, since it gives the cleanest signal */
+        while (delta > 0 && altered_shutter * 2 <= max_shutter)
+        {
+            altered_shutter *= 2;
+            delta -= 8;
+        }
+
         int max_iso = MAX_ANALOG_ISO;
-        
-        /* we can't rely on increasing shutter, so try to do everything with ISO first
-         * especially for delta > 0 */
+
+        /* then try to increase ISO if we need more */
         while (delta > 0 && altered_iso + 8 <= max_iso)
         {
             altered_iso += 8;
             delta -= 8;
         }
 
+        /* then try to decrease ISO until ISO 100, raw 72 (even with HTP, FRAME_ISO goes to 100) */
         while (delta < -8 && altered_iso - 8 >= 72)
         {
             altered_iso -= 8;
             delta += 8;
         }
         
-        FRAME_ISO = altered_iso;
+        /* commit iso */
+        FRAME_ISO = altered_iso | (altered_iso << 8);
+
+        /* adjust shutter with the remaining delta */
+        altered_shutter = COERCE((int)roundf(powf(2, delta/8.0) * (float)altered_shutter), 2, max_shutter);
         
-        altered_shutter = (int)roundf(powf(2, delta/8.0) * current_shutter);
+        /* commit shutter */
         FRAME_SHUTTER_TIMER = altered_shutter;
         
-        //~ bmp_printf(FONT_MED, 100, 100, "delta %d iso %d->%d shutter %d->%d",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter);
+        //~ bmp_printf(FONT_MED, 50, 70, "delta %d iso %d->%d shutter %d->%d max %d ",  auto_ettr_vsync_delta, current_iso, altered_iso, current_shutter, altered_shutter, get_max_shutter_timer());
         auto_ettr_vsync_counter++;
         return 1;
     }
     return 0;
+}
+
+static int auto_ettr_wait_lv_frames(int num_frames)
+{
+    auto_ettr_vsync_counter = 0;
+    int count = 0;
+    while (auto_ettr_vsync_counter < num_frames)
+    {
+        msleep(20);
+        count++;
+        if (count > num_frames * 10)
+        {
+            beep();
+            NotifyBox(2000, "Vsync err");
+            auto_ettr_vsync_delta = 0;
+            return 0;
+        }
+    }
+    return 1;
 }
 
 static void auto_ettr_on_request_task(int unused)
@@ -4062,46 +4042,86 @@ static void auto_ettr_on_request_task(int unused)
         if (get_halfshutter_pressed()) goto end;
     }
 
+#undef AUTO_ETTR_DEBUG
+#ifdef AUTO_ETTR_DEBUG
+    auto_ettr_vsync_active = 1;
+    int raw0 = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+    float ev0 = raw_to_ev(raw0);
+    int y0 = 100 - ev0 * 20;
+    for (int i = 0; i < 100; i++)
+    {
+        int delta = rand() % 160 - 80;
+        auto_ettr_vsync_delta = delta;
+        if (!auto_ettr_wait_lv_frames(2)) break;
+        
+        int raw = raw_hist_get_percentile_level(500, GRAY_PROJECTION_GREEN);
+        float ev = raw_to_ev(raw);
+        int x = 360 + delta * 3;
+        int y = 100 - ev * 24; /* multiplier must be 8 x the one from delta */
+        dot(x-16, y-16, COLOR_BLUE, 3);
+        draw_angled_line(360, y0, 300, 1800-450, COLOR_RED);
+        draw_angled_line(360, y0, 300, -450, COLOR_RED);
+        draw_angled_line(0, 100, 720, 0, COLOR_RED);
+    }
+    auto_ettr_vsync_delta = 0;
+    auto_ettr_wait_lv_frames(100);
+#endif
+
+
     NotifyBox(100000, "Auto ETTR...");
     auto_ettr_vsync_active = 1;
     auto_ettr_vsync_delta = 0;
     raw_lv_request();
-    for (int k = 0; k < 10; k++)
+    
+    for (int i = 0; i < 3; i++)
     {
-        /* see how far we are from the ideal exposure */
-        int corr = auto_ettr_get_correction();
-        if (corr == INT_MIN) break;
-        
-        /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
-        auto_ettr_vsync_delta += corr * 8 / 100;
-
-        /* I'm confident the last iteration was accurate */
-        if (corr >= -20 && corr <= 200)
-            break;
-        
-        /* wait for 3 frames before trying again */
-        auto_ettr_vsync_counter = 0;
-        int count = 0;
-        while (auto_ettr_vsync_counter < 3)
+        for (int k = 0; k < 5; k++)
         {
-            msleep(20);
-            count++;
-            if (count > 100)
+            /* see how far we are from the ideal exposure */
+            int corr = auto_ettr_get_correction();
+            if (corr == INT_MIN) break;
+            
+            /* override the liveview parameters via auto_ettr_vsync_cbr (much faster than via properties) */
+            auto_ettr_vsync_delta += corr * 8 / 100;
+
+            /* I'm confident the last iteration was accurate */
+            if (corr >= -20 && corr <= 200)
+                break;
+            
+            /* wait for 2 frames before trying again */
+            if (!auto_ettr_wait_lv_frames(2)) goto end;
+        }
+
+        /* apply the correction via properties */
+        if (auto_ettr_vsync_delta)
+        {
+            int corr = auto_ettr_vsync_delta * 100 / 8;
+            auto_ettr_vsync_delta = 0;
+            auto_ettr_work(corr);
+        
+            if (ABS(corr) <= 200)
             {
-                beep();
-                NotifyBox(2000, "Vsync err");
-                auto_ettr_vsync_delta = 0;
-                goto end;
+                /* looks like it settled */
+                break;
+            }
+            else
+            {
+                if (i < 3)
+                {
+                    /* here we go again... */
+                    msleep(1000);
+                }
+                else
+                {
+                    /* or... not? */
+                    beep();
+                    NotifyBox(2000, "Whoops");
+                    goto end;
+                }
             }
         }
-
-        if (k == 9)
-        {
-            beep();
-            NotifyBox(2000, "Whoops");
-            goto end;
-        }
     }
+
     NotifyBoxHide();
 
 end:
@@ -4109,9 +4129,6 @@ end:
     auto_ettr_running = 0;
     auto_ettr_vsync_active = 0;
     raw_lv_release();
-    
-    /* apply the final correction via properties */
-    auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
     if (lv && !was_in_lv) { msleep(200); fake_simple_button(BGMT_LV); }
 }
@@ -4154,24 +4171,15 @@ static void auto_ettr_step_lv()
             if (corr >= -20 && corr <= 200)
                 break;
             
-            /* wait for 3 frames before trying again */
-            auto_ettr_vsync_counter = 0;
-            int count = 0;
-            while (auto_ettr_vsync_counter < 3)
-            {
-                msleep(20);
-                count++;
-                if (count > 100) break;
-            }
+            /* wait for 2 frames before trying again */
+            if (!auto_ettr_wait_lv_frames(2)) break;
         }
         auto_ettr_vsync_active = 0;
 
         /* apply the final correction via properties */
         auto_ettr_work(auto_ettr_vsync_delta * 100 / 8);
 
-        msleep(500);
-        if (k < 5) beep();
-        msleep(500);
+        msleep(1000);
     }
     raw_lv_release();
 }
@@ -4279,9 +4287,12 @@ int handle_ettr_keys(struct event * event)
             (auto_ettr_trigger == 2 && detect_double_click(event, BGMT_PRESS_HALFSHUTTER, BGMT_UNPRESS_HALFSHUTTER)) ||
        0)
     {
-        auto_ettr_running = 1;
-        task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
-        if (auto_ettr_trigger == 1) return 0;
+        if (!auto_ettr_running)
+        {
+            auto_ettr_running = 1;
+            task_create("ettr_task", 0x1c, 0x1000, auto_ettr_on_request_task, (void*) 0);
+            if (auto_ettr_trigger == 1) return 0;
+        }
     }
     return 1;
 }
@@ -4312,7 +4323,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_WARNING(MENU_WARN_ADVICE, "Not fully compatible with continuous drive.");
     
     if (auto_ettr)
-        MENU_SET_RINFO("%dEV/%d%%", auto_ettr_target_level, auto_ettr_percentile);
+        MENU_SET_RINFO("%dEV/%d.%d%%", auto_ettr_target_level, auto_ettr_ignore/10, auto_ettr_ignore%10);
 
     if (auto_ettr && auto_ettr_trigger)
         MENU_SET_VALUE(auto_ettr_trigger == 1 ? "Press SET" : "HalfS DBC");
@@ -4322,7 +4333,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
     else if (lv)
         MENU_SET_HELP("In LiveView, just wait for exposure to settle, then shoot.");
     else
-        MENU_SET_HELP("Take a test picture (underexposed). Next pic will be ETTR.");
+        MENU_SET_HELP("Press shutter once. ML will take a pic and retry if needed.");
 }
 
 static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
@@ -4542,6 +4553,8 @@ int expo_value_rounding_ok(int raw, int is_aperture)
 int round_shutter(int tv, int slowest_shutter)
 {
     int tvr;
+    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
+    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
@@ -4554,6 +4567,7 @@ int round_shutter(int tv, int slowest_shutter)
 int round_aperture(int av)
 {
     int avr;
+    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
     avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
@@ -5486,7 +5500,7 @@ static struct menu_entry expo_menus[] = {
         .update    = kelvin_wbs_display,
         .select     = kelvin_toggle,
         .help  = "Adjust Kelvin white balance and GM/BA WBShift.",
-        .help2 = "Advanced: WBShift, RGB multipliers, UniWB, Push-button WB...",
+        .help2 = "Advanced: WBShift, RGB multipliers, Push-button WB...",
         .edit_mode = EM_MANY_VALUES_LV,
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
@@ -5544,14 +5558,6 @@ static struct menu_entry expo_menus[] = {
                 .help = "BLUE channel multiplier, for custom white balance.",
                 .edit_mode = EM_MANY_VALUES_LV,
             },
-            /*{
-                .name = "UniWB",
-                .priv = &uniwb_mode,
-                .max = 3,
-                .choices = CHOICES("OFF", "Always ON", "on HalfShutter", "not HalfShutter"),
-                .help = "Cancels white balance => good RAW histogram approximation.",
-            },
-            */
             /*{
                 .name = "Auto adjust Kelvin",
                 .select = kelvin_auto,
@@ -5812,20 +5818,22 @@ static struct menu_entry expo_menus[] = {
                 .help = "When should the exposure be adjusted for ETTR",
             },
             {
-                .name = "ETTR percentile",
-                .priv = &auto_ettr_percentile,
-                .min = 50,
-                .max = 100,
-                .unit = UNIT_PERCENT,
-                .help = "Where to meter for ETTR. Recommended: 90-99% (highlights).",
-            },
-            {
-                .name = "ETTR target level",
+                .name = "Exposure target",
                 .priv = &auto_ettr_target_level,
                 .min = -4,
                 .max = 0,
                 .choices = CHOICES("-4 EV", "-3 EV", "-2 EV", "-1 EV", "-0.5 EV"),
                 .help = "Exposure target for ETTR. Recommended: -0.5 or -1 EV.",
+            },
+            {
+                .name = "Highlight ignore",
+                .priv = &auto_ettr_ignore,
+                .min = 0,
+                .max = 500,
+                .unit = UNIT_PERCENT_x10,
+                .icon_type = IT_PERCENT,
+                .help  = "How many bright pixels are allowed above the target level.",
+                .help2 = "Use this to allow spec(ta)cular highlights to be clipped.",
             },
             {
                 .name = "Clipping mode",
