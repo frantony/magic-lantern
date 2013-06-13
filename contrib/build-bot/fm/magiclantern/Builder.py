@@ -14,9 +14,20 @@ class Builder:
         self.branch     = branch
         self.work_dir   = tempfile.TemporaryDirectory(suffix="-mlbuild-"+model+"_"+version)
         self.logger     = Logger("/home/nanomad/")
+        self.customConfig  = None
+
+    def injectConfig(self, fName):
+        self.customConfig = fName
 
     def before_build(self):
         self.clone()
+        if(self.customConfig is not None):
+            fpIN = open(self.customConfig)
+            fpOUT = open(self.work_dir.name + "/Makefile.user", "w")
+            lines = fpIN.readlines()
+            fpOUT.writelines(lines)
+            fpOUT.close()
+            fpIN.close()
 
     def after_ok_build(self):
         pass
