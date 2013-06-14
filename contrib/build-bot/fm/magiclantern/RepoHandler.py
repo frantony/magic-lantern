@@ -1,6 +1,6 @@
 import shlex
 import subprocess as sub
-from fm.magiclantern.Logger import Logger
+import logging
 
 class RepoHandler:
 	"""Utilty class representing a mercurial repository"""
@@ -8,7 +8,7 @@ class RepoHandler:
 		super(RepoHandler, self).__init__()
 		self.url = url
 		self.branch = branch
-		self.logger = Logger("/home/nanomad")
+		self.logger = logging.getLogger(__name__)
 
 	def clone(self, destination):
 		if(self.branch is None):
@@ -16,7 +16,7 @@ class RepoHandler:
 		else:
 			clone_cmd = " ".join(["hg clone -b", self.branch , self.url ,destination])
 		
-		self.logger.info("CLONE", ("Cloning %s [%s] into %s" % (self.url, self.branch, destination)))		
+		self.logger.info("Cloning %s [%s] into %s", self.url, self.branch, destination)		
 		self.__quietCmd__(clone_cmd)
 
 	def __quietCmd__(self, cmdString):

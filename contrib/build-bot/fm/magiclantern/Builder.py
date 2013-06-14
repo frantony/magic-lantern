@@ -1,20 +1,23 @@
-from fm.magiclantern.Logger import Logger
 from fm.magiclantern.Exceptions import BuildException
 
 import time
 import tempfile
 import subprocess as sub
 import shlex
+import os
+import logging
+
 
 class Builder:
     def __init__(self, model, version, repository, branch="unified"):
-        self.model      = model
-        self.version    = version
-        self.repository = repository
-        self.branch     = branch
-        self.work_dir   = tempfile.TemporaryDirectory(suffix="-mlbuild-"+model+"_"+version)
-        self.logger     = Logger("/home/nanomad/")
-        self.customConfig  = None
+        self.model        = model
+        self.version      = version
+        self.repository   = repository
+        self.branch       = branch
+        self.work_dir     = tempfile.TemporaryDirectory(suffix="-mlbuild-"+model+"_"+version)
+        self.platform_dir = os.path.join(self.work_dir.name, "platform", self.model + "." + self.version)
+        self.customConfig = None
+        self.logger       = logging.getLogger(__name__)
 
     def injectConfig(self, fName):
         self.customConfig = fName
@@ -30,28 +33,27 @@ class Builder:
             fpIN.close()
 
     def after_ok_build(self):
-        pass
+        files = os.listdir(self.platform_dir)
 
     def after_err_build(self, error):
-        self.logger.error("BUILD", "Compilation failed")
-        self.logger.error("BUILD", error)
+        self.logger.error("Compilation failed!")
+        self.logger.exception(error)
 
     def after_build(self):
         self.work_dir.cleanup()
 
     def do_build(self):
-        self.logger.info("BUILD", "Building %s ver %s" % (self.model, self.version))
-        p = sub.Popen(["make", self.model], stdout=sub.PIPE, stderr=sub.PIPE, cwd=self.work_dir.name)
+        self.logger.info("Building %s ver %s" , self.model, self.version)
+        p = sub.Popen(["make", "zip"], stdout=sub.PIPE, stderr=sub.PIPE, cwd=self.platform_dir)
         out,err = p.communicate()
         if p.returncode != 0:
             raise BuildException({"stdout":out,"stderr":err})
-        print(out.split())
         return (out,err)
 
     def clone(self):
         clone_string = " ".join(["hg clone -r", self.branch , self.repository ,self.work_dir.name])
         clone_cmd = shlex.split(clone_string)
-        self.logger.info("CLONE", ("Cloning %s [%s] into %s" % (self.repository, self.branch, self.work_dir.name)))
+        self.logger.info("Cloning %s [%s] into %s", self.repository, self.branch, self.work_dir.name)
         sub.check_output(clone_cmd)
 
     def work(self):
@@ -67,4 +69,4 @@ class Builder:
         
         self.after_build()
 
-        self.logger.info("BUILD", "\tElapsed: " + str(time.monotonic()-start))
+        self.logger.info("\tElapsed: %s",  str(time.monotonic()-start))
