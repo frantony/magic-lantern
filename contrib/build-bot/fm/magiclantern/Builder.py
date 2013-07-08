@@ -43,9 +43,14 @@ class Builder:
         self.work_dir.cleanup()
 
     def do_build(self):
-        self.logger.info("Building %s ver %s" , self.model, self.version)
+        self.logger.info("Building %s ver %s in %s" , self.model, self.version, self.platform_dir)
         p = sub.Popen(["make", "zip"], stdout=sub.PIPE, stderr=sub.PIPE, cwd=self.platform_dir)
         out,err = p.communicate()
+        self.logger.debug("Build output:")
+        for l in out.split("\n"):
+            self.logger.debug(l)
+        for l in err.split("\n"):
+            self.logger.warn(l)
         if p.returncode != 0:
             raise BuildException({"stdout":out,"stderr":err})
         return (out,err)
