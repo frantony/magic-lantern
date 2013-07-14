@@ -65,6 +65,7 @@
 #include "../lv_rec/lv_rec.h"
 #include "edmac.h"
 #include "../file_man/file_man.h"
+#include "cache_hacks.h"
 
 /* camera-specific tricks */
 /* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
@@ -93,7 +94,7 @@ static CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
-static CONFIG_INT("raw.write.spd", measured_write_speed, 0);
+static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
 //~ static CONFIG_INT("raw.sound", sound_rec, 2);
 #define sound_rec 2
@@ -108,7 +109,9 @@ static CONFIG_INT("raw.preview", preview_mode, 0);
 #define PREVIEW_ML (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
+static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.memory.hack", memory_hack, 0);
+static CONFIG_INT("raw.small.hacks", small_hacks, 0);
 
 /* state variables */
 static int res_x = 0;
@@ -152,6 +155,7 @@ static struct memSuite * mem_suite = 0;           /* memory suite for our buffer
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
+static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
@@ -332,74 +336,34 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
-#if 0 /* algorithm changed */
-
-static int speed_model(int nominal_speed, int buffer_size)
+static int predict_frames(int write_speed)
 {
-    /* model fitted from a log taken with 5D3 in movie mode, favors large buffers */
-    /* log: http://www.magiclantern.fm/forum/index.php?topic=5471.msg38312#msg38312 */
-    float speed_factor = -8.5500e-01f + 4.5050e-09f * buffer_size + 8.7998e-02f * log2f(buffer_size) - 8.5642e-05f * sqrtf(buffer_size);
-    speed_factor = COERCE(speed_factor, 0, 1);
-    return nominal_speed * speed_factor;
-}
-
-/* how many frames it's likely to get at some write speed? */
-static int sim_frames(int write_speed)
-{
-
-    /* how many frames we can have in RAM */
-    int total = 0;
-    int used = 0;
-    int writing = 0;
-    for (int i = 0; i < buffer_count; i++)
-        total += buffers[i].size / frame_size;
-
-    int f = 0;
-    int k = 0;
-    float wt = 0;
-    float fps = fps_get_current_x1000() / 1000.0;
-    float t = 0;
-    while (used < total && f < 10000)
-    {
-        t += 1/fps;
-        f++;
-        used++;
-        
-        int current_buf_cap = buffers[k].size / frame_size;
-
-        /* can we write a chunk? enough data and previous write finished */
-        if (used >= current_buf_cap && t >= wt)
-        {
-            /* we just wrote a chunk to card, so we have more free memory now */
-            used -= writing;
-            
-            /* this chunk is being saved on the card, can't touch it */
-            writing = current_buf_cap;
-            
-            /* advance to next buffer */
-            k = (k + 1) % buffer_count;
-
-            /* first write process starts here */
-            if (wt == 0) wt = t;
-
-            /* new write process starts now, wt is when it will finish */
-            wt += (float)(frame_size * current_buf_cap) / speed_model(write_speed, frame_size * current_buf_cap);
-        }
-    }
-    return f;
+    int fps = fps_get_current_x1000();
+    int capture_speed = frame_size / 1000 * fps;
+    int buffer_fill_speed = capture_speed - write_speed;
+    if (buffer_fill_speed <= 0)
+        return INT_MAX;
+    
+    int total_slots = 0;
+    for (int i = 0; i < COUNT(chunk_list); i++)
+        total_slots += chunk_list[i] / frame_size;
+    
+    float buffer_fill_time = total_slots * frame_size / (float) buffer_fill_speed;
+    int frames = buffer_fill_time * fps / 1000;
+    return frames;
 }
 
 /* how many frames can we record with current settings, without dropping? */
 static char* guess_how_many_frames()
 {
     if (!measured_write_speed) return "";
-    if (!buffer_count) return "";
+    if (!chunk_list[0]) return "";
     
-    int write_speed_lo = measured_write_speed * 1024 * 1024 / 10 - 256 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 * 1024 / 10 + 256 * 1024;
+    int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 - 512 * 1024;
+    int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 + 512 * 1024;
     
-    int f_lo = sim_frames(write_speed_lo);
-    int f_hi = sim_frames(write_speed_hi);
+    int f_lo = predict_frames(write_speed_lo);
+    int f_hi = predict_frames(write_speed_hi);
     
     static char msg[50];
     if (f_lo < 5000)
@@ -418,13 +382,13 @@ static char* guess_how_many_frames()
     
     return msg;
 }
-#endif
 
 static MENU_UPDATE_FUNC(write_speed_update)
 {
     int fps = fps_get_current_x1000();
-    int speed = (res_x * res_y * 14/8 / 1024) * fps / 100 / 1024;
-    int ok = speed < measured_write_speed; 
+    int speed = (res_x * res_y * 14/8 / 1024) * fps / 10 / 1024;
+    int ok = speed < measured_write_speed;
+    speed /= 10;
 
     if (frame_size % 512)
     {
@@ -432,21 +396,17 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
     else
     {
-#if 0
         if (!measured_write_speed)
-#endif
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "Write speed needed: %d.%d MB/s at %d.%03d fps.",
                 speed/10, speed%10, fps/1000, fps%1000
             );
-#if 0
         else
             MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
                 "%d.%d MB/s at %d.%03dp. %s",
                 speed/10, speed%10, fps/1000, fps%1000,
                 guess_how_many_frames()
             );
-#endif
     }
 }
 
@@ -629,6 +589,8 @@ static int setup_buffers()
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
     
+    memset(chunk_list, 0, sizeof(chunk_list));
+    
     if (memory_hack) { PauseLiveView(); msleep(200); }
     
     mem_suite = shoot_malloc_suite(0);
@@ -671,6 +633,9 @@ static int setup_buffers()
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
     if (fullsize_buffers[1] == 0) return 0;
+    
+    chunk_list[0] = waste;
+    int chunk_index = 1;
 
     /* use all chunks larger than frame_size for recording */
     chunk = GetFirstChunkFromSuite(mem_suite);
@@ -681,6 +646,13 @@ static int setup_buffers()
         void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
         if (ptr != fullsize_buffers[0]) /* already used */
         {
+            /* write it down for future frame predictions */
+            if (chunk_index < COUNT(chunk_list) && size > 8192)
+            {
+                chunk_list[chunk_index] = size - 8192;
+                chunk_index++;
+            }
+
             /* align at 4K */
             ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
             
@@ -740,7 +712,6 @@ static int get_free_slots()
     return free_slots;
 }
 
-
 static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
@@ -786,6 +757,9 @@ static void show_buffer_status()
         prev_x = x;
         prev_y = y;
         bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
+        
+        int xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
+        draw_line(xp, ymax, xp, ymin, COLOR_RED);
     }
 #endif
 }
@@ -921,20 +895,30 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     {
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
-        bmp_printf( FONT_MED, 30, 70, 
-            "%02d:%02d, %d frames...",
-            t/60, t%60,
-            frame_count
-        );
+        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+        if (predicted < 10000)
+            bmp_printf( FONT_MED, 30, 70, 
+                "%02d:%02d, %d frames / %d expected  ",
+                t/60, t%60,
+                frame_count,
+                predicted
+            );
+        else
+            bmp_printf( FONT_MED, 30, 70, 
+                "%02d:%02d, %d frames, continuous OK  ",
+                t/60, t%60,
+                frame_count
+            );
 
         show_buffer_status();
 
         /* how fast are we writing? does this speed match our benchmarks? */
         if (writing_time)
         {
-            int speed = written * 10 / writing_time * 1000 / 1024; // MB/s x10
+            int speed = written * 100 / writing_time * 1000 / 1024; // MB/s x100
             int idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
+            speed /= 10;
 
             char msg[50];
             snprintf(msg, sizeof(msg),
@@ -955,15 +939,32 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
     return 0;
 }
 
-static void lv_unhack(int unused)
+
+/* todo: reference counting, like with raw_lv_request */
+static void cache_require(int lock)
 {
-    while (!RAW_IS_IDLE) msleep(100);
-    call("aewb_enableaewb", 1);
-    PauseLiveView();
-    ResumeLiveView();
+    static int cache_was_unlocked = 0;
+    if (lock)
+    {
+        if (!cache_locked())
+        {
+            cache_was_unlocked = 1;
+            icache_lock();
+        }
+    }
+    else
+    {
+        if (cache_was_unlocked)
+        {
+            icache_unlock();
+            cache_was_unlocked = 0;
+        }
+    }
 }
 
-static void hack_liveview()
+static void unhack_liveview_vsync(int unused);
+
+static void hack_liveview_vsync()
 {
     if (cam_5d2 || cam_50d)
     {
@@ -1012,12 +1013,6 @@ static void hack_liveview()
     {
         if (frame_count == 0)
             should_hack = 1;
-        /*
-        if (frame_count % 10 == 0)
-            should_hack = 1;
-        else if (frame_count % 10 == 9)
-            should_unhack = 1;
-        */
     }
     else if (prev_rec)
     {
@@ -1027,7 +1022,6 @@ static void hack_liveview()
     
     if (should_hack)
     {
-        call("aewb_enableaewb", 0);
         int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
@@ -1043,10 +1037,73 @@ static void hack_liveview()
     }
     else if (should_unhack)
     {
-        task_create("lv_unhack", 0x1e, 0x1000, lv_unhack, (void*)0);
+        task_create("lv_unhack", 0x1e, 0x1000, unhack_liveview_vsync, (void*)0);
     }
 }
 
+/* this is a separate task */
+static void unhack_liveview_vsync(int unused)
+{
+    while (!RAW_IS_IDLE) msleep(100);
+    PauseLiveView();
+    ResumeLiveView();
+}
+
+static void hack_liveview(int unhack)
+{
+    if (small_hacks)
+    {
+        /* disable canon graphics (gains a little speed) */
+        static int canon_gui_was_enabled;
+        if (!unhack)
+        {
+            canon_gui_was_enabled = !canon_gui_front_buffer_disabled();
+            canon_gui_disable_front_buffer();
+        }
+        else if (canon_gui_was_enabled)
+        {
+            canon_gui_enable_front_buffer(0);
+            canon_gui_was_enabled = 0;
+        }
+
+        /* disable auto exposure and auto white balance */
+        call("aewb_enableaewb", unhack ? 1 : 0);  /* for new cameras */
+        call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
+        call("lv_wb",           unhack ? 1 : 0);
+        
+        /* change dialog refresh timer from 50ms to 1024ms */
+        uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
+            cam_50d ? 0xffa84e00 :
+            cam_5d2 ? 0xffaac640 :
+            cam_5d3 ? 0xff4acda4 :
+            /* ... */
+            0;
+        uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
+        uint32_t dialog_refresh_timer_new_instr  = 0xe3a00b02; /* change to mov r0, #2048 */
+
+        if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
+        {
+            /* something's wrong */
+            NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
+            beep_custom(1000, 2000, 1);
+            dialog_refresh_timer_addr = 0;
+        }
+
+        if (dialog_refresh_timer_addr)
+        {
+            if (!unhack) /* hack */
+            {
+                cache_require(1);
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_new_instr, TYPE_ICACHE);
+            }
+            else /* unhack */
+            {
+                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, TYPE_ICACHE);
+                cache_require(0);
+            }
+        }
+    }
+}
 
 static int FAST choose_next_capture_slot()
 {
@@ -1225,7 +1282,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (frame_countdown)
         frame_countdown--;
     
-    hack_liveview();
+    hack_liveview_vsync();
  
     /* panning window is updated when recording, but also when not recording */
     panning_update();
@@ -1307,7 +1364,6 @@ static void raw_video_rec_task()
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
-    int canon_gui = 0;
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1333,8 +1389,8 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     
-    /* wait for one frame to be sure everything is refreshed */
-    frame_countdown = 1;
+    /* wait for two frames to be sure everything is refreshed */
+    frame_countdown = 2;
     for (int i = 0; i < 200; i++)
     {
         msleep(20);
@@ -1365,10 +1421,8 @@ static void raw_video_rec_task()
         bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
         WAV_StartRecord(wavfile);
     }
-
-    /* disable canon graphics (gains a little speed) */
-    canon_gui = !canon_gui_front_buffer_disabled();
-    canon_gui_disable_front_buffer();
+    
+    hack_liveview(0);
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -1438,17 +1492,16 @@ static void raw_video_rec_task()
         /* if we are about to overflow, save a smaller number of frames, so they can be freed quicker */
         if (measured_write_speed)
         {
-            /* measured_write_speed unit: 0.1 MB/s */
+            /* measured_write_speed unit: 0.01 MB/s */
             /* FPS unit: 0.001 Hz */
             /* overflow time unit: 0.1 seconds */
             int overflow_time = free_slots * 1000 * 10 / fps;
             /* better underestimate write speed a little */
-            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 10) * 1024 / frame_size / 10;
+            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
                 //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 1);
-                //~ beep();
+                num_frames = MAX(1, frame_limit - 2);
             }
         }
         
@@ -1586,7 +1639,7 @@ static void raw_video_rec_task()
         {
 abort:
             bmp_printf( FONT_MED, 30, 90, 
-                "Movie recording stopped automagically"
+                "Movie recording stopped automagically     "
             );
             /* this is error beep, not audio sync beep */
             beep_times(2);
@@ -1611,7 +1664,7 @@ abort:
     }
 
     bmp_printf( FONT_MED, 30, 70, 
-        "Frames captured: %d    ", 
+        "Frames captured: %d               ", 
         frame_count - 1
     );
 
@@ -1692,7 +1745,7 @@ cleanup:
     #ifdef DEBUG_BUFFERING_GRAPH
     take_screenshot(0);
     #endif
-    if (canon_gui) canon_gui_enable_front_buffer(0);
+    hack_liveview(1);
     redraw();
     raw_recording_state = RAW_IDLE;
 }
@@ -1895,10 +1948,24 @@ static struct menu_entry raw_video_menu[] =
                 .help = "Enable if you don't mind skipping frames (for slow cards).",
             },
             {
+                .name = "Card warm-up",
+                .priv = &warm_up,
+                .max = 7,
+                .choices = CHOICES("OFF", "16 MB", "32 MB", "64 MB", "128 MB", "256 MB", "512 MB", "1 GB"),
+                .help  = "Write a large file on the card at camera startup.",
+                .help2 = "Some cards seem to get a bit faster after this.",
+            },
+            {
                 .name = "Memory hack",
                 .priv = &memory_hack,
                 .max = 1,
                 .help = "Allocate memory with LiveView off. On 5D3 => 2x32M extra.",
+            },
+            {
+                .name = "Small hacks",
+                .priv = &small_hacks,
+                .max = 1,
+                .help  = "Slow down Canon GUI, disable auto exposure, white balance...",
             },
             {
                 .name = "Playback",
@@ -2080,7 +2147,20 @@ static unsigned int raw_rec_init()
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
     fileman_register_type("RAW", "RAW Video", raw_rec_filehandler);
-    
+
+    /* some cards may like this */
+    if (warm_up)
+    {
+        NotifyBox(100000, "Card warming up...");
+        char warmup_filename[100];
+        snprintf(warmup_filename, sizeof(warmup_filename), "%s/warmup.raw", get_dcim_dir());
+        FILE* f = FIO_CreateFileEx(warmup_filename);
+        FIO_WriteFile(f, (void*)0x40000000, 8*1024*1024 * (1 << warm_up));
+        FIO_CloseFile(f);
+        FIO_RemoveFile(warmup_filename);
+        NotifyBoxHide();
+    }
+
     return 0;
 }
 
@@ -2118,4 +2198,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(memory_hack)
+    MODULE_CONFIG(small_hacks)
+    MODULE_CONFIG(warm_up)
 MODULE_CONFIGS_END()

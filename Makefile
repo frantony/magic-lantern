@@ -23,7 +23,7 @@ $(ALL_SUPPORTED_MODELS)::
 7DFIR: 7D_MASTER 7D
 	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
-	./build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
+	python ../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
 
 platform_all_model:
 	$(MAKE) -C $(PLATFORM_PATH) clean-all-model all-model
@@ -48,12 +48,36 @@ clean: platform_clean doxygen_clean
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a \
+		doc/Cropmarks550D.png \
+		doc/credits.tex \
+		doc/install-body.tex \
+		doc/install.wiki \
+		doc/menuindex.txt \
+		doc/userguide.rst \
+		doc/INSTALL.aux \
+		doc/INSTALL.log \
+		doc/INSTALL.out \
+		doc/INSTALL.pdf \
+		doc/INSTALL.rst \
+		doc/INSTALL.tex \
+		doc/INSTALL.toc \
+		doc/UserGuide-cam.aux \
+		doc/UserGuide-cam.log \
+		doc/UserGuide-cam.out \
+		doc/UserGuide-cam.pdf \
+		doc/UserGuide-cam.tex \
+		doc/UserGuide.aux \
+		doc/UserGuide.log \
+		doc/UserGuide.out \
+		doc/UserGuide.pdf \
+		doc/UserGuide.tex \
+		doc/UserGuide.toc \
 		*.pdf)
-		@$(RM) -rf  $(BINARIES_PATH)
+	$(call rm_dir, doc/cam)
+	$(call rm_dir, $(BINARIES_PATH))
 
 
-zip: all
-	cd $(PLATFORM_PATH)/all; $(MAKE) docs
+zip: all docs
 	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
@@ -121,9 +145,8 @@ changelog:
 	echo "" >> ChangeLog.txt
 	COLUMNS=80 hg diff --stat -r $(call HG_CHANGESET_BEFORE_DATE, today - 30 days) -r $(call HG_CHANGESET_BEFORE_DATE, today - 2 days) | $(DIFFSTAT_FILTER) >> ChangeLog.txt ;
  
-nightly: changelog clean all 
+nightly: changelog clean zip
 	mkdir -p $(NIGHTLY_DIR)
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 	cd $(PLATFORM_PATH)/all; mv *.zip $(NIGHTLY_DIR)
 	touch build.log
 	mv build.log $(NIGHTLY_DIR)

@@ -549,9 +549,9 @@ void draw_ml_bottombar(int double_buffering, int clear)
       if (is_movie_mode()) // check 180 degree rule
       {
            shutter_degrees = 360 * video_mode_fps / shutter_reciprocal;
-           if (ABS(shutter_degrees - 180) < 10)
+           if (ABS(shutter_degrees - 180) < 20)
               fgs = FONT(FONT_LARGE,COLOR_GREEN1,bg);
-           else if (shutter_degrees > 190)
+           else if (shutter_degrees > 250)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
            else if (shutter_degrees < 45)
               fgs = FONT(FONT_LARGE,COLOR_RED,bg);
@@ -1993,8 +1993,6 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     if (max_job_state == 0 && state != 0)
         max_job_state = state;
     
-    ASSERT((int)state <= max_job_state);
-    
     if (max_job_state && (int)state == max_job_state)
     {
         mirror_locked = 0;
@@ -2271,7 +2269,10 @@ void bv_update_lensinfo()
 
 void bv_apply_tv(int tv)
 {
-    CONTROL_BV_TV = COERCE(tv, 0x60, 0x98); // 600D: [LV] ERROR >> Tv:0x10, TvMax:0x98, TvMin:0x60
+    if (is_native_movie_mode())
+        CONTROL_BV_TV = COERCE(tv, 0x5C, 0xA0); // try to extend shutter range, 1/24 ... 1/8000
+    else
+        CONTROL_BV_TV = COERCE(tv, 0x60, 0x98); // 600D: [LV] ERROR >> Tv:0x10, TvMax:0x98, TvMin:0x60
 }
 
 void bv_apply_av(int av)
