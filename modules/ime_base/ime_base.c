@@ -14,10 +14,11 @@
 
 #include "ime_base.h"
 
-unsigned int ime_base_method = 0;
-unsigned int ime_base_method_count = 0;
+static unsigned int ime_base_method = 0;
+static unsigned int ime_base_method_count = 0;
+static unsigned char ime_base_test_text[100];
+static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
-t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 /* this function has to be public so that other modules can register file types for viewing this file */
 unsigned int ime_base_register(t_ime_handler *handler)
@@ -35,15 +36,15 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-unsigned int ime_base_start ( char *text, int max_length, int codepage, int charset, t_ime_update_cbr update, int x, int y, int w, int h )
+void *ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
 {
     if(ime_base_method < ime_base_method_count)
     {
-        return ime_base_methods[ime_base_method].start(text, max_length, codepage, charset, update, x, y, w, h);
+        return ime_base_methods[ime_base_method].start(caption, text, max_length, codepage, charset, update_cbr, done_cbr, x, y, w, h);
     }
     
     strncpy(text, "No IME available", max_length);
-    return IME_ERR_UNAVAIL;
+    return NULL;
 }
 
 static MENU_UPDATE_FUNC(ime_base_method_update)
@@ -72,24 +73,47 @@ static MENU_SELECT_FUNC(ime_base_method_select)
 
 IME_UPDATE_FUNC(ime_base_test_update)
 {
-    bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
+    //bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
     return IME_OK;
 }
 
-static void ime_base_test_task(int unused)
+IME_DONE_FUNC(ime_base_test_done)
 {
-    char buffer[100];
-    
-    strcpy(buffer, "test");
-    
-    int ret = ime_base_start(buffer, sizeof(buffer), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, 0, 0, 0, 0);
-    bmp_printf(FONT_MED, 30, 120, "ime_base: ret: <%s>, %d", buffer, ret);
-    msleep(2000);
+    for(int loops = 0; loops < 50; loops++)
+    {
+        bmp_printf(FONT_MED, 30, 120, "ime_base: done: <%s>, %d", text, status);
+        msleep(100);
+    }
+    return IME_OK;
 }
 
-static MENU_SELECT_FUNC(ime_base_test)
+static MENU_SELECT_FUNC(ime_base_test_any)
 {
-    task_create("ime_base_test_task", 0x1c, 0x1000, ime_base_test_task, (void*)0);
+    ime_base_start("Any charset", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_alpha)
+{
+    ime_base_start("Alpha", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ALPHA, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_num)
+{
+    ime_base_start("Numeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_NUMERIC, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_alnum)
+{
+    ime_base_start("Alphanumeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_ALPHA | IME_CHARSET_NUMERIC), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_punct)
+{
+    ime_base_start("Punctuation", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_PUNCTUATION, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_math)
+{
+    ime_base_start("Math", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_MATH, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_file)
+{
+    ime_base_start("Filename", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_FILENAME, NULL, &ime_base_test_done, 0, 0, 0, 0);
 }
 
 static MENU_SELECT_FUNC(ime_base_config)
@@ -118,8 +142,32 @@ static struct menu_entry ime_base_menu[] =
                 .select = &ime_base_config,
             },
             {
-                .name = "Test method",
-                .select = &ime_base_test,
+                .name = "Test: All chars",
+                .select = &ime_base_test_any,
+            },
+            {
+                .name = "Test: Alpha",
+                .select = &ime_base_test_alpha,
+            },
+            {
+                .name = "Test: Numeric",
+                .select = &ime_base_test_num,
+            },
+            {
+                .name = "Test: Alphanumeric",
+                .select = &ime_base_test_alnum,
+            },
+            {
+                .name = "Test: Punctuation",
+                .select = &ime_base_test_punct,
+            },
+            {
+                .name = "Test: Math",
+                .select = &ime_base_test_math,
+            },
+            {
+                .name = "Test: File",
+                .select = &ime_base_test_file,
             },
             MENU_EOL,
         },
@@ -128,6 +176,7 @@ static struct menu_entry ime_base_menu[] =
 
 static unsigned int ime_base_init()
 {
+    strcpy(ime_base_test_text, "test");
     menu_add("IME", ime_base_menu, COUNT(ime_base_menu));
     return 0;
 }

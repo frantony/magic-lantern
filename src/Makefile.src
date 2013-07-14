@@ -165,6 +165,8 @@ ML_SRC_OBJS = \
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 
+include $(TOP_DIR)/src/Makefile.src.config
+
 else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
@@ -174,8 +176,6 @@ ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
 endif
-
-include $(TOP_DIR)/src/Makefile.src.config
 
 include $(TOP_DIR)/Makefile.filerules
 
@@ -301,7 +301,7 @@ clean::
 	$(call rm_files, newlib-libc.a $(NEWLIB_OBJ) dietlibc.a)
 
 $(PLATFORM_DIR)/version.c: FORCE
-	$(call build,"VERSION",echo 'const char build_version[] = "$(VERSION)";') > $@
+	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
 	@echo 'const char build_id[] = "'`hg id`'";' >> $@
 	@echo 'const char build_date[] ="'`date -u "+%Y-%m-%d %H:%M:%S"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
