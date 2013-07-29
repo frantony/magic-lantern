@@ -142,6 +142,7 @@ fixwikilinks("userguide.rst")
 #system_or_exit("pandoc -f rst -t latex -o userguide-body.tex userguide.rst")
 system_or_exit(r"sed -i -e 's/^#.*$//g' userguide.rst")
 system_or_exit("%s userguide.rst --output-encoding=utf8 --template=ug-template-cam.tex --table-style booktabs > UserGuide-cam.tex" % (rst2latex,))
+system_or_exit("sed -i \"/\\\\label{[^}]*}%$/d\" UserGuide-cam.tex")
 #~ system_or_exit(r"sed -i -e 's/\\{\\{.*\\}\\}//g' UserGuide-cam.tex")
 sub("UserGuide-cam.tex", r"\\subsubsection", r"\\newpage\\subsubsection")
 sub("UserGuide-cam.tex", r"\\subsection", r"\\newpage\\subsection")
@@ -162,8 +163,7 @@ replace("UserGuide-cam.tex", r"""\newpage\subsection*{\phantomsection%
 
 
 #~ system_or_exit(r"sed -i -e 's/\\addcontentsline{toc}{section}{Features}//g' UserGuide-cam.tex")
-os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
-#~ os.system("lualatex -interaction=batchmode UserGuide-cam.tex")
+system_or_exit("lualatex -interaction=batchmode UserGuide-cam.tex")
 #system_or_exit(r"sed -i 's/\\{\\{clr\\}\\}//g' userguide-body.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
 #os.system("pdflatex -interaction=batchmode UserGuide-cam.tex")
@@ -176,7 +176,7 @@ os.system("mkdir cam")
 execfile("menuindex.py")
 
 print 'pdf to png...'
-os.system("pdftoppm -r 152.2 -png UserGuide-cam.pdf cam/page")
+system_or_exit("pdftoppm -r 152.2 -png UserGuide-cam.pdf cam/page")
 
 # from remap.py
 from pylab import *
