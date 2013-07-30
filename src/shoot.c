@@ -3078,7 +3078,7 @@ static void zoom_halfshutter_step()
             msleep(50);
             #endif
             int hs2 = get_halfshutter_pressed();
-            if (hs2 && lv_dispsize == 1 && display_idle())
+            if (hs2 && lv && lv_dispsize == 1 && display_idle())
             {
                 zoom_was_triggered_by_halfshutter = 1;
                 int zoom = zoom_disable_x10 ? 5 : 10;
@@ -6280,7 +6280,9 @@ static void misc_shooting_info()
         BMP_LOCK
         (
             display_shooting_info();
+            #ifndef FEATURE_FLEXINFO
             free_space_show_photomode();
+            #endif
         )
         #endif
     
