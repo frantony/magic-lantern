@@ -15,7 +15,7 @@
 #include "edmac.h"
 #include "asm.h"
 
-#ifdef FEATURE_DEBUG_INTERCEPT
+#ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
 #include "tp-spy.h"
 #endif
@@ -67,7 +67,7 @@ void ui_lock(int what);
 
 void fake_halfshutter_step();
 
-#ifdef FEATURE_DEBUG_INTERCEPT
+#ifdef CONFIG_DEBUG_INTERCEPT
 void j_debug_intercept() { debug_intercept(); }
 void j_tp_intercept() { tp_intercept(); }
 #endif
@@ -778,6 +778,14 @@ static void bsod()
 
 static void run_test()
 {
+
+#ifdef FEATURE_SHOW_SIGNATURE
+    console_show();
+    console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
+    msleep(1000);
+    return;
+#endif
+
     #ifdef CONFIG_EDMAC_MEMCPY
     msleep(2000);
     
@@ -807,12 +815,6 @@ static void run_test()
     call("aewb_enableaewb", 0);
     return;
     
-#ifdef FEATURE_SHOW_SIGNATURE
-    console_show();
-    console_printf("FW Signature 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
-    msleep(1000);
-#endif
-
 #if 0
     void exmem_test();
 
@@ -3537,7 +3539,7 @@ static struct menu_entry debug_menus[] = {
         .help = "The camera may turn into a 1DX or it may explode."
     },
 #endif
-#ifdef FEATURE_DEBUG_INTERCEPT
+#ifdef CONFIG_DEBUG_INTERCEPT
     {
         .name        = "DM Log",
         .priv        = j_debug_intercept,
@@ -3549,16 +3551,6 @@ static struct menu_entry debug_menus[] = {
         .priv        = j_tp_intercept,
         .select      = (void(*)(void*,int))run_in_separate_task,
         .help = "Log TryPostEvents"
-    },
-#endif
-#if defined(CONFIG_7D)
-    {
-        .name        = "LV dumping",
-        .priv = (int*) 0x60D8,
-        .max = 6,
-        .icon_type = IT_DICE_OFF,
-        .help = "Silent picture mode: simple, burst, continuous or high-resolution.",
-        .choices = (const char *[]) {"Disabled", "A:/.JPEG", "B:/.JPEG", "A:/.422", "B:/.422", "A:/.JPEG/.422", "B:/.JPEG/.422"},
     },
 #endif
 #ifdef CONFIG_ISO_TESTS
@@ -3625,7 +3617,7 @@ static struct menu_entry debug_menus[] = {
             #endif
             #if defined(CONFIG_7D)
             {
-                .name = "RPC reliability test (infinite loop)",
+                .name = "RPC reliability test (infinite)",
                 .select = (void(*)(void*,int))run_in_separate_task,
                 .priv = rpc_test_task,
                 .help = "Flood master with RPC requests and print delay. "
@@ -4227,7 +4219,7 @@ void config_save_at_shutdown()
 #endif
 }
 
-#ifdef FEATURE_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
+#ifdef CONFIG_INTERMEDIATE_ISO_INTERCEPT_SCROLLWHEEL
     #ifndef FEATURE_EXPO_ISO
     #error This requires FEATURE_EXPO_ISO.
     #endif
