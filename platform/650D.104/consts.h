@@ -73,7 +73,6 @@
 
 #define MVR_516_STRUCT (*(void**)0x2372C) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
 // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -91,7 +90,8 @@
 #define MOV_OPT_STEP 5
 #define MOV_GOP_OPT_STEP 5
 
-    #define AE_VALUE 0 // 404
+#define EXPO_COMP (*(int16_t*)0x366d4)
+#define AE_VALUE (EXPO_COMP-1) * 8 / 2048
 
 #define DLG_PLAY 1
 #define DLG_MENU 2

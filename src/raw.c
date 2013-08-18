@@ -123,6 +123,21 @@ void raw_buffer_intercept_from_stateobj()
 // #define USE_LV_AF_RAW
 #endif
 
+#ifdef CONFIG_700D
+/* http://www.magiclantern.fm/forum/index.php?topic=6658.0 */
+/* Lets remove those ugly pink dots :) */
+#define PREFERRED_RAW_TYPE 78
+#define RAW_TYPE_ADDRESS 0x351B8
+#endif
+
+/*
+// NOT WORKING
+#ifdef CONFIG_650D
+#define PREFERRED_RAW_TYPE 78
+#define RAW_TYPE_ADDRESS 0x350B4
+#endif
+*/
+
 /** 
  * White level
  * one size fits all: should work on most cameras and can't be wrong by more than 0.1 EV

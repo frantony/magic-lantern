@@ -1,10 +1,6 @@
 /*
  *  700D 1.1.1 consts
  */
- 
- /*
-  * Just a copy of the 650D stuff. Indented = WRONG
-  */
 
 #define CARD_DRIVE "B:/"
 #define CARD_LED_ADDRESS 0xC022C188 // like 5dm3 and EOS-M
@@ -74,7 +70,6 @@
 
 #define MVR_516_STRUCT (*(void**)0x23734) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
-#define MEM(x) (*(volatile int*)(x))
 #define div_maybe(a,b) ((a)/(b))
 
     // see mvrGetBufferUsage, which is not really safe to call => err70
@@ -92,7 +87,8 @@
     #define MOV_OPT_STEP 5
     #define MOV_GOP_OPT_STEP 5
 
-    #define AE_VALUE 0 // 404
+    #define EXPO_COMP (*(int16_t*)0x366D4)
+    #define AE_VALUE (EXPO_COMP-1) * 8 / 2048
 
     #define DLG_PLAY 1
     #define DLG_MENU 2
@@ -224,10 +220,10 @@
     #define Q_BTN_NAME "[Q]"
     #define ARROW_MODE_TOGGLE_KEY "DISP"
 
-#define DISPLAY_STATEOBJ (*(struct state_object **)0x23C20+0x10C)
+#define DISPLAY_STATEOBJ (*(struct state_object **)(0x23C20+0x10C))
 #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
 
-#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AE4) // Look for MAX_FRAMEDATA_DEBUGMEMBER then go up -> 0x25AA4 + 0x40
+#define VIDEO_PARAMETERS_SRC_3 MEM(0x25AF0)
 #define FRAME_ISO (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+0))
 #define FRAME_APERTURE (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+1))
 #define FRAME_SHUTTER (*(uint8_t*)(VIDEO_PARAMETERS_SRC_3+2))
