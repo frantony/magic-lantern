@@ -123,15 +123,19 @@ void raw_buffer_intercept_from_stateobj()
 // #define USE_LV_AF_RAW
 #endif
 
+/**
+ * RAW_TYPE 78 (and others) have a frame-wide green pattern on them
+ * ACR can clear them but also kills some details and does not do
+ * a good job in general. TL;DR Use pink dot remover.
+ * http://www.magiclantern.fm/forum/index.php?topic=6658.0
+ */
+
+/*
 #ifdef CONFIG_700D
-/* http://www.magiclantern.fm/forum/index.php?topic=6658.0 */
-/* Lets remove those ugly pink dots :) */
 #define PREFERRED_RAW_TYPE 78
 #define RAW_TYPE_ADDRESS 0x351B8
 #endif
 
-/*
-// NOT WORKING
 #ifdef CONFIG_650D
 #define PREFERRED_RAW_TYPE 78
 #define RAW_TYPE_ADDRESS 0x350B4
@@ -438,7 +442,7 @@ int raw_update_params()
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
-        skip_bottom = 4;
+        skip_bottom = 6;
         #endif
 
         #ifdef CONFIG_7D
